@@ -179,7 +179,7 @@ body {
 }
 
 .resume-quote {
-  margin-top: 8px;
+  margin-top: 6px;
   padding-top: 12px;
   padding-left: 2px;
   border-top: 1px solid var(--border-subtle);
@@ -188,8 +188,43 @@ body {
   font-style: italic;
   line-height: 1.55;
   color: var(--text-secondary);
-  max-width: 64ch;
+  max-width: 68ch;
   text-wrap: balance;
+}
+
+.resume-stack {
+  margin-top: 8px;
+  padding-top: 10px;
+  padding-left: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  font-size: clamp(0.8125rem, 0.95vw, 0.925rem);
+}
+
+.stack-label {
+  font-weight: 600;
+  color: var(--accent-primary);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.stack-items {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: clamp(0.78rem, 0.9vw, 0.875rem);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.stack-sep {
+  color: var(--border-dashed);
+  font-weight: 400;
+  user-select: none;
 }
 
 /* Canvas Sections */
@@ -280,6 +315,10 @@ code {
     flex-direction: column;
     text-align: center;
     gap: 20px;
+  }
+  .resume-stack,
+  .stack-items {
+    justify-content: center;
   }
   .placeholder-box {
     padding: 36px 20px;
