@@ -125,8 +125,11 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Mount /static and configure Jinja2 templates
+# Mount /static (and /assets if present) and configure Jinja2 templates
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+PUBLIC_ASSETS_DIR = os.path.join(BASE_DIR, "public", "assets")
+if os.path.isdir(PUBLIC_ASSETS_DIR):
+    app.mount("/assets", StaticFiles(directory=PUBLIC_ASSETS_DIR), name="assets")
 templates = Jinja2Templates(directory=TEMPLATES_DIR)
 
 
@@ -141,7 +144,7 @@ async def index(request: Request):
 
     context = {
         "request": request,
-        "page_title": "AI Automation Specialist & Tech VA Portfolio - Work in Progress",
+        "page_title": "Glennard Tasico — AI Automation Specialist & Web Application Developer",
         "glennbot_configured": bool(GLENNBOT_INTERNAL_API_KEY),
         "glennbot_base_url": GLENNBOT_API_BASE_URL,
     }
