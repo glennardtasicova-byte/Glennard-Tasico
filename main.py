@@ -215,7 +215,7 @@ async def index(request: Request):
 
     context = {
         "request": request,
-        "page_title": "Glennard Tasico — AI Automation Specialist & Web Application Developer",
+        "page_title": "GLENNARD TASICO",
         "glennbot_configured": bool(GLENNBOT_INTERNAL_API_KEY),
         "glennbot_base_url": GLENNBOT_API_BASE_URL,
     }
