@@ -14,7 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="/static/css/style.css?v=7" />
+  <link rel="stylesheet" href="/static/css/style.css?v=8" />
 </head>
 <body>
   <!-- Top Bar Navigation -->
@@ -93,7 +93,7 @@
           </p>
         </div>
 
-        <!-- What I Build (2x2 Web Cards Grid) -->
+        <!-- What I Build (Horizontal Split Web Cards Grid) -->
         <div class="cv-group">
           <div class="cv-subheading-row">
             <h3 class="cv-subheading">What I Build</h3>
@@ -102,71 +102,78 @@
           <div class="build-cards-grid">
             <!-- Card 1 -->
             <article class="web-card build-card">
-              <div class="web-card-top">
-                <div class="web-card-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="2" y="4" width="6" height="6" rx="1.5" />
-                    <rect x="16" y="4" width="6" height="6" rx="1.5" />
-                    <rect x="9" y="14" width="6" height="6" rx="1.5" />
-                    <path d="M8 7h8M12 7v7" />
-                  </svg>
-                </div>
-                <span class="web-card-index">01</span>
+              <div class="build-card-logo" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="3" width="6" height="6" rx="1.5" />
+                  <rect x="16" y="3" width="6" height="6" rx="1.5" />
+                  <rect x="9" y="15" width="6" height="6" rx="1.5" />
+                  <path d="M8 6h8" />
+                  <path d="M5 9v3a3 3 0 0 0 3 3h1" />
+                  <path d="M19 9v3a3 3 0 0 1-3 3h-1" />
+                  <circle cx="12" cy="6" r="1.2" fill="currentColor" />
+                </svg>
               </div>
-              <h4 class="web-card-title">Workflow &amp; Webhook Automation</h4>
-              <p class="web-card-desc">
-                24/7 automated pipelines using n8n, custom REST APIs (<code>/api/v1</code>), and real-time event webhooks.
-              </p>
+              <div class="build-card-body">
+                <h4 class="web-card-title">Workflow &amp; Webhook Automation</h4>
+                <p class="web-card-desc">
+                  24/7 automated pipelines using n8n, custom REST APIs (<code>/api/v1</code>), and real-time event webhooks.
+                </p>
+              </div>
             </article>
 
             <!-- Card 2 -->
             <article class="web-card build-card">
-              <div class="web-card-top">
-                <div class="web-card-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <path d="M3 9h18M9 21V9" />
-                  </svg>
-                </div>
-                <span class="web-card-index">02</span>
+              <div class="build-card-logo" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="3" width="20" height="18" rx="2.5" />
+                  <path d="M2 8h20" />
+                  <path d="M8 21V8" />
+                  <path d="M12 17v-3" />
+                  <path d="M15.5 17v-5" />
+                  <path d="M19 17v-2" />
+                </svg>
               </div>
-              <h4 class="web-card-title">Custom Web Dashboards</h4>
-              <p class="web-card-desc">
-                Fast, responsive internal tools and CRM interfaces built with Python (FastAPI), modern JavaScript, and Tailwind CSS.
-              </p>
+              <div class="build-card-body">
+                <h4 class="web-card-title">Custom Web Dashboards</h4>
+                <p class="web-card-desc">
+                  Fast, responsive internal tools and CRM interfaces built with Python (FastAPI), modern JavaScript, and Tailwind CSS.
+                </p>
+              </div>
             </article>
 
             <!-- Card 3 -->
             <article class="web-card build-card">
-              <div class="web-card-top">
-                <div class="web-card-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                    <circle cx="12" cy="12" r="3" />
-                  </svg>
-                </div>
-                <span class="web-card-index">03</span>
+              <div class="build-card-logo" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" />
+                  <path d="M19 16l.9 2.1L22 19l-2.1.9L19 22l-.9-2.1L16 19l2.1-.9L19 16z" />
+                  <path d="M5 17l.6 1.4L7 19l-1.4.6L5 21l-.6-1.4L3 19l1.4-.6L5 17z" />
+                </svg>
               </div>
-              <h4 class="web-card-title">AI Integration</h4>
-              <p class="web-card-desc">
-                Context-aware caption generators, smart inbox auto-replies, and AI workflow architects powered by the Google Gemini API.
-              </p>
+              <div class="build-card-body">
+                <h4 class="web-card-title">AI Integration</h4>
+                <p class="web-card-desc">
+                  Context-aware caption generators, smart inbox auto-replies, and AI workflow architects powered by the Google Gemini API.
+                </p>
+              </div>
             </article>
 
             <!-- Card 4 -->
             <article class="web-card build-card">
-              <div class="web-card-top">
-                <div class="web-card-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
-                  </svg>
-                </div>
-                <span class="web-card-index">04</span>
+              <div class="build-card-logo" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" />
+                  <path d="M10 13l-2 2 2 2" />
+                  <path d="M14 17l2-2-2-2" />
+                  <path d="M8 15h8" />
+                </svg>
               </div>
-              <h4 class="web-card-title">Omnichannel &amp; Cloud Sync</h4>
-              <p class="web-card-desc">
-                Unified CRM, Email (IMAP/SMTP), SMS (TextBee), Calendar/Meet booking, and two-way Google Drive &amp; Spreadsheet sync.
-              </p>
+              <div class="build-card-body">
+                <h4 class="web-card-title">Omnichannel Social, Comms &amp; Cloud Sync</h4>
+                <p class="web-card-desc">
+                  Multi-platform social scheduling &amp; inbox (FB, IG, TikTok, YouTube), Email (IMAP/SMTP), SMS (TextBee), Calendar booking, and Google Drive / Spreadsheet sync.
+                </p>
+              </div>
             </article>
           </div>
         </div>
