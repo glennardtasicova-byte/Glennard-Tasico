@@ -14,7 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="/static/css/style.css?v=8" />
+  <link rel="stylesheet" href="/static/css/style.css?v=9" />
 </head>
 <body>
   <!-- Top Bar Navigation -->
@@ -27,7 +27,7 @@
         <a href="/health" class="nav-link" target="_blank" rel="noopener">Health Check</a>
       </nav>
       <div class="header-action">
-        <a href="#interactive-widgets" class="btn-outline">Blank Canvas Starter</a>
+        <a href="#interactive-widgets" class="btn-outline">Try Live Widgets &rarr;</a>
       </div>
     </div>
   </header>
@@ -51,29 +51,31 @@
           <p class="resume-quote">
             &ldquo;Building intelligent automations and scalable web solutions that turn manual workflows into seamless digital experiences.&rdquo;
           </p>
-          <div class="resume-stack" aria-label="Tech Stack and Tools">
-            <span class="stack-label">Tech Stack &amp; Tools:</span>
-            <span class="stack-items">
-              <span>Python</span>
-              <span class="stack-sep" aria-hidden="true">|</span>
-              <span>FastAPI</span>
-              <span class="stack-sep" aria-hidden="true">|</span>
-              <span>JavaScript &amp; Tailwind</span>
-              <span class="stack-sep" aria-hidden="true">|</span>
-              <span>n8n</span>
-              <span class="stack-sep" aria-hidden="true">|</span>
-              <span>PostgreSQL (Supabase)</span>
-              <span class="stack-sep" aria-hidden="true">|</span>
-              <span>Gemini AI API</span>
-              <span class="stack-sep" aria-hidden="true">|</span>
-              <span>Google Drive &amp; Workspace APIs</span>
-              <span class="stack-sep" aria-hidden="true">|</span>
-              <span>Cloudinary</span>
-              <span class="stack-sep" aria-hidden="true">|</span>
-              <span>REST APIs &amp; Webhooks</span>
-              <span class="stack-sep" aria-hidden="true">|</span>
-              <span>Render</span>
-            </span>
+          <div class="hero-actions-bar">
+            <div class="hero-cta-group">
+              <a href="#interactive-widgets" class="btn-hero-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+                <span>Test Live Automation Widgets</span>
+              </a>
+              <a href="/cv/download" class="btn-hero-secondary" download="Glennard_Tasico_CV.pdf">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="12" y1="18" x2="12" y2="12" />
+                  <polyline points="9 15 12 18 15 15" />
+                </svg>
+                <span>Download CV / Resume</span>
+              </a>
+            </div>
+            <div class="hero-social-links" aria-label="Social and Contact Links">
+              <a href="https://github.com/glennardtasico" target="_blank" rel="noopener noreferrer" class="hero-social-link">GitHub</a>
+              <span class="social-sep" aria-hidden="true">&bull;</span>
+              <a href="https://www.linkedin.com/in/glennard-tasico" target="_blank" rel="noopener noreferrer" class="hero-social-link">LinkedIn</a>
+              <span class="social-sep" aria-hidden="true">&bull;</span>
+              <a href="mailto:sccmoldgroup@gmail.com" class="hero-social-link">Email</a>
+            </div>
           </div>
         </div>
       </div>
@@ -81,16 +83,35 @@
 
     <!-- Section 1: About Me Section -->
     <section id="about-cv" class="canvas-section" aria-labelledby="about-cv-heading">
-      <div class="section-header">
-        <span class="section-index">01. Profile &amp; Curriculum Vitae</span>
-        <h2 id="about-cv-heading" class="section-title">About Me</h2>
+      <div class="section-header section-header-split">
+        <div class="section-header-titles">
+          <span class="section-index">01. Profile &amp; Curriculum Vitae</span>
+          <h2 id="about-cv-heading" class="section-title">About Me</h2>
+        </div>
+        <a href="/cv/download" class="btn-section-cv" download="Glennard_Tasico_CV.pdf">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          <span>Download Full CV (PDF)</span>
+        </a>
       </div>
       <div class="placeholder-box cv-card">
-        <!-- Bio -->
+        <!-- Bio & Experience Role Timeline -->
         <div class="cv-group">
           <p class="cv-intro-text">
             I am an <strong>AI Automation Specialist &amp; Full-Stack Web Developer</strong> who builds custom web dashboards and 24/7 automation workflows that eliminate repetitive manual work. I architected and engineered <strong>GlennBot Automations</strong>&mdash;an all-in-one operations platform combining AI content generation, multi-platform social scheduling, a unified omnichannel inbox, cloud spreadsheet sync, and n8n webhook orchestration. <em>You can test its core engines live through the interactive widgets below.</em>
           </p>
+          <div class="experience-timeline-bar">
+            <div class="experience-role-main">
+              <span class="experience-marker" aria-hidden="true"></span>
+              <span class="experience-title">AI Automation &amp; Web Developer</span>
+              <span class="experience-divider" aria-hidden="true">|</span>
+              <span class="experience-org">Creator of GlennBot Automations</span>
+            </div>
+            <span class="experience-period">2024 &ndash; Present</span>
+          </div>
         </div>
 
         <!-- What I Build (Horizontal Split Web Cards Grid) -->
@@ -292,8 +313,8 @@
   <footer class="site-footer">
     <div class="container footer-inner">
       <span>AI Automation Specialist &amp; Tech VA Portfolio</span>
-      <span>·</span>
-      <span>FastAPI Blank Canvas Starter</span>
+      <span>&middot;</span>
+      <span>Powered by GlennBot Automations &amp; FastAPI</span>
     </div>
   </footer>
 

@@ -229,6 +229,82 @@ async def index(request: Request):
         return templates.TemplateResponse("index.html", context)
 
 
+from fastapi.responses import Response
+
+
+def _build_cv_pdf_bytes() -> bytes:
+    """Builds a clean, valid 1-page PDF resume for Glennard Tasico using pure Python."""
+    lines = [
+        ("F2", 18, 50, 760, "GLENNARD TASICO"),
+        ("F1", 11, 50, 742, "AI Automation Specialist & Full-Stack Web Application Developer"),
+        ("F1", 9, 50, 726, "Email: sccmoldgroup@gmail.com  |  GitHub: github.com/glennardtasico  |  Portfolio: GlennBot Automations"),
+        ("F2", 12, 50, 696, "ABOUT ME"),
+        ("F1", 9.5, 50, 680, "AI Automation Specialist & Full-Stack Web Developer building custom web dashboards and 24/7"),
+        ("F1", 9.5, 50, 667, "automation workflows that eliminate repetitive manual work. Architected and engineered GlennBot"),
+        ("F1", 9.5, 50, 654, "Automations - an all-in-one operations platform combining AI content generation, multi-platform"),
+        ("F1", 9.5, 50, 641, "social scheduling, unified omnichannel inbox, cloud spreadsheet sync, and n8n webhook orchestration."),
+        ("F2", 12, 50, 612, "EXPERIENCE & FEATURED ARCHITECTURE"),
+        ("F2", 10, 50, 596, "AI Automation & Full-Stack Web Developer | Creator of GlennBot Automations (2024 - Present)"),
+        ("F1", 9.5, 62, 581, "- Engineered 24/7 automated pipelines using n8n, custom FastAPI REST APIs (/api/v1), and webhooks."),
+        ("F1", 9.5, 62, 568, "- Built responsive internal tools, CRM dashboards, and cloud spreadsheet sync with Python & JS."),
+        ("F1", 9.5, 62, 555, "- Integrated Google Gemini API for context-aware caption generation, smart inbox auto-replies, and AI workflows."),
+        ("F1", 9.5, 62, 542, "- Unified omnichannel social scheduling & inbox (FB, IG, TikTok, YouTube), IMAP/SMTP Email, TextBee SMS,"),
+        ("F1", 9.5, 70, 529, "Composio Calendar/Meet booking, and two-way Google Drive / Spreadsheet synchronization."),
+        ("F2", 12, 50, 500, "WHAT I BUILD"),
+        ("F1", 9.5, 62, 484, "- Workflow & Webhook Automation: 24/7 automated pipelines using n8n, custom REST APIs (/api/v1), webhooks."),
+        ("F1", 9.5, 62, 471, "- Custom Web Dashboards: Fast, responsive internal tools and CRM interfaces (FastAPI, JS, Tailwind CSS)."),
+        ("F1", 9.5, 62, 458, "- AI Integration: Context-aware caption generators, smart inbox auto-replies, Gemini API workflows."),
+        ("F1", 9.5, 62, 445, "- Omnichannel Social, Comms & Cloud Sync: Multi-platform social, Email, SMS, Calendar, Drive/Sheets sync."),
+        ("F2", 12, 50, 416, "CORE TECH STACK"),
+        ("F1", 9.5, 62, 400, "- Backend & Database: Python, FastAPI, SQLAlchemy, PostgreSQL (Supabase), Cloudinary"),
+        ("F1", 9.5, 62, 387, "- Frontend: JavaScript (ES6+), HTML5, Tailwind CSS"),
+        ("F1", 9.5, 62, 374, "- AI & Automation: n8n, Google Gemini API, REST APIs, Webhooks, APScheduler"),
+        ("F1", 9.5, 62, 361, "- Integrations & Cloud: Google Drive API, Composio (Calendar/Meet/Zoom), TextBee SMS, Zernio, Render"),
+    ]
+    stream_cmds = ["BT"]
+    for font_key, size, x, y, text in lines:
+        safe_text = text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+        stream_cmds.append(f"/{font_key} {size} Tf 1 0 0 1 {x} {y} Tm ({safe_text}) Tj")
+    stream_cmds.append("ET")
+    content_bytes = "\n".join(stream_cmds).encode("latin-1", errors="replace")
+
+    objs = [
+        b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+        b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+        b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>\nendobj\n",
+        b"4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
+        b"5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n",
+        f"6 0 obj\n<< /Length {len(content_bytes)} >>\nstream\n".encode("latin-1") + content_bytes + b"\nendstream\nendobj\n",
+    ]
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for obj in objs:
+        offsets.append(len(out))
+        out.extend(obj)
+    xref_pos = len(out)
+    out.extend(f"xref\n0 {len(objs) + 1}\n0000000000 65535 f \n".encode("latin-1"))
+    for off in offsets:
+        out.extend(f"{off:010d} 00000 n \n".encode("latin-1"))
+    out.extend(
+        f"trailer\n<< /Size {len(objs) + 1} /Root 1 0 R >>\nstartxref\n{xref_pos}\n%%EOF\n".encode("latin-1")
+    )
+    return bytes(out)
+
+
+@app.api_route("/cv/download", methods=["GET", "HEAD"])
+async def download_cv():
+    """Serves a downloadable PDF Resume/CV for Glennard Tasico."""
+    pdf_bytes = _build_cv_pdf_bytes()
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": 'attachment; filename="Glennard_Tasico_CV.pdf"',
+            "Cache-Control": "no-cache",
+        },
+    )
+
+
 @app.api_route("/health", methods=["GET", "HEAD"])
 @app.api_route("/api/health", methods=["GET", "HEAD"])
 async def health_check():
