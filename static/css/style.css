@@ -1,11 +1,11 @@
 :root,
 [data-theme="dark"] {
   --bg-canvas: #0b0d17;
-  --bg-surface: #121629;
+  --bg-surface: rgba(18, 22, 41, 0.86);
   --bg-surface-elevated: #161b33;
   --bg-header: rgba(16, 19, 34, 0.88);
-  --bg-placeholder: #15192e;
-  --bg-hero: linear-gradient(135deg, #0d101f 0%, #13172b 60%, #0f1324 100%);
+  --bg-placeholder: rgba(21, 25, 46, 0.86);
+  --bg-hero: linear-gradient(135deg, rgba(13, 16, 31, 0.92) 0%, rgba(19, 23, 43, 0.9) 60%, rgba(15, 19, 36, 0.92) 100%);
   --bg-card: linear-gradient(145deg, #161c36 0%, #101426 100%);
   --bg-cv-sheet: linear-gradient(145deg, #11162b 0%, #0d1122 100%);
   --bg-timeline-row: rgba(15, 23, 42, 0.72);
@@ -48,11 +48,11 @@
 
 [data-theme="light"] {
   --bg-canvas: #ede6d8;
-  --bg-surface: #f5f0e6;
+  --bg-surface: rgba(245, 240, 230, 0.86);
   --bg-surface-elevated: #faf7f0;
   --bg-header: rgba(245, 240, 230, 0.92);
-  --bg-placeholder: #f5f0e6;
-  --bg-hero: linear-gradient(135deg, #faf7f0 0%, #f3ede0 58%, #e6efe9 100%);
+  --bg-placeholder: rgba(245, 240, 230, 0.86);
+  --bg-hero: linear-gradient(135deg, rgba(250, 247, 240, 0.93) 0%, rgba(243, 237, 224, 0.9) 58%, rgba(230, 239, 233, 0.92) 100%);
   --bg-card: linear-gradient(145deg, #fbf9f4 0%, #f4efe4 100%);
   --bg-cv-sheet: #faf7f0;
   --bg-timeline-row: #fbf9f4;
@@ -103,6 +103,7 @@ html {
 }
 
 body {
+  position: relative;
   font-family: var(--font-sans);
   background-color: var(--bg-canvas);
   color: var(--text-primary);
@@ -112,6 +113,17 @@ body {
   flex-direction: column;
   -webkit-font-smoothing: antialiased;
   transition: background-color 180ms ease, color 180ms ease;
+}
+
+/* Full-Viewport Animated Moving Circuit Background Canvas */
+.circuit-bg-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
 }
 
 .container {
@@ -249,6 +261,8 @@ body {
 
 /* Main Content */
 .main-content {
+  position: relative;
+  z-index: 1;
   flex: 1;
   padding-top: clamp(24px, 3vw, 40px);
   padding-bottom: clamp(40px, 5vw, 64px);
@@ -262,6 +276,8 @@ body {
   position: relative;
   overflow: hidden;
   background: var(--bg-hero);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
   padding: clamp(24px, 3.5vw, 44px) clamp(24px, 4vw, 56px);
@@ -275,6 +291,117 @@ body {
   display: flex;
   align-items: center;
   gap: clamp(24px, 4vw, 56px);
+}
+
+/* Animated SVG Circuit Traces inside Hero Banner (Light & Dark Mode) */
+.hero-circuit-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  user-select: none;
+  overflow: hidden;
+}
+
+.hero-circuit-overlay svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hero-circuit-overlay .circuit-base-lines {
+  color: rgba(0, 214, 155, 0.12);
+}
+
+[data-theme="light"] .hero-circuit-overlay .circuit-base-lines {
+  color: rgba(5, 150, 105, 0.16);
+}
+
+.hero-circuit-overlay .circuit-pulse-lines path {
+  stroke: #00d69b;
+  stroke-dasharray: 85 460;
+  stroke-dashoffset: 545;
+  filter: drop-shadow(0 0 6px rgba(0, 214, 155, 0.55));
+  animation: heroCircuitFlow 6.5s linear infinite;
+}
+
+.hero-circuit-overlay .circuit-pulse-lines .circuit-flow-2,
+.hero-circuit-overlay .circuit-pulse-lines .circuit-flow-4,
+.hero-circuit-overlay .circuit-pulse-lines .circuit-flow-6 {
+  stroke: #0ce6ff;
+  filter: drop-shadow(0 0 6px rgba(12, 230, 255, 0.55));
+}
+
+[data-theme="light"] .hero-circuit-overlay .circuit-pulse-lines path {
+  stroke: #059669;
+  filter: drop-shadow(0 0 4px rgba(5, 150, 105, 0.35));
+}
+
+[data-theme="light"] .hero-circuit-overlay .circuit-pulse-lines .circuit-flow-2,
+[data-theme="light"] .hero-circuit-overlay .circuit-pulse-lines .circuit-flow-4,
+[data-theme="light"] .hero-circuit-overlay .circuit-pulse-lines .circuit-flow-6 {
+  stroke: #0284c7;
+  filter: drop-shadow(0 0 4px rgba(2, 132, 199, 0.35));
+}
+
+.hero-circuit-overlay .circuit-flow-2 {
+  animation-duration: 7.4s;
+  animation-delay: -1.8s;
+}
+.hero-circuit-overlay .circuit-flow-3 {
+  animation-duration: 5.2s;
+  animation-delay: -3.1s;
+}
+.hero-circuit-overlay .circuit-flow-4 {
+  animation-duration: 6.8s;
+  animation-delay: -0.9s;
+}
+.hero-circuit-overlay .circuit-flow-5 {
+  animation-duration: 7.8s;
+  animation-delay: -4.2s;
+}
+.hero-circuit-overlay .circuit-flow-6 {
+  animation-duration: 5.8s;
+  animation-delay: -2.4s;
+}
+.hero-circuit-overlay .circuit-flow-7 {
+  animation-duration: 6.2s;
+  animation-delay: -3.7s;
+}
+
+.hero-circuit-overlay .circuit-nodes circle {
+  fill: rgba(0, 214, 155, 0.38);
+  animation: heroNodePulse 3.2s ease-in-out infinite alternate;
+}
+
+[data-theme="light"] .hero-circuit-overlay .circuit-nodes circle {
+  fill: rgba(5, 150, 105, 0.45);
+}
+
+@keyframes heroCircuitFlow {
+  0% {
+    stroke-dashoffset: 545;
+    opacity: 0.2;
+  }
+  15% {
+    opacity: 0.9;
+  }
+  85% {
+    opacity: 0.9;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0.2;
+  }
+}
+
+@keyframes heroNodePulse {
+  0% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0.95;
+  }
 }
 
 /* Transparent Pass-Through GlennBot Watermark on Right Portion of Hero */
@@ -392,9 +519,9 @@ body {
   padding-top: 14px;
   padding-left: 2px;
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 14px 24px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .hero-cta-group {
@@ -468,28 +595,44 @@ body {
 
 .hero-social-links {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  font-size: 0.85rem;
-  font-weight: 500;
+  gap: 8px;
 }
 
 .hero-social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
   color: var(--text-secondary);
+  background-color: var(--bg-btn-secondary);
+  border: 1px solid var(--border-btn-secondary);
+  padding: 6px 11px;
+  border-radius: 8px;
   text-decoration: none;
   white-space: nowrap;
-  transition: color 150ms ease;
+  transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1), color 150ms ease, border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.hero-social-link svg {
+  width: 14px;
+  height: 14px;
+  color: var(--accent-primary);
+  flex-shrink: 0;
+  transition: color 150ms ease, transform 150ms ease;
 }
 
 .hero-social-link:hover {
+  transform: translateY(-2px);
   color: var(--accent-primary);
-  text-decoration: underline;
-  text-underline-offset: 4px;
+  border-color: var(--accent-primary);
+  background-color: var(--bg-section-cv);
 }
 
-.social-sep {
-  color: var(--sep-color);
-  user-select: none;
+.hero-social-link:hover svg {
+  transform: scale(1.08);
 }
 
 /* Canvas Sections */
@@ -943,6 +1086,8 @@ code {
 
 /* Footer */
 .site-footer {
+  position: relative;
+  z-index: 1;
   border-top: 1px solid var(--border-subtle);
   background-color: var(--bg-header);
   padding: 20px 0;
@@ -1021,6 +1166,8 @@ code {
 }
 
 .cv-document-wrapper {
+  position: relative;
+  z-index: 1;
   max-width: 980px;
   margin: 0 auto;
   padding: 32px 20px 64px;
@@ -1349,7 +1496,9 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
     text-align: center;
     gap: 20px;
   }
-  .hero-actions-bar,
+  .hero-actions-bar {
+    align-items: center;
+  }
   .hero-cta-group,
   .hero-social-links {
     justify-content: center;
