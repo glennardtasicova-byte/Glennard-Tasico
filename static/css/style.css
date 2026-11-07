@@ -259,6 +259,8 @@ body {
 
 /* Hero / Resume Header Card */
 .hero-placeholder {
+  position: relative;
+  overflow: hidden;
   background: var(--bg-hero);
   border: 1px solid var(--border-subtle);
   border-radius: 16px;
@@ -268,9 +270,56 @@ body {
 }
 
 .resume-header-inner {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: clamp(24px, 4vw, 56px);
+}
+
+/* Transparent Pass-Through GlennBot Watermark on Right Portion of Hero */
+.hero-brand-watermark {
+  position: absolute;
+  right: clamp(24px, 4.2vw, 64px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: clamp(185px, 20.5vw, 276px);
+  height: clamp(185px, 20.5vw, 276px);
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.24;
+  -webkit-mask-image: radial-gradient(circle at 52% 50%, rgba(0, 0, 0, 1) 48%, rgba(0, 0, 0, 0.65) 82%, rgba(0, 0, 0, 0) 100%);
+  mask-image: radial-gradient(circle at 52% 50%, rgba(0, 0, 0, 1) 48%, rgba(0, 0, 0, 0.65) 82%, rgba(0, 0, 0, 0) 100%);
+  filter: drop-shadow(0 0 22px rgba(12, 230, 255, 0.18));
+  transition: opacity 220ms ease, filter 220ms ease;
+}
+
+[data-theme="light"] .hero-brand-watermark {
+  opacity: 0.2;
+  filter: drop-shadow(0 4px 16px rgba(5, 150, 105, 0.12));
+}
+
+.hero-watermark-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.hero-watermark-light {
+  display: none;
+}
+
+[data-theme="light"] .hero-watermark-dark {
+  display: none;
+}
+
+[data-theme="light"] .hero-watermark-light {
+  display: block;
 }
 
 .profile-avatar-frame {
@@ -1279,6 +1328,12 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   .cv-sheet-stack-row {
     grid-template-columns: 1fr;
     gap: 2px;
+  }
+  .hero-brand-watermark {
+    opacity: 0.09;
+    right: 16px;
+    width: 150px;
+    height: 150px;
   }
 }
 
