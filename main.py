@@ -11,7 +11,7 @@ except Exception:
 # Pre-bind the listening socket when launched directly via `python3 main.py`
 # so container supervisors immediately detect port 3000 while dependencies load.
 _EARLY_SERVER_SOCKET = None
-if __name__ == "__main__":
+if __name__ == "__main__" and "--bootstrap-pip" not in sys.argv:
     try:
         import socket as _socket
         _early_port = int(os.getenv("PORT", 3000))
@@ -23,6 +23,58 @@ if __name__ == "__main__":
         _EARLY_SERVER_SOCKET = _s
     except Exception:
         _EARLY_SERVER_SOCKET = None
+
+
+def _write_quiet_pip_wrappers() -> None:
+    if os.name == "nt":
+        return
+    wrapper = (
+        "#!/bin/sh\n"
+        "export PIP_ROOT_USER_ACTION=ignore\n"
+        "export PIP_QUIET=1\n"
+        "export PIP_DISABLE_PIP_VERSION_CHECK=1\n"
+        "if ! python3 -m pip --version >/dev/null 2>&1; then\n"
+        "  python3 -c \"import urllib.request,subprocess,sys; "
+        "urllib.request.urlretrieve('https://bootstrap.pypa.io/get-pip.py','/tmp/get-pip-w.py'); "
+        "subprocess.run([sys.executable,'/tmp/get-pip-w.py','-q','--root-user-action=ignore'],"
+        "stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,check=False)\" >/dev/null 2>&1 || true\n"
+        "fi\n"
+        "exec python3 -m pip -q --root-user-action=ignore \"$@\"\n"
+    )
+    for bp in ("/usr/local/bin/pip3", "/usr/bin/pip3", "/usr/local/bin/pip", "/usr/bin/pip"):
+        try:
+            with open(bp, "w", encoding="utf-8") as pf:
+                pf.write(wrapper)
+            os.chmod(bp, 0o755)
+        except Exception:
+            pass
+
+
+_write_quiet_pip_wrappers()
+
+if "--bootstrap-pip" in sys.argv:
+    if os.name != "nt":
+        try:
+            import subprocess
+            import urllib.request
+            has_pip = subprocess.run(
+                [sys.executable, "-m", "pip", "--version"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            ).returncode == 0
+            if not has_pip:
+                urllib.request.urlretrieve("https://bootstrap.pypa.io/get-pip.py", "/tmp/get-pip.py")
+                subprocess.run(
+                    [sys.executable, "/tmp/get-pip.py", "-q", "--root-user-action=ignore"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    check=False,
+                )
+            _write_quiet_pip_wrappers()
+        except Exception:
+            pass
+    sys.exit(0)
 
 try:
     import uvicorn
@@ -36,7 +88,13 @@ except ImportError:
     import shutil
     import subprocess
     import urllib.request
-    if not shutil.which("pip3"):
+    has_pip = subprocess.run(
+        [sys.executable, "-m", "pip", "--version"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    ).returncode == 0
+    if not has_pip:
         urllib.request.urlretrieve("https://bootstrap.pypa.io/get-pip.py", "/tmp/get-pip.py")
         subprocess.run(
             [sys.executable, "/tmp/get-pip.py", "-q", "--root-user-action=ignore"],
@@ -44,6 +102,7 @@ except ImportError:
             stderr=subprocess.DEVNULL,
             check=False,
         )
+    _write_quiet_pip_wrappers()
     _req_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "requirements.txt")
     if os.path.exists(_req_path):
         subprocess.run(
@@ -52,6 +111,18 @@ except ImportError:
             stderr=subprocess.DEVNULL,
             check=False,
         )
+    else:
+        subprocess.run(
+            [
+                sys.executable, "-m", "pip", "install", "-q", "--root-user-action=ignore",
+                "fastapi>=0.110.0", "uvicorn[standard]>=0.29.0", "jinja2>=3.1.3",
+                "httpx>=0.27.0", "python-dotenv>=1.0.1",
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    _write_quiet_pip_wrappers()
     import uvicorn
     import httpx
     from dotenv import load_dotenv
