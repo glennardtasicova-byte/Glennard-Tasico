@@ -265,7 +265,7 @@ body {
 
 .placeholder-box {
   background-color: var(--bg-surface);
-  border: 1px dashed var(--border-dashed);
+  border: 1px dashed #334168;
   border-radius: 14px;
   padding: 48px 32px;
   text-align: center;
@@ -276,6 +276,75 @@ body {
   gap: 10px;
   min-height: 200px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.placeholder-box.cv-card,
+.cv-card {
+  background-color: var(--bg-surface);
+  border: 1px dashed #334168;
+  border-radius: 14px;
+  padding: clamp(28px, 3.5vw, 40px) clamp(24px, 3.5vw, 44px);
+  min-height: 200px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.cv-skills-list {
+  list-style: none;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cv-skill-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  font-size: clamp(0.925rem, 1.05vw, 1.025rem);
+  line-height: 1.6;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cv-skill-item:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.cv-skill-bullet {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-top: 8px;
+  border-radius: 2px;
+  background-color: var(--accent-primary);
+  box-shadow: 3px -3px 0 var(--accent-secondary);
+  color: transparent;
+  font-size: 0;
+  flex-shrink: 0;
+}
+
+.cv-skill-content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+}
+
+.cv-skill-category {
+  font-weight: 600;
+  color: var(--accent-primary);
+  white-space: nowrap;
+}
+
+.cv-skill-values {
+  color: #e2e8f0;
+  font-weight: 400;
 }
 
 .placeholder-title {
