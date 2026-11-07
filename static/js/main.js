@@ -1,4 +1,4 @@
-// Portfolio Theme Switcher (Light / Dark Mode), Viewport-Aware Scroll Reveal & Animated Circuit Engine
+// Portfolio Theme Switcher, Viewport-Aware Scroll Reveal, Role Typing Illumination & Animated Circuit Engine
 (function () {
   const STORAGE_KEY = "glenn_portfolio_theme";
 
@@ -51,6 +51,101 @@
     }
   }
 
+  function initRoleTypingEffect() {
+    const roleEl = document.getElementById("hero-typing-role");
+    if (!roleEl || roleEl.dataset.typingInitialized) return;
+    roleEl.dataset.typingInitialized = "true";
+
+    const fullText = (
+      roleEl.getAttribute("data-typing-text") ||
+      roleEl.textContent ||
+      "AI Automation Specialist & Web Application Developer"
+    ).trim();
+
+    roleEl.setAttribute("aria-label", fullText);
+    roleEl.textContent = "";
+
+    const charSpans = [];
+    const words = fullText.split(" ");
+
+    words.forEach((word, wIdx) => {
+      const wordWrap = document.createElement("span");
+      wordWrap.className = "role-word";
+      wordWrap.setAttribute("aria-hidden", "true");
+
+      for (let i = 0; i < word.length; i++) {
+        const chSpan = document.createElement("span");
+        chSpan.className = "role-char";
+        chSpan.textContent = word[i];
+        wordWrap.appendChild(chSpan);
+        charSpans.push(chSpan);
+      }
+
+      roleEl.appendChild(wordWrap);
+
+      if (wIdx < words.length - 1) {
+        const spaceSpan = document.createElement("span");
+        spaceSpan.className = "role-char role-space";
+        spaceSpan.setAttribute("aria-hidden", "true");
+        spaceSpan.textContent = " ";
+        roleEl.appendChild(spaceSpan);
+        charSpans.push(spaceSpan);
+      }
+    });
+
+    if (!charSpans.length) return;
+
+    const prefersReducedMotion =
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (prefersReducedMotion) {
+      charSpans.forEach((sp) => sp.classList.add("is-lit"));
+      charSpans[charSpans.length - 1].classList.add("is-caret-pos");
+      return;
+    }
+
+    const TYPING_SPEED_MS = 48; // Normal per-letter typing speed
+    const REPEAT_DELAY_MS = 5000; // Wait 5 seconds before repeating the typing cycle
+    let currentIdx = -1;
+
+    function setCaretAt(index) {
+      for (let i = 0; i < charSpans.length; i++) {
+        if (i === index) {
+          charSpans[i].classList.add("is-caret-pos");
+        } else {
+          charSpans[i].classList.remove("is-caret-pos");
+        }
+      }
+    }
+
+    function startTypingPass() {
+      // Reset all letters to dim/faint ("malabo / matamlay na kulay") while keeping the full word intact
+      for (let i = 0; i < charSpans.length; i++) {
+        charSpans[i].classList.remove("is-lit", "is-caret-pos");
+      }
+      currentIdx = 0;
+
+      function stepLetter() {
+        if (currentIdx < charSpans.length) {
+          charSpans[currentIdx].classList.add("is-lit");
+          setCaretAt(currentIdx);
+          currentIdx++;
+          window.setTimeout(stepLetter, TYPING_SPEED_MS);
+        } else {
+          // Keep blinking "|" at the end of the fully lit title for 5 seconds, then replay
+          setCaretAt(charSpans.length - 1);
+          window.setTimeout(startTypingPass, REPEAT_DELAY_MS);
+        }
+      }
+
+      stepLetter();
+    }
+
+    // Start the first typing pass right as Step 3 ("AI Automation Specialist & Web Application Developer") floats in
+    window.setTimeout(startTypingPass, 580);
+  }
+
   function initScrollReveal() {
     const revealItems = Array.from(document.querySelectorAll(".scroll-reveal"));
     if (!revealItems.length) return;
@@ -71,6 +166,11 @@
       );
       const delayMs = Number.isFinite(rawDelay) ? Math.max(0, rawDelay) : 0;
       el.style.setProperty("--reveal-delay", `${delayMs}ms`);
+
+      // Keep the Hero outer card container visible at t=0 so its inner .hero-intro-item elements play their sequential float-in cleanly
+      if (el.classList.contains("resume-header-card")) {
+        el.classList.add("is-visible");
+      }
     });
 
     document.documentElement.classList.add("js-scroll-ready");
@@ -114,8 +214,10 @@
     window.addEventListener("scroll", requestTick, { passive: true });
     window.addEventListener("resize", requestTick, { passive: true });
 
-    updateRevealStates();
-    requestAnimationFrame(updateRevealStates);
+    // Wait one paint frame after adding .js-scroll-ready so initial-viewport elements smoothly float in
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(updateRevealStates);
+    });
   }
 
   function initCircuitCanvas() {
@@ -134,7 +236,6 @@
     let traces = [];
     let pulses = [];
 
-    // Deterministic pseudo-random generator for clean, repeatable PCB trace geometry
     function createSeededRandom(seed) {
       let s = seed;
       return function () {
@@ -160,7 +261,6 @@
       const rows = Math.ceil(height / gridStep) + 1;
 
       const traceCount = width < 768 ? 22 : 38;
-      // Allowable directions: 0 deg, 90 deg, 180 deg, 270 deg + 45 deg PCB chamfers
       const dirs = [
         [1, 0],
         [-1, 0],
@@ -177,22 +277,23 @@
         let cy = Math.floor(rand() * rows) * gridStep;
         const points = [{ x: cx, y: cy }];
         const segments = 3 + Math.floor(rand() * 4);
-        let prevDirIdx = Math.floor(rand() * 4);
 
         for (let s = 0; s < segments; s++) {
-          // Prefer orthogonal or 45-degree turn from previous direction
           const useChamfer = s % 2 === 1 && rand() > 0.35;
           const dirIdx = useChamfer
             ? 4 + Math.floor(rand() * 4)
             : Math.floor(rand() * 4);
           const dir = dirs[dirIdx];
-          const stepMult = useChamfer
-            ? 1
-            : 1 + Math.floor(rand() * 3);
+          const stepMult = useChamfer ? 1 : 1 + Math.floor(rand() * 3);
           const nx = cx + dir[0] * gridStep * stepMult;
           const ny = cy + dir[1] * gridStep * stepMult;
 
-          if (nx < -gridStep || nx > width + gridStep || ny < -gridStep || ny > height + gridStep) {
+          if (
+            nx < -gridStep ||
+            nx > width + gridStep ||
+            ny < -gridStep ||
+            ny > height + gridStep
+          ) {
             continue;
           }
           if (nx === cx && ny === cy) continue;
@@ -200,11 +301,9 @@
           points.push({ x: nx, y: ny });
           cx = nx;
           cy = ny;
-          prevDirIdx = dirIdx;
         }
 
         if (points.length >= 2) {
-          // Precompute segment lengths and total length
           const segLengths = [];
           let totalLen = 0;
           for (let i = 0; i < points.length - 1; i++) {
@@ -227,14 +326,13 @@
         }
       }
 
-      // Spawn flowing circuit pulses along traces
       const pulseCount = Math.min(traces.length, width < 768 ? 16 : 28);
       for (let i = 0; i < pulseCount; i++) {
         const trace = traces[i % traces.length];
         pulses.push({
           trace,
           dist: rand() * trace.totalLen,
-          speed: 55 + rand() * 75, // pixels per second
+          speed: 55 + rand() * 75,
           tailLen: 48 + rand() * 44,
           direction: i % 4 === 0 ? -1 : 1,
         });
@@ -271,7 +369,6 @@
 
       ctx.clearRect(0, 0, width, height);
 
-      // 1. Draw static PCB traces and terminal solder pads
       ctx.lineWidth = 1.25;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
@@ -293,7 +390,6 @@
         }
         ctx.stroke();
 
-        // Draw solder pads at start and end nodes
         const startPt = tr.points[0];
         const endPt = tr.points[tr.points.length - 1];
         ctx.fillStyle = isLight
@@ -306,7 +402,6 @@
         ctx.fill();
       }
 
-      // 2. Advance and draw moving circuit energy pulses
       for (let i = 0; i < pulses.length; i++) {
         const p = pulses[i];
         if (!prefersReducedMotion) {
@@ -363,7 +458,6 @@
         ctx.lineWidth = 2.2;
         ctx.stroke();
 
-        // Glowing leading pulse dot
         if (headDist >= 0 && headDist <= p.trace.totalLen) {
           ctx.beginPath();
           ctx.arc(headPt.x, headPt.y, 2.7, 0, Math.PI * 2);
@@ -388,15 +482,16 @@
     window.requestAnimationFrame(renderFrame);
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-      initThemeToggle();
-      initScrollReveal();
-      initCircuitCanvas();
-    });
-  } else {
+  function initAll() {
     initThemeToggle();
+    initRoleTypingEffect();
     initScrollReveal();
     initCircuitCanvas();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initAll);
+  } else {
+    initAll();
   }
 })();

@@ -498,6 +498,58 @@ body {
   color: var(--accent-primary);
   letter-spacing: -0.01em;
   padding-left: 2px;
+  position: relative;
+}
+
+.role-word {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.role-char {
+  position: relative;
+  display: inline;
+  color: var(--text-muted);
+  opacity: 0.34;
+  transition: color 120ms ease, opacity 120ms ease, text-shadow 150ms ease;
+}
+
+.role-char.is-lit {
+  color: var(--accent-primary);
+  opacity: 1;
+  text-shadow: 0 0 12px rgba(0, 214, 155, 0.25);
+}
+
+[data-theme="light"] .role-char {
+  color: #8c8273;
+  opacity: 0.36;
+}
+
+[data-theme="light"] .role-char.is-lit {
+  color: var(--accent-primary);
+  opacity: 1;
+  text-shadow: 0 0 8px rgba(4, 120, 87, 0.14);
+}
+
+.role-char.is-caret-pos::after {
+  content: "|";
+  position: absolute;
+  right: -0.22em;
+  top: -0.05em;
+  color: var(--accent-primary);
+  font-weight: 400;
+  opacity: 1;
+  pointer-events: none;
+  animation: roleCaretBlink 0.38s steps(2, start) infinite;
+}
+
+@keyframes roleCaretBlink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.15;
+  }
 }
 
 .resume-quote {
@@ -603,36 +655,129 @@ body {
 .hero-social-link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   background-color: var(--bg-btn-secondary);
   border: 1px solid var(--border-btn-secondary);
-  padding: 6px 11px;
-  border-radius: 8px;
+  padding: 5px 11px 5px 6px;
+  border-radius: 9px;
   text-decoration: none;
   white-space: nowrap;
-  transition: transform 150ms cubic-bezier(0.16, 1, 0.3, 1), color 150ms ease, border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1), color 160ms ease, border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.social-logo-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  color: #ffffff;
+  transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 160ms ease;
 }
 
 .hero-social-link svg {
-  width: 14px;
-  height: 14px;
-  color: var(--accent-primary);
+  width: 13px;
+  height: 13px;
+  color: currentColor;
   flex-shrink: 0;
-  transition: color 150ms ease, transform 150ms ease;
 }
 
 .hero-social-link:hover {
   transform: translateY(-2px);
-  color: var(--accent-primary);
-  border-color: var(--accent-primary);
-  background-color: var(--bg-section-cv);
 }
 
-.hero-social-link:hover svg {
+.hero-social-link:hover .social-logo-badge {
   transform: scale(1.08);
+}
+
+/* Brand Colors: Upwork (#14a800) */
+.hero-social-link.social-upwork {
+  border-color: rgba(20, 168, 0, 0.38);
+  background: linear-gradient(135deg, rgba(20, 168, 0, 0.14), rgba(20, 168, 0, 0.05));
+}
+.hero-social-link.social-upwork .social-logo-badge {
+  background: #14a800;
+  box-shadow: 0 2px 8px rgba(20, 168, 0, 0.35);
+}
+.hero-social-link.social-upwork:hover {
+  border-color: #14a800;
+  box-shadow: 0 6px 16px rgba(20, 168, 0, 0.24);
+}
+
+/* Brand Colors: LinkedIn (#0a66c2) */
+.hero-social-link.social-linkedin {
+  border-color: rgba(10, 102, 194, 0.42);
+  background: linear-gradient(135deg, rgba(10, 102, 194, 0.16), rgba(10, 102, 194, 0.05));
+}
+.hero-social-link.social-linkedin .social-logo-badge {
+  background: #0a66c2;
+  box-shadow: 0 2px 8px rgba(10, 102, 194, 0.38);
+}
+.hero-social-link.social-linkedin:hover {
+  border-color: #0a66c2;
+  box-shadow: 0 6px 16px rgba(10, 102, 194, 0.26);
+}
+
+/* Brand Colors: WhatsApp (#25d366) */
+.hero-social-link.social-whatsapp {
+  border-color: rgba(37, 211, 102, 0.4);
+  background: linear-gradient(135deg, rgba(37, 211, 102, 0.15), rgba(37, 211, 102, 0.05));
+}
+.hero-social-link.social-whatsapp .social-logo-badge {
+  background: #25d366;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.36);
+}
+.hero-social-link.social-whatsapp:hover {
+  border-color: #25d366;
+  box-shadow: 0 6px 16px rgba(37, 211, 102, 0.25);
+}
+
+/* Brand Colors: TikTok (Black + #25f4ee Cyan + #fe2c55 Red-Pink) */
+.hero-social-link.social-tiktok {
+  border-color: rgba(254, 44, 85, 0.42);
+  background: linear-gradient(135deg, rgba(37, 244, 238, 0.12), rgba(254, 44, 85, 0.12));
+}
+.hero-social-link.social-tiktok .social-logo-badge {
+  background: #0f1419;
+  border: 1px solid rgba(37, 244, 238, 0.45);
+  box-shadow: -1px -1px 6px rgba(37, 244, 238, 0.32), 1px 1px 6px rgba(254, 44, 85, 0.35);
+}
+.hero-social-link.social-tiktok:hover {
+  border-color: #fe2c55;
+  box-shadow: -3px 4px 14px rgba(37, 244, 238, 0.22), 3px 4px 14px rgba(254, 44, 85, 0.25);
+}
+
+/* Brand Colors: Facebook (#1877f2) */
+.hero-social-link.social-facebook {
+  border-color: rgba(24, 119, 242, 0.42);
+  background: linear-gradient(135deg, rgba(24, 119, 242, 0.16), rgba(24, 119, 242, 0.05));
+}
+.hero-social-link.social-facebook .social-logo-badge {
+  background: #1877f2;
+  box-shadow: 0 2px 8px rgba(24, 119, 242, 0.38);
+}
+.hero-social-link.social-facebook:hover {
+  border-color: #1877f2;
+  box-shadow: 0 6px 16px rgba(24, 119, 242, 0.26);
+}
+
+/* Brand Colors: Instagram (Sunset Gradient) */
+.hero-social-link.social-instagram {
+  border-color: rgba(214, 36, 159, 0.42);
+  background: linear-gradient(135deg, rgba(253, 89, 73, 0.14), rgba(214, 36, 159, 0.14), rgba(40, 90, 235, 0.1));
+}
+.hero-social-link.social-instagram .social-logo-badge {
+  background: radial-gradient(circle at 30% 107%, #fdf497 0%, #fdf497 5%, #fd5949 45%, #d6249f 60%, #285AEB 90%);
+  box-shadow: 0 2px 8px rgba(214, 36, 159, 0.38);
+}
+.hero-social-link.social-instagram:hover {
+  border-color: #d6249f;
+  box-shadow: 0 6px 16px rgba(214, 36, 159, 0.26);
 }
 
 /* Canvas Sections */
@@ -1399,6 +1544,58 @@ code {
 }
 
 /* ==========================================================================
+   Hero Initial URL Load: Sequential Floating Fade-In Choreography
+   Order:
+   1. Profile Picture (.hero-step-1)
+   2. "GLENNARD TASICO" (.hero-step-2)
+   3. "AI Automation Specialist & Web Application Developer" (.hero-step-3)
+   4. Quote (.hero-step-4)
+   5. CTA Buttons (.hero-step-5) & Social Buttons (.hero-step-6)
+   ========================================================================== */
+@keyframes heroFloatFadeIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0) scale(0.965);
+    filter: blur(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+.hero-intro-item {
+  opacity: 0;
+  animation: heroFloatFadeIn 0.74s cubic-bezier(0.22, 1, 0.36, 1) var(--hero-intro-delay, 0ms) both;
+  will-change: opacity, transform, filter;
+}
+
+.hero-intro-item.hero-step-1 {
+  --hero-intro-delay: 80ms;
+}
+
+.hero-intro-item.hero-step-2 {
+  --hero-intro-delay: 320ms;
+}
+
+.hero-intro-item.hero-step-3 {
+  --hero-intro-delay: 560ms;
+}
+
+.hero-intro-item.hero-step-4 {
+  --hero-intro-delay: 800ms;
+}
+
+.hero-intro-item.hero-step-5 {
+  --hero-intro-delay: 1040ms;
+}
+
+.hero-intro-item.hero-step-6 {
+  --hero-intro-delay: 1240ms;
+}
+
+/* ==========================================================================
    Scroll-Triggered Floating & Staggered Fade-In / Fade-Out Transitions
    ========================================================================== */
 html.js-scroll-ready .scroll-reveal {
@@ -1416,10 +1613,11 @@ html.js-scroll-ready .scroll-reveal {
   will-change: opacity, transform, filter;
 }
 
-/* Outer dashed container transitions opacity/transform without blurring child text */
+/* Outer Hero & CV containers transition opacity/transform without blurring child text */
+html.js-scroll-ready .resume-header-card.scroll-reveal,
 html.js-scroll-ready .cv-card.scroll-reveal {
   filter: none;
-  transform: translate3d(0, 22px, 0);
+  transform: translate3d(0, 20px, 0);
 }
 
 /* Element scrolled past the sticky top header (fades out upward) */
@@ -1431,6 +1629,7 @@ html.js-scroll-ready .scroll-reveal.is-scrolled-past {
   pointer-events: none;
 }
 
+html.js-scroll-ready .resume-header-card.scroll-reveal.is-scrolled-past,
 html.js-scroll-ready .cv-card.scroll-reveal.is-scrolled-past {
   filter: none;
 }
@@ -1451,6 +1650,12 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .hero-intro-item {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    animation: none !important;
+  }
   html.js-scroll-ready .scroll-reveal,
   html.js-scroll-ready .scroll-reveal.is-visible,
   html.js-scroll-ready .scroll-reveal.is-scrolled-past {

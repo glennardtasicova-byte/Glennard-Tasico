@@ -14,7 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="/static/css/style.css?v=19" />
+  <link rel="stylesheet" href="/static/css/style.css?v=21" />
   <script>
     (function () {
       try {
@@ -74,7 +74,7 @@
     <!-- Hero / Resume Header Section -->
     <section class="hero-placeholder resume-header-card scroll-reveal" data-reveal-delay="0" aria-labelledby="portfolio-heading">
       <div class="resume-header-inner">
-        <div class="profile-avatar-frame">
+        <div class="profile-avatar-frame hero-intro-item hero-step-1">
           <img
             src="/assets/aistudio/resume_pic_e8ce0898.png"
             onerror="this.onerror=null;this.src='/static/images/resume_pic.png';"
@@ -83,13 +83,13 @@
           />
         </div>
         <div class="resume-title-block">
-          <h1 id="portfolio-heading" class="resume-name">GLENNARD TASICO</h1>
-          <p class="resume-role">AI Automation Specialist &amp; Web Application Developer</p>
-          <p class="resume-quote">
+          <h1 id="portfolio-heading" class="resume-name hero-intro-item hero-step-2">GLENNARD TASICO</h1>
+          <p id="hero-typing-role" class="resume-role hero-intro-item hero-step-3" data-typing-text="AI Automation Specialist &amp; Web Application Developer">AI Automation Specialist &amp; Web Application Developer</p>
+          <p class="resume-quote hero-intro-item hero-step-4">
             &ldquo;Building intelligent automations and scalable web solutions that turn manual workflows into seamless digital experiences.&rdquo;
           </p>
           <div class="hero-actions-bar">
-            <div class="hero-cta-group">
+            <div class="hero-cta-group hero-intro-item hero-step-5">
               <a href="#interactive-widgets" class="btn-hero-primary">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
@@ -106,56 +106,68 @@
                 <span>Download CV / Resume</span>
               </a>
             </div>
-            <div class="hero-social-links" aria-label="Social and Contact Links">
+            <div class="hero-social-links hero-intro-item hero-step-6" aria-label="Social and Contact Links">
               <!-- Upwork -->
-              <a href="https://www.upwork.com/" target="_blank" rel="noopener noreferrer" class="hero-social-link" title="Upwork">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M18.5 7.5c-2.2 0-3.6 1.4-4.2 3.6-.5-1.1-.9-2.5-1.2-3.6H10v5.4c0 1.5-1.1 2.6-2.5 2.6S5 14.4 5 12.9V7.5H2.5v5.4c0 2.8 2.1 5 5 5s5-2.2 5-5v-.9c.4.9 1 1.8 1.8 2.4l-1.3 6.1h2.5l1-4.6c.6.2 1.3.4 2 .4 2.8 0 4.5-1.9 4.5-4.4s-1.7-4.4-4.5-4.4Zm0 6.5c-1.1 0-2-.6-2.6-1.6.5-1.8 1.4-2.6 2.6-2.6 1.2 0 2.1.8 2.1 2.1s-.9 2.1-2.1 2.1Z" fill="currentColor" stroke="none" />
-                </svg>
+              <a href="https://www.upwork.com/" target="_blank" rel="noopener noreferrer" class="hero-social-link social-upwork" title="Upwork">
+                <span class="social-logo-badge" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.5 7.5c-2.2 0-3.6 1.4-4.2 3.6-.5-1.1-.9-2.5-1.2-3.6H10v5.4c0 1.5-1.1 2.6-2.5 2.6S5 14.4 5 12.9V7.5H2.5v5.4c0 2.8 2.1 5 5 5s5-2.2 5-5v-.9c.4.9 1 1.8 1.8 2.4l-1.3 6.1h2.5l1-4.6c.6.2 1.3.4 2 .4 2.8 0 4.5-1.9 4.5-4.4s-1.7-4.4-4.5-4.4Zm0 6.5c-1.1 0-2-.6-2.6-1.6.5-1.8 1.4-2.6 2.6-2.6 1.2 0 2.1.8 2.1 2.1s-.9 2.1-2.1 2.1Z" />
+                  </svg>
+                </span>
                 <span>Upwork</span>
               </a>
 
               <!-- LinkedIn -->
-              <a href="https://www.linkedin.com/in/glennard-tasico-8235a312a/" target="_blank" rel="noopener noreferrer" class="hero-social-link" title="LinkedIn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
-                  <rect x="2" y="9" width="4" height="12" />
-                  <circle cx="4" cy="4" r="2" />
-                </svg>
+              <a href="https://www.linkedin.com/in/glennard-tasico-8235a312a/" target="_blank" rel="noopener noreferrer" class="hero-social-link social-linkedin" title="LinkedIn">
+                <span class="social-logo-badge" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M6.94 5a2 2 0 1 1-4-.002 2 2 0 0 1 4 .002ZM7 8.48H3V21h4V8.48Zm6.32 0H9.34V21h3.94v-6.57c0-3.66 4.77-4 4.77 0V21H22v-7.93c0-6.17-7.06-5.94-8.72-2.91l.04-1.68Z" />
+                  </svg>
+                </span>
                 <span>LinkedIn</span>
               </a>
 
               <!-- WhatsApp -->
-              <a href="https://wa.me/639952601753" target="_blank" rel="noopener noreferrer" class="hero-social-link" title="WhatsApp (+63 995 260 1753)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                </svg>
+              <a href="https://wa.me/639952601753" target="_blank" rel="noopener noreferrer" class="hero-social-link social-whatsapp" title="WhatsApp (+63 995 260 1753)">
+                <span class="social-logo-badge" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+                  </svg>
+                </span>
                 <span>WhatsApp</span>
               </a>
 
               <!-- TikTok -->
-              <a href="https://www.tiktok.com/" target="_blank" rel="noopener noreferrer" class="hero-social-link" title="TikTok">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5" />
-                </svg>
+              <a href="https://www.tiktok.com/" target="_blank" rel="noopener noreferrer" class="hero-social-link social-tiktok" title="TikTok">
+                <span class="social-logo-badge" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M9.8 11.4a4.2 4.2 0 1 0 4.2 4.2V3.8a5.2 5.2 0 0 0 5.2 5.2" stroke="#25F4EE" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" transform="translate(-0.9, -0.6)" />
+                    <path d="M9.8 11.4a4.2 4.2 0 1 0 4.2 4.2V3.8a5.2 5.2 0 0 0 5.2 5.2" stroke="#FE2C55" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" transform="translate(0.9, 0.6)" />
+                    <path d="M9.8 11.4a4.2 4.2 0 1 0 4.2 4.2V3.8a5.2 5.2 0 0 0 5.2 5.2" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                  </svg>
+                </span>
                 <span>TikTok</span>
               </a>
 
               <!-- Facebook -->
-              <a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer" class="hero-social-link" title="Facebook">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
-                </svg>
+              <a href="https://www.facebook.com/" target="_blank" rel="noopener noreferrer" class="hero-social-link social-facebook" title="Facebook">
+                <span class="social-logo-badge" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M15.12 5.32H17V2.14A26.11 26.11 0 0 0 14.26 2c-2.72 0-4.58 1.66-4.58 4.7v2.62H6.61v3.56h3.07V22h3.68v-9.12h3.06l.46-3.56h-3.52V6.65c0-1.05.29-1.73 1.76-1.73Z" />
+                  </svg>
+                </span>
                 <span>Facebook</span>
               </a>
 
               <!-- Instagram -->
-              <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" class="hero-social-link" title="Instagram">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
-                  <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
-                </svg>
+              <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" class="hero-social-link social-instagram" title="Instagram">
+                <span class="social-logo-badge" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2.5" y="2.5" width="19" height="19" rx="5" ry="5" />
+                    <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
+                    <line x1="17.5" y1="6.5" x2="17.51" y2="6.5" />
+                  </svg>
+                </span>
                 <span>Instagram</span>
               </a>
             </div>
@@ -482,6 +494,6 @@
   </footer>
 
   <!-- Custom Script -->
-  <script src="/static/js/main.js?v=19"></script>
+  <script src="/static/js/main.js?v=21"></script>
 </body>
 </html>
