@@ -449,17 +449,36 @@ body {
   font-style: italic;
 }
 
+.experience-credentials-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
 .experience-timeline-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 10px 20px;
-  padding: 12px 16px;
-  background: rgba(16, 20, 38, 0.75);
+  gap: 12px 20px;
+  padding: 14px 18px;
+  background: rgba(15, 23, 42, 0.72);
   border: 1px solid #232c4d;
-  border-radius: 10px;
-  margin-top: 2px;
+  border-radius: 12px;
+  transition: border-color 160ms ease, background-color 160ms ease;
+}
+
+.experience-timeline-bar:hover {
+  border-color: rgba(0, 214, 155, 0.42);
+  background: rgba(18, 27, 49, 0.88);
+}
+
+.experience-role-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
 .experience-role-main {
@@ -467,16 +486,20 @@ body {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px 10px;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
 }
 
 .experience-marker {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   border-radius: 2px;
   background-color: var(--accent-primary);
   box-shadow: 2px -2px 0 var(--accent-secondary);
   flex-shrink: 0;
+}
+
+.experience-marker-teal {
+  background-color: #10b981;
 }
 
 .experience-title {
@@ -494,12 +517,24 @@ body {
   color: var(--accent-primary);
 }
 
+.experience-subtext {
+  padding-left: 19px;
+  font-size: 0.825rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
 .experience-period {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--text-secondary);
+  color: #cbd5e1;
+  background: rgba(30, 36, 61, 0.55);
+  border: 1px solid rgba(51, 65, 104, 0.65);
+  padding: 5px 12px;
+  border-radius: 6px;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* Web Cards Grids */
@@ -728,6 +763,290 @@ code {
   color: var(--text-muted);
 }
 
+/* ==========================================================================
+   Printable Tech-Style Hybrid Resume Page (/cv & /cv/download)
+   ========================================================================== */
+.cv-page-body {
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+.cv-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background-color: rgba(16, 19, 34, 0.92);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.cv-toolbar-inner {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.cv-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.cv-back-link:hover {
+  color: var(--accent-primary);
+}
+
+.cv-back-link svg {
+  width: 17px;
+  height: 17px;
+}
+
+.cv-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cv-action-btn {
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.cv-document-wrapper {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+.cv-sheet {
+  background: linear-gradient(145deg, #11162b 0%, #0d1122 100%);
+  border: 1px solid #232c4d;
+  border-radius: 16px;
+  padding: clamp(28px, 4vw, 52px);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.cv-sheet-header {
+  border-bottom: 2px solid rgba(0, 214, 155, 0.35);
+  padding-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cv-sheet-name {
+  font-size: clamp(1.75rem, 3.2vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.cv-sheet-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--accent-primary);
+}
+
+.cv-sheet-contact {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: #cbd5e1;
+}
+
+.cv-sheet-contact a {
+  color: #cbd5e1;
+  text-decoration: none;
+}
+
+.cv-sheet-contact a:hover {
+  color: var(--accent-primary);
+  text-decoration: underline;
+}
+
+.cv-contact-sep {
+  color: #475569;
+}
+
+.cv-sheet-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cv-sheet-section-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-primary);
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 6px;
+}
+
+.cv-sheet-summary {
+  font-size: 0.925rem;
+  line-height: 1.65;
+  color: #e2e8f0;
+}
+
+.cv-sheet-summary strong {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.cv-sheet-stack-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.875rem;
+}
+
+.cv-sheet-stack-row {
+  display: grid;
+  grid-template-columns: 255px 1fr;
+  gap: 8px 16px;
+  line-height: 1.55;
+  align-items: baseline;
+}
+
+.cv-sheet-stack-row strong {
+  color: var(--text-primary);
+}
+
+.cv-sheet-stack-row span {
+  color: #cbd5e1;
+}
+
+.cv-sheet-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 12px;
+}
+
+.cv-sheet-entry:last-child {
+  padding-bottom: 0;
+}
+
+.cv-sheet-entry-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cv-sheet-role {
+  font-size: 0.975rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.cv-sheet-org {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.cv-sheet-date {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.cv-sheet-bullets {
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.885rem;
+  line-height: 1.6;
+  color: #cbd5e1;
+}
+
+.cv-sheet-bullets strong {
+  color: var(--text-primary);
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body,
+  .cv-page-body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+  .cv-document-wrapper {
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+  .cv-sheet {
+    background: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 12px 16px !important;
+    gap: 14px !important;
+  }
+  .cv-sheet-header {
+    border-bottom: 2px solid #0f172a !important;
+    padding-bottom: 10px !important;
+  }
+  .cv-sheet-name,
+  .cv-sheet-role,
+  .cv-sheet-stack-row strong,
+  .cv-sheet-summary strong,
+  .cv-sheet-bullets strong {
+    color: #0f172a !important;
+  }
+  .cv-sheet-title,
+  .cv-sheet-section-title,
+  .cv-sheet-org {
+    color: #047857 !important;
+  }
+  .cv-sheet-section-title {
+    border-bottom: 1px solid #cbd5e1 !important;
+  }
+  .cv-sheet-summary,
+  .cv-sheet-stack-row span,
+  .cv-sheet-bullets,
+  .cv-sheet-contact,
+  .cv-sheet-contact a,
+  .cv-sheet-date {
+    color: #1e293b !important;
+  }
+  code {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+  }
+}
+
 @media (max-width: 1100px) {
   .stack-cards-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -760,5 +1079,8 @@ code {
   }
   .placeholder-box {
     padding: 36px 20px;
+  }
+  .experience-subtext {
+    padding-left: 0;
   }
 }

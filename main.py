@@ -229,6 +229,107 @@ async def index(request: Request):
         return templates.TemplateResponse("index.html", context)
 
 
+from fastapi.responses import Response
+
+
+def _build_cv_pdf_bytes() -> bytes:
+    """Builds a clean, valid 1-page PDF resume for Glennard R. Tasico using pure Python."""
+    lines = [
+        ("F2", 16, 42, 756, "GLENNARD R. TASICO"),
+        ("F2", 9.5, 42, 741, "AI AUTOMATION SPECIALIST  |  FULL-STACK WEB BUILDER  |  INDUSTRIAL PROCESS ENGINEER"),
+        ("F1", 8.5, 42, 728, "+63 995 260 1753 | glennardtasico@gmail.com | Malvar, Batangas, PH | linkedin.com/in/glennard-tasico-8235a312a"),
+        ("F2", 10.5, 42, 706, "PROFESSIONAL SUMMARY"),
+        ("F1", 8.8, 42, 692, "Results-driven AI Automation Specialist, Full-Stack Web Builder, and Industrial Engineer with 11+ years of experience"),
+        ("F1", 8.8, 42, 680, "eliminating operational bottlenecks, automating data workflows, and leading cross-functional engineering teams at"),
+        ("F1", 8.8, 42, 668, "EPSON Precision. Creator of GlennBot Automations - a full-stack operations platform built with Python (FastAPI),"),
+        ("F1", 8.8, 42, 656, "JavaScript, PostgreSQL, Google Gemini AI, and n8n webhooks. Combines Kaizen continuous-improvement methodology"),
+        ("F1", 8.8, 42, 644, "with modern API orchestration to replace manual spreadsheet and communication tasks with 24/7 automated systems."),
+        ("F2", 10.5, 42, 622, "FEATURED TECHNICAL PROJECT"),
+        ("F2", 9.2, 42, 608, "Creator & Lead System Architect - GlennBot Automations (Oct 2026 - Present)"),
+        ("F1", 8.6, 52, 595, "- Architected and deployed a full-stack operations and automation platform using Python (FastAPI), SQLAlchemy,"),
+        ("F1", 8.6, 60, 584, "PostgreSQL (Supabase), and Tailwind CSS."),
+        ("F1", 8.6, 52, 572, "- Engineered custom REST API (/api/v1) and webhook pipelines integrated with n8n for 24/7 automated lead capture,"),
+        ("F1", 8.6, 60, 561, "task scheduling, and multi-channel notifications."),
+        ("F1", 8.6, 52, 549, "- Integrated Google Gemini AI for context-aware social caption generation, smart inbox auto-replies, and AI workflows."),
+        ("F1", 8.6, 52, 537, "- Built unified omnichannel modules connecting Social Media APIs (FB, IG, TikTok, YouTube), Email (IMAP/SMTP),"),
+        ("F1", 8.6, 60, 526, "TextBee SMS, Calendar/Meet booking (Composio), and two-way Google Drive / Spreadsheet sync."),
+        ("F2", 10.5, 42, 504, "PROFESSIONAL EXPERIENCE"),
+        ("F2", 9.2, 42, 490, "EPSON Precision (Philippines) Inc. - Supervisor, Mold Control Group (Nov 2020 - Present)"),
+        ("F1", 8.6, 52, 477, "- Initiated process automation projects by deploying custom automated workflows and reporting matrices, streamlining"),
+        ("F1", 8.6, 60, 466, "data extraction and calculating capacity limits across 30+ external suppliers."),
+        ("F1", 8.6, 52, 454, "- Spearheaded the Total Mold Management Improvement system, optimizing tooling life cycles and preventing bottlenecks."),
+        ("F1", 8.6, 52, 442, "- Direct a team of engineers and operators in executing overall quality control for in-house assembly production."),
+        ("F1", 8.6, 52, 430, "- Manage supplier quality performance and coordinate with 30+ external suppliers for capacity & Mold Renewal Policies."),
+        ("F2", 9.2, 42, 412, "EPSON Precision (Philippines) Inc. - Senior Engineer, Parts Engineering (Dec 2018 - Nov 2020)"),
+        ("F1", 8.6, 52, 399, "- Conducted rigorous data trend analysis on incoming quality and production performance, leading CAPA investigations."),
+        ("F1", 8.6, 52, 387, "- Managed ramp-up programs for new parts, design changes, and 4M variation management."),
+        ("F2", 9.2, 42, 369, "EPSON Precision (Philippines) Inc. - Incoming Quality Assurance Staff (Apr 2015 - Dec 2018)"),
+        ("F1", 8.6, 52, 356, "- Coordinated inspection and source quality check activities involving 100+ internal/external personnel."),
+        ("F2", 10.5, 42, 334, "KEY LEADERSHIP & RECOGNITION"),
+        ("F1", 8.6, 52, 320, "- KAIZEN Coordinator (Apr 2019 - Apr 2020): Recognized as one of the top Kaizen Coordinators in the company."),
+        ("F1", 8.6, 52, 308, "- ISO 14001 Coordinator (Apr 2023 - Apr 2025): Implemented data-driven strategies to reduce waste & optimize resources."),
+        ("F2", 10.5, 42, 286, "CORE TECH STACK & EDUCATION"),
+        ("F1", 8.6, 52, 272, "- Backend & DB: Python, FastAPI, SQLAlchemy, PostgreSQL (Supabase), Cloudinary | Frontend: JS (ES6+), HTML5, Tailwind"),
+        ("F1", 8.6, 52, 260, "- AI & Integrations: n8n, Google Gemini API, REST APIs, Webhooks, APScheduler, Google Drive, Composio, TextBee, Zernio"),
+        ("F2", 9.0, 42, 242, "Bachelor of Science in Industrial Engineering (2010 - 2015) - First Asia Institute of Technology and Humanities (FAITH)"),
+    ]
+    stream_cmds = ["BT"]
+    for font_key, size, x, y, text in lines:
+        safe_text = text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+        stream_cmds.append(f"/{font_key} {size} Tf 1 0 0 1 {x} {y} Tm ({safe_text}) Tj")
+    stream_cmds.append("ET")
+    content_bytes = "\n".join(stream_cmds).encode("latin-1", errors="replace")
+
+    objs = [
+        b"1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
+        b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
+        b"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>\nendobj\n",
+        b"4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
+        b"5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>\nendobj\n",
+        f"6 0 obj\n<< /Length {len(content_bytes)} >>\nstream\n".encode("latin-1") + content_bytes + b"\nendstream\nendobj\n",
+    ]
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for obj in objs:
+        offsets.append(len(out))
+        out.extend(obj)
+    xref_pos = len(out)
+    out.extend(f"xref\n0 {len(objs) + 1}\n0000000000 65535 f \n".encode("latin-1"))
+    for off in offsets:
+        out.extend(f"{off:010d} 00000 n \n".encode("latin-1"))
+    out.extend(
+        f"trailer\n<< /Size {len(objs) + 1} /Root 1 0 R >>\nstartxref\n{xref_pos}\n%%EOF\n".encode("latin-1")
+    )
+    return bytes(out)
+
+
+@app.api_route("/cv", methods=["GET", "HEAD"], response_class=HTMLResponse)
+@app.api_route("/cv/download", methods=["GET", "HEAD"], response_class=HTMLResponse)
+async def view_cv(request: Request):
+    """Serves the interactive, print-ready Tech-Style Hybrid Resume page."""
+    if request.method == "HEAD":
+        return HTMLResponse(content="", status_code=200)
+    context = {"request": request, "page_title": "GLENNARD R. TASICO — CV"}
+    try:
+        return templates.TemplateResponse(request=request, name="cv.html", context=context)
+    except TypeError:
+        return templates.TemplateResponse("cv.html", context)
+
+
+@app.api_route("/cv/pdf", methods=["GET", "HEAD"])
+async def download_cv_pdf():
+    """Serves a direct downloadable PDF file of Glennard R. Tasico's CV."""
+    pdf_bytes = _build_cv_pdf_bytes()
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": 'attachment; filename="Glennard_Tasico_CV.pdf"',
+            "Cache-Control": "no-cache",
+        },
+    )
+
+
 @app.api_route("/health", methods=["GET", "HEAD"])
 @app.api_route("/api/health", methods=["GET", "HEAD"])
 async def health_check():
