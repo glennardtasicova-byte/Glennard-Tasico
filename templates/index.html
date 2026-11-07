@@ -14,7 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="/static/css/style.css?v=4" />
+  <link rel="stylesheet" href="/static/css/style.css?v=6" />
 </head>
 <body>
   <!-- Top Bar Navigation -->
@@ -22,7 +22,7 @@
     <div class="container header-inner">
       <a href="/" class="brand-title">Glennard Tasico</a>
       <nav class="site-nav" aria-label="Primary Navigation">
-        <a href="#about-cv" class="nav-link">About &amp; CV</a>
+        <a href="#about-cv" class="nav-link">About Me</a>
         <a href="#interactive-widgets" class="nav-link">Interactive Widgets</a>
         <a href="/health" class="nav-link" target="_blank" rel="noopener">Health Check</a>
       </nav>
@@ -79,43 +79,89 @@
       </div>
     </section>
 
-    <!-- Section 1: About / CV Section -->
+    <!-- Section 1: About Me Section -->
     <section id="about-cv" class="canvas-section" aria-labelledby="about-cv-heading">
       <div class="section-header">
         <span class="section-index">01. Profile &amp; Curriculum Vitae</span>
-        <h2 id="about-cv-heading" class="section-title">About / CV Section</h2>
+        <h2 id="about-cv-heading" class="section-title">About Me</h2>
       </div>
       <div class="placeholder-box cv-card">
-        <ul class="cv-skills-list">
-          <li class="cv-skill-item">
-            <span class="cv-skill-bullet" aria-hidden="true">&bull;</span>
-            <div class="cv-skill-content">
-              <strong class="cv-skill-category">Core Development:</strong>
-              <span class="cv-skill-values">Python, FastAPI, JavaScript (ES6+), HTML5, Tailwind CSS, Jinja2, SQLAlchemy</span>
-            </div>
-          </li>
-          <li class="cv-skill-item">
-            <span class="cv-skill-bullet" aria-hidden="true">&bull;</span>
-            <div class="cv-skill-content">
-              <strong class="cv-skill-category">AI &amp; Workflow Automation:</strong>
-              <span class="cv-skill-values">n8n, Google Gemini API, APScheduler, Custom REST APIs, Real-Time Webhooks</span>
-            </div>
-          </li>
-          <li class="cv-skill-item">
-            <span class="cv-skill-bullet" aria-hidden="true">&bull;</span>
-            <div class="cv-skill-content">
-              <strong class="cv-skill-category">Cloud &amp; Databases:</strong>
-              <span class="cv-skill-values">PostgreSQL (Supabase), Cloudinary, Google Drive API v3, Render</span>
-            </div>
-          </li>
-          <li class="cv-skill-item">
-            <span class="cv-skill-bullet" aria-hidden="true">&bull;</span>
-            <div class="cv-skill-content">
-              <strong class="cv-skill-category">Omnichannel Integrations:</strong>
-              <span class="cv-skill-values">Composio (Google Calendar, Meet, Zoom, MS Teams), IMAP/SMTP Email Automation, TextBee SMS Gateway, Multi-Platform Social APIs (FB, IG, TikTok, YouTube)</span>
-            </div>
-          </li>
-        </ul>
+        <!-- Bio -->
+        <div class="cv-group">
+          <p class="cv-intro-text">
+            I am an <strong>AI Automation Specialist &amp; Full-Stack Web Developer</strong> who builds custom web dashboards and 24/7 automation workflows that eliminate repetitive manual work. I architected and engineered <strong>GlennBot Automations</strong>&mdash;an all-in-one operations platform combining AI content generation, multi-platform social scheduling, a unified omnichannel inbox, cloud spreadsheet sync, and n8n webhook orchestration. <em>You can test its core engines live through the interactive widgets below.</em>
+          </p>
+        </div>
+
+        <!-- What I Build -->
+        <div class="cv-group">
+          <h3 class="cv-subheading">What I Build</h3>
+          <ul class="cv-skills-list">
+            <li class="cv-skill-item">
+              <span class="cv-skill-bullet" aria-hidden="true">&bull;</span>
+              <div class="cv-skill-content">
+                <strong class="cv-skill-category">Workflow &amp; Webhook Automation:</strong>
+                <span class="cv-skill-values">24/7 automated pipelines using n8n, custom REST APIs (/api/v1), and real-time event webhooks.</span>
+              </div>
+            </li>
+            <li class="cv-skill-item">
+              <span class="cv-skill-bullet" aria-hidden="true">&bull;</span>
+              <div class="cv-skill-content">
+                <strong class="cv-skill-category">Custom Web Dashboards:</strong>
+                <span class="cv-skill-values">Fast, responsive internal tools and CRM interfaces built with Python (FastAPI), modern JavaScript, and Tailwind CSS.</span>
+              </div>
+            </li>
+            <li class="cv-skill-item">
+              <span class="cv-skill-bullet" aria-hidden="true">&bull;</span>
+              <div class="cv-skill-content">
+                <strong class="cv-skill-category">AI Integration:</strong>
+                <span class="cv-skill-values">Context-aware caption generators, smart inbox auto-replies, and AI workflow architects powered by the Google Gemini API.</span>
+              </div>
+            </li>
+            <li class="cv-skill-item">
+              <span class="cv-skill-bullet" aria-hidden="true">&bull;</span>
+              <div class="cv-skill-content">
+                <strong class="cv-skill-category">Omnichannel &amp; Cloud Sync:</strong>
+                <span class="cv-skill-values">Unified CRM, Email (IMAP/SMTP), SMS (TextBee), Calendar/Meet booking, and two-way Google Drive &amp; Spreadsheet sync.</span>
+              </div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Core Tech Stack -->
+        <div class="cv-group">
+          <h3 class="cv-subheading">Core Tech Stack</h3>
+          <ul class="cv-skills-list">
+            <li class="cv-skill-item">
+              <span class="cv-skill-bullet" aria-hidden="true">&bull;</span>
+              <div class="cv-skill-content">
+                <strong class="cv-skill-category">Backend &amp; Database:</strong>
+                <span class="cv-skill-values">Python, FastAPI, SQLAlchemy, PostgreSQL (Supabase), Cloudinary</span>
+              </div>
+            </li>
+            <li class="cv-skill-item">
+              <span class="cv-skill-bullet" aria-hidden="true">&bull;</span>
+              <div class="cv-skill-content">
+                <strong class="cv-skill-category">Frontend:</strong>
+                <span class="cv-skill-values">JavaScript (ES6+), HTML5, Tailwind CSS</span>
+              </div>
+            </li>
+            <li class="cv-skill-item">
+              <span class="cv-skill-bullet" aria-hidden="true">&bull;</span>
+              <div class="cv-skill-content">
+                <strong class="cv-skill-category">AI &amp; Automation:</strong>
+                <span class="cv-skill-values">n8n, Google Gemini API, REST APIs, Webhooks, APScheduler</span>
+              </div>
+            </li>
+            <li class="cv-skill-item">
+              <span class="cv-skill-bullet" aria-hidden="true">&bull;</span>
+              <div class="cv-skill-content">
+                <strong class="cv-skill-category">Integrations &amp; Cloud:</strong>
+                <span class="cv-skill-values">Google Drive API, Composio (Google Calendar / Meet / Zoom), TextBee SMS, Social Media APIs (Zernio), Render</span>
+              </div>
+            </li>
+          </ul>
+        </div>
       </div>
     </section>
 
