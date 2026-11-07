@@ -1139,6 +1139,14 @@ code {
   .no-print {
     display: none !important;
   }
+  .scroll-reveal,
+  .scroll-reveal.is-visible,
+  .scroll-reveal.is-scrolled-past {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    transition: none !important;
+  }
   body,
   .cv-page-body {
     background: #ffffff !important;
@@ -1187,6 +1195,69 @@ code {
     background: #f1f5f9 !important;
     color: #0f172a !important;
     border-color: #cbd5e1 !important;
+  }
+}
+
+/* ==========================================================================
+   Scroll-Triggered Floating & Staggered Fade-In / Fade-Out Transitions
+   ========================================================================== */
+html.js-scroll-ready .scroll-reveal {
+  opacity: 0;
+  transform: translate3d(0, 34px, 0) scale(0.975);
+  filter: blur(4px);
+  transition:
+    opacity 0.68s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.68s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.68s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+  transition-delay: 0ms;
+  will-change: opacity, transform, filter;
+}
+
+/* Outer dashed container transitions opacity/transform without blurring child text */
+html.js-scroll-ready .cv-card.scroll-reveal {
+  filter: none;
+  transform: translate3d(0, 22px, 0);
+}
+
+/* Element scrolled past the sticky top header (fades out upward) */
+html.js-scroll-ready .scroll-reveal.is-scrolled-past {
+  opacity: 0;
+  transform: translate3d(0, -28px, 0) scale(0.98);
+  filter: blur(3px);
+  transition-delay: 0ms;
+  pointer-events: none;
+}
+
+html.js-scroll-ready .cv-card.scroll-reveal.is-scrolled-past {
+  filter: none;
+}
+
+/* Element inside the active viewport (floats in one-by-one using --reveal-delay) */
+html.js-scroll-ready .scroll-reveal.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  filter: blur(0px);
+  transition-delay: var(--reveal-delay, 0ms);
+  pointer-events: auto;
+}
+
+/* Keep hover lift responsive on visible Web Cards & Credential Bars */
+html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
+  transform: translate3d(0, -4px, 0) scale(1);
+  transition-delay: 0ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.js-scroll-ready .scroll-reveal,
+  html.js-scroll-ready .scroll-reveal.is-visible,
+  html.js-scroll-ready .scroll-reveal.is-scrolled-past {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    transition: none !important;
   }
 }
 
