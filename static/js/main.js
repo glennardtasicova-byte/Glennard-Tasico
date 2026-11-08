@@ -876,7 +876,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         mimeType: "video/mp4",
         sizeLabel: "14.2 MB • 9:16 Vertical Reel",
         thumbUrl: "/assets/aistudio/image_0f71ad01.png",
-        previewUrl: "https://glennbot.automations/vault/glennbot_demo_reel.mp4",
+        previewUrl: "https://glennbotautomations.onrender.com/vault/glennbot_demo_reel.mp4",
       },
       {
         id: "vault_img_02",
@@ -884,7 +884,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         mimeType: "image/png",
         sizeLabel: "2.8 MB • 1080x1350 Portrait",
         thumbUrl: "/assets/aistudio/image_404ebbdb.png",
-        previewUrl: "https://glennbot.automations/vault/kaizen_dashboard_preview.png",
+        previewUrl: "https://glennbotautomations.onrender.com/vault/kaizen_dashboard_preview.png",
       },
       {
         id: "vault_vid_03",
@@ -892,7 +892,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         mimeType: "video/mp4",
         sizeLabel: "28.6 MB • 16:9 HD Walkthrough",
         thumbUrl: "/assets/aistudio/image_68d1ca77.png",
-        previewUrl: "https://glennbot.automations/vault/n8n_webhook_pipeline.mp4",
+        previewUrl: "https://glennbotautomations.onrender.com/vault/n8n_webhook_pipeline.mp4",
       },
       {
         id: "vault_img_04",
@@ -900,7 +900,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         mimeType: "image/png",
         sizeLabel: "3.4 MB • Multi-Slide Cover",
         thumbUrl: "/assets/aistudio/image_7ed0ded4.png",
-        previewUrl: "https://glennbot.automations/vault/ai_social_carousel.png",
+        previewUrl: "https://glennbotautomations.onrender.com/vault/ai_social_carousel.png",
       },
     ];
 
@@ -1247,7 +1247,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
             </div>
             <div class="gb-workspace-status">
               <span class="status-dot-live" aria-hidden="true"></span>
-              <span>GlennBot Omnichannel Engine &bull; Supabase + Gemini 2.5 Active</span>
+              <span>GlennBot Omnichannel Engine &bull; glennbotautomations.onrender.com Active</span>
             </div>
           </div>
 
@@ -1286,7 +1286,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
                   <!-- Connected Demo Accounts Status Box -->
                   <div class="gb-connected-accounts-box">
                     <div class="gb-connected-title">
-                      <span>Connected Demo Accounts</span>
+                      <span>Connected Accounts (glennbotautomations.onrender.com)</span>
                       <span class="gb-connected-dot" title="OAuth Tokens Active"></span>
                     </div>
                     <ul class="gb-connected-list">
@@ -1418,7 +1418,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
                     <i class="fas fa-list-ul" style="color:#a855f7;"></i>
                     <span>Scheduled Posts Queue (Tabular View)</span>
                   </h4>
-                  <p class="gb-queue-subtitle">Chronological master table &bull; Stored in Supabase PostgreSQL (30-Day Retention)</p>
+                  <p class="gb-queue-subtitle">Chronological master table &bull; Synced with glennbotautomations.onrender.com (Supabase PostgreSQL)</p>
                 </div>
                 <div class="gb-queue-controls">
                   <select id="gb-queue-filter-select" class="gb-queue-filter-select" aria-label="Filter Queue by Status">
@@ -1800,7 +1800,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
             const target = gbSchedulerState.scheduledPostsList.find((p) => p.id === postId);
             if (target) {
               target.status = "Published";
-              target.published_url = `https://glennbot.automations/live/${target.platform}/${target.id}`;
+              target.published_url = `https://glennbotautomations.onrender.com/live/${target.platform}/${target.id}`;
               showSchedulerToast(`🚀 Dispatched ${PLATFORM_META[target.platform].name} post (${target.page_name}) — Status: Published!`);
               renderQueueTable();
               if (gbSchedulerState.activeSubTab === "calendar") {
@@ -2028,7 +2028,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
           aiGenerateBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span>Synthesizing via Gemini 2.5...</span>`;
 
           try {
-            const res = await fetch("/api/v1/ai/caption", {
+            const res = await fetch("/api/v1/ai/ask", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -2124,7 +2124,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
           });
 
           try {
-            await fetch("/api/v1/scheduler/launch", {
+            await fetch("/api/v1/posts/schedule", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({

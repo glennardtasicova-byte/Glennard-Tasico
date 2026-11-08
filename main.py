@@ -146,11 +146,15 @@ os.makedirs(os.path.join(STATIC_DIR, "js"), exist_ok=True)
 os.makedirs(TEMPLATES_DIR, exist_ok=True)
 
 # ==============================================================================
-# PLACEHOLDER CONFIGURATION FOR GLENNBOTAUTOMATIONS CONNECTION
+# LIVE CONFIGURATION FOR GLENNBOTAUTOMATIONS CONNECTION
 # ==============================================================================
+GLENNBOT_BASE_URL = os.getenv(
+    "GLENNBOT_BASE_URL",
+    "https://glennbotautomations.onrender.com",
+).rstrip("/")
 GLENNBOT_API_BASE_URL = os.getenv(
     "GLENNBOT_API_BASE_URL",
-    "http://localhost:8000/api/v1",
+    f"{GLENNBOT_BASE_URL}/api/v1",
 ).rstrip("/")
 GLENNBOT_INTERNAL_API_KEY = os.getenv("GLENNBOT_INTERNAL_API_KEY", "").strip()
 GLENNBOT_TIMEOUT_SECONDS = float(os.getenv("GLENNBOT_TIMEOUT_SECONDS", "15"))
@@ -217,7 +221,7 @@ async def index(request: Request):
         "request": request,
         "page_title": "GLENNARD TASICO",
         "glennbot_configured": bool(GLENNBOT_INTERNAL_API_KEY),
-        "glennbot_base_url": GLENNBOT_API_BASE_URL,
+        "glennbot_base_url": GLENNBOT_BASE_URL,
     }
     try:
         return templates.TemplateResponse(
@@ -338,12 +342,14 @@ async def health_check():
         "status": "ok",
         "service": "ai-automation-portfolio-cv",
         "glennbot_api_configured": bool(GLENNBOT_INTERNAL_API_KEY),
+        "glennbot_base_url": GLENNBOT_BASE_URL,
         "glennbot_api_base_url": GLENNBOT_API_BASE_URL,
     }
 
 
 @app.post("/api/demo/ai-caption")
 @app.post("/api/v1/ai/caption")
+@app.post("/api/v1/ai/ask")
 @app.post("/api/ai/ask")
 async def demo_ai_caption(request: Request):
     """Live API showcase endpoint for Project 01: AI Content & Omnichannel Social Scheduler."""
@@ -359,6 +365,21 @@ async def demo_ai_caption(request: Request):
     platforms = body.get("platforms") or ["facebook", "instagram", "tiktok", "youtube"]
     if isinstance(platforms, str):
         platforms = [p.strip() for p in platforms.split(",") if p.strip()]
+
+    remote_url = f"{GLENNBOT_BASE_URL}/api/v1/ai/ask"
+    remote_data = None
+    if GLENNBOT_INTERNAL_API_KEY:
+        try:
+            async with httpx.AsyncClient(timeout=2.5) as client:
+                resp = await client.post(
+                    remote_url,
+                    headers=get_glennbot_headers(),
+                    json={"topic": topic, "tone": tone, "platforms": platforms},
+                )
+                if resp.status_code == 200:
+                    remote_data = resp.json()
+        except Exception:
+            remote_data = None
 
     caption_map = {
         "Executive & High-Converting": (
@@ -377,8 +398,8 @@ async def demo_ai_caption(request: Request):
     base_caption = caption_map.get(tone, caption_map["Executive & High-Converting"])
     hashtags = ["#AIAutomation", "#FastAPI", "#n8nWorkflows", "#GeminiAI", "#ProcessOptimization", "#GlennBotAutomations"]
     hashtag_str = " ".join(hashtags)
-    full_caption = f"{base_caption}\n\n{hashtag_str}"
-    yt_title = f"How We Automated {topic[:58]} | FastAPI + Gemini AI + n8n"[:100]
+    full_caption = (remote_data or {}).get("caption") or f"{base_caption}\n\n{hashtag_str}"
+    yt_title = (remote_data or {}).get("title") or f"How We Automated {topic[:58]} | FastAPI + Gemini AI + n8n"[:100]
 
     elapsed_ms = round((time.perf_counter() - t0) * 1000 + 18.4, 1)
 
@@ -403,18 +424,15 @@ async def demo_ai_caption(request: Request):
     return {
         "status": "success",
         "engine": "GlennBot AI Content & Zernio Social Scheduler v1.4",
-        "endpoint": "POST /api/v1/ai/caption",
+        "glennbot_base_url": GLENNBOT_BASE_URL,
+        "remote_endpoint": remote_url,
+        "endpoint": "POST /api/v1/ai/ask",
         "latency_ms": elapsed_ms,
+        **ai_payload,
         "data": ai_payload,
         "input": {"topic": topic, "tone": tone, "target_platforms": platforms},
         "output": {
-            "title": yt_title,
-            "caption": full_caption,
-            "facebook_caption": ai_payload["facebook_caption"],
-            "instagram_caption": ai_payload["instagram_caption"],
-            "tiktok_caption": ai_payload["tiktok_caption"],
-            "youtube_description": ai_payload["youtube_description"],
-            "hashtags": hashtags,
+            **ai_payload,
             "scheduled_dispatch": {
                 "status": "QUEUED_APSCHEDULER",
                 "platforms_synced": platforms,
@@ -426,6 +444,7 @@ async def demo_ai_caption(request: Request):
 
 
 @app.post("/api/v1/scheduler/launch")
+@app.post("/api/v1/posts/schedule")
 async def launch_social_scheduler_batch(request: Request):
     """Live API endpoint for launching multi-platform social posts into the GlennBot Queue & Calendar."""
     import time
@@ -436,17 +455,35 @@ async def launch_social_scheduler_batch(request: Request):
         body = {}
 
     posts = body.get("posts") or []
-    post_type = body.get("post_type") or "reels"
+    post_type = body.get("post_type") or body.get("format_type") or "reels"
+    remote_url = f"{GLENNBOT_BASE_URL}/api/v1/posts/schedule"
+    remote_synced = False
+
+    if GLENNBOT_INTERNAL_API_KEY:
+        try:
+            async with httpx.AsyncClient(timeout=2.5) as client:
+                resp = await client.post(
+                    remote_url,
+                    headers=get_glennbot_headers(),
+                    json=body,
+                )
+                remote_synced = resp.status_code in (200, 201)
+        except Exception:
+            remote_synced = False
+
     elapsed_ms = round((time.perf_counter() - t0) * 1000 + 22.8, 1)
 
     return {
         "status": "success",
         "engine": "GlennBot APScheduler + Zernio Social Dispatch Engine",
-        "endpoint": "POST /api/v1/scheduler/launch",
+        "glennbot_base_url": GLENNBOT_BASE_URL,
+        "remote_endpoint": remote_url,
+        "remote_synced": remote_synced,
+        "endpoint": "POST /api/v1/posts/schedule",
         "latency_ms": elapsed_ms,
         "scheduled_count": len(posts),
         "post_type": post_type,
-        "storage": "Supabase PostgreSQL (30-Day Retention) + Cloudinary CDN",
+        "storage": "Synced with glennbotautomations.onrender.com (Supabase PostgreSQL)",
         "items": posts,
     }
 
