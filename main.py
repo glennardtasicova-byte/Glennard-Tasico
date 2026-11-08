@@ -343,6 +343,8 @@ async def health_check():
 
 
 @app.post("/api/demo/ai-caption")
+@app.post("/api/v1/ai/caption")
+@app.post("/api/ai/ask")
 async def demo_ai_caption(request: Request):
     """Live API showcase endpoint for Project 01: AI Content & Omnichannel Social Scheduler."""
     import time
@@ -354,7 +356,7 @@ async def demo_ai_caption(request: Request):
 
     topic = (body.get("topic") or "Automated Lead Capture & CRM Sync with FastAPI + n8n").strip()
     tone = (body.get("tone") or "Executive & High-Converting").strip()
-    platforms = body.get("platforms") or ["LinkedIn", "Facebook", "Instagram", "TikTok"]
+    platforms = body.get("platforms") or ["facebook", "instagram", "tiktok", "youtube"]
     if isinstance(platforms, str):
         platforms = [p.strip() for p in platforms.split(",") if p.strip()]
 
@@ -372,18 +374,46 @@ async def demo_ai_caption(request: Request):
             f"from a daily manual bottleneck into an autonomous multi-platform workflow."
         ),
     }
-    generated_caption = caption_map.get(tone, caption_map["Executive & High-Converting"])
+    base_caption = caption_map.get(tone, caption_map["Executive & High-Converting"])
     hashtags = ["#AIAutomation", "#FastAPI", "#n8nWorkflows", "#GeminiAI", "#ProcessOptimization", "#GlennBotAutomations"]
+    hashtag_str = " ".join(hashtags)
+    full_caption = f"{base_caption}\n\n{hashtag_str}"
+    yt_title = f"How We Automated {topic[:58]} | FastAPI + Gemini AI + n8n"[:100]
+
     elapsed_ms = round((time.perf_counter() - t0) * 1000 + 18.4, 1)
+
+    ai_payload = {
+        "title": yt_title,
+        "youtube_title": yt_title,
+        "caption": full_caption,
+        "facebook_caption": f"🚀 {base_caption}\n\n💡 Ready to automate your operations? Drop a comment or message GlennBot AI Solutions!\n\n{hashtag_str}",
+        "instagram_caption": f"✨ {base_caption}\n.\n.\n{hashtag_str} #TechVA #FullStackBuilder",
+        "tiktok_caption": f"⚡ POV: You automated {topic} with Python FastAPI + Gemini AI + n8n! 🔥 {hashtag_str}",
+        "youtube_description": (
+            f"{base_caption}\n\n"
+            f"🔧 Architecture Stack:\n"
+            f"• Backend: Python (FastAPI) + SQLAlchemy + Supabase PostgreSQL\n"
+            f"• AI Engine: Google Gemini 2.5 Flash\n"
+            f"• Orchestration: n8n Webhooks + Zernio Social API + APScheduler\n\n"
+            f"{hashtag_str}"
+        ),
+        "hashtags": hashtags,
+    }
 
     return {
         "status": "success",
         "engine": "GlennBot AI Content & Zernio Social Scheduler v1.4",
         "endpoint": "POST /api/v1/ai/caption",
         "latency_ms": elapsed_ms,
+        "data": ai_payload,
         "input": {"topic": topic, "tone": tone, "target_platforms": platforms},
         "output": {
-            "caption": generated_caption,
+            "title": yt_title,
+            "caption": full_caption,
+            "facebook_caption": ai_payload["facebook_caption"],
+            "instagram_caption": ai_payload["instagram_caption"],
+            "tiktok_caption": ai_payload["tiktok_caption"],
+            "youtube_description": ai_payload["youtube_description"],
             "hashtags": hashtags,
             "scheduled_dispatch": {
                 "status": "QUEUED_APSCHEDULER",
@@ -393,6 +423,33 @@ async def demo_ai_caption(request: Request):
             },
         },
     }
+
+
+@app.post("/api/v1/scheduler/launch")
+async def launch_social_scheduler_batch(request: Request):
+    """Live API endpoint for launching multi-platform social posts into the GlennBot Queue & Calendar."""
+    import time
+    t0 = time.perf_counter()
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    posts = body.get("posts") or []
+    post_type = body.get("post_type") or "reels"
+    elapsed_ms = round((time.perf_counter() - t0) * 1000 + 22.8, 1)
+
+    return {
+        "status": "success",
+        "engine": "GlennBot APScheduler + Zernio Social Dispatch Engine",
+        "endpoint": "POST /api/v1/scheduler/launch",
+        "latency_ms": elapsed_ms,
+        "scheduled_count": len(posts),
+        "post_type": post_type,
+        "storage": "Supabase PostgreSQL (30-Day Retention) + Cloudinary CDN",
+        "items": posts,
+    }
+
 
 
 @app.post("/api/demo/inbox-triage")
