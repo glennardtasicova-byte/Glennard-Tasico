@@ -1,4 +1,5 @@
 export const GLENNBOT_LIVE_ORIGIN = "https://glennbotautomations.onrender.com";
+export const GLENNBOT_POPOUT_PROXY_PATH = "/glennbot-popout";
 
 export const SYS01_EXPANDED_VIEWS = {
   scheduler: {
@@ -9,7 +10,8 @@ export const SYS01_EXPANDED_VIEWS = {
     icon: "fas fa-paper-plane",
     width: 1240,
     height: 860,
-    baseUrl: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=scheduler",
+    baseUrl: "/glennbot-popout?popout_mode=workspace_view&tab=scheduler",
+    upstreamUrl: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=scheduler",
   },
   queue: {
     tab: "queue",
@@ -19,7 +21,8 @@ export const SYS01_EXPANDED_VIEWS = {
     icon: "fas fa-stream",
     width: 1220,
     height: 840,
-    baseUrl: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=queue",
+    baseUrl: "/glennbot-popout?popout_mode=workspace_view&tab=queue",
+    upstreamUrl: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=queue",
   },
   calendar: {
     tab: "calendar",
@@ -29,17 +32,18 @@ export const SYS01_EXPANDED_VIEWS = {
     icon: "fas fa-calendar-alt",
     width: 1260,
     height: 860,
-    baseUrl: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=calendar",
+    baseUrl: "/glennbot-popout?popout_mode=workspace_view&tab=calendar",
+    upstreamUrl: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=calendar",
   },
 };
 
 export function buildGlennBotExpandedUrl(tabName = "scheduler", mode = "workspace_view", timestamp = null) {
-  if (typeof tabName === "string" && /^https?:\/\//i.test(tabName.trim())) {
+  if (typeof tabName === "string" && /^(\/|https?:\/\/)/i.test(tabName.trim())) {
     return tabName.trim();
   }
   const cleanTab = String(tabName || "scheduler").trim();
   const cleanMode = String(mode || "workspace_view").trim();
-  const base = `${GLENNBOT_LIVE_ORIGIN}/?popout_mode=${encodeURIComponent(cleanMode)}&tab=${encodeURIComponent(cleanTab)}`;
+  const base = `${GLENNBOT_POPOUT_PROXY_PATH}?popout_mode=${encodeURIComponent(cleanMode)}&tab=${encodeURIComponent(cleanTab)}`;
   if (timestamp !== null && timestamp !== undefined) {
     return `${base}&_ts=${encodeURIComponent(String(timestamp))}`;
   }

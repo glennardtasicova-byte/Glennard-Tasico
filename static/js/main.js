@@ -1,10 +1,11 @@
 // Portfolio Theme Switcher, Viewport-Aware Scroll Reveal, Role Typing Illumination & Animated Circuit Engine
 function openGlennBotLivePopup(tabName, mode = "workspace_view", width = 1240, height = 860) {
-  const isFullUrl = typeof tabName === "string" && /^https?:\/\//i.test(tabName.trim());
-  const cleanTab = isFullUrl ? "scheduler" : String(tabName || "scheduler").trim();
-  const url = isFullUrl
+  const isFullOrRelativeUrl =
+    typeof tabName === "string" && /^(\/|https?:\/\/)/i.test(tabName.trim());
+  const cleanTab = isFullOrRelativeUrl ? "scheduler" : String(tabName || "scheduler").trim();
+  const url = isFullOrRelativeUrl
     ? tabName.trim()
-    : `https://glennbotautomations.onrender.com/?popout_mode=${encodeURIComponent(mode)}&tab=${encodeURIComponent(cleanTab)}&_ts=${Date.now()}`;
+    : `/glennbot-popout?popout_mode=${encodeURIComponent(mode)}&tab=${encodeURIComponent(cleanTab)}&_ts=${Date.now()}`;
   const availW = window.screen?.availWidth || window.screen?.width || 1440;
   const availH = window.screen?.availHeight || window.screen?.height || 900;
   const w = Math.min(width, availW - 40);
@@ -870,7 +871,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         .replace(/"/g, "&quot;");
     }
 
-    // Live Expanded Views Registry for SYS-01 on https://glennbotautomations.onrender.com
+    // Auto-Authenticated Live Expanded Views Registry for SYS-01 via /glennbot-popout proxy
     const SYS01_LIVE_EXPANDED_VIEWS = {
       scheduler: {
         tab: "scheduler",
@@ -881,7 +882,8 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         icon: "fas fa-paper-plane",
         width: 1240,
         height: 860,
-        url: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=scheduler",
+        url: "/glennbot-popout?popout_mode=workspace_view&tab=scheduler",
+        upstreamUrl: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=scheduler",
       },
       queue: {
         tab: "queue",
@@ -892,7 +894,8 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         icon: "fas fa-stream",
         width: 1220,
         height: 840,
-        url: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=queue",
+        url: "/glennbot-popout?popout_mode=workspace_view&tab=queue",
+        upstreamUrl: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=queue",
       },
       calendar: {
         tab: "calendar",
@@ -903,7 +906,8 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         icon: "fas fa-calendar-alt",
         width: 1260,
         height: 860,
-        url: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=calendar",
+        url: "/glennbot-popout?popout_mode=workspace_view&tab=calendar",
+        upstreamUrl: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=calendar",
       },
     };
 

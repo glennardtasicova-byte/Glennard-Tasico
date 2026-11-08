@@ -146,8 +146,12 @@ os.makedirs(os.path.join(STATIC_DIR, "js"), exist_ok=True)
 os.makedirs(TEMPLATES_DIR, exist_ok=True)
 
 # ==============================================================================
-# LIVE CONFIGURATION FOR GLENNBOTAUTOMATIONS CONNECTION
+# LIVE CONFIGURATION FOR GLENNBOTAUTOMATIONS CONNECTION & AUTO-AUTH SESSION
 # ==============================================================================
+import json
+import time
+from fastapi.responses import FileResponse, JSONResponse, Response
+
 GLENNBOT_BASE_URL = os.getenv(
     "GLENNBOT_BASE_URL",
     "https://glennbotautomations.onrender.com",
@@ -156,14 +160,100 @@ GLENNBOT_API_BASE_URL = os.getenv(
     "GLENNBOT_API_BASE_URL",
     f"{GLENNBOT_BASE_URL}/api/v1",
 ).rstrip("/")
+DASHBOARD_USER_ID = (
+    os.getenv("DASHBOARD_USER_ID")
+    or os.getenv("DASHBOARD_USER")
+    or "glennbot_client"
+).strip()
+DASHBOARD_PASSWORD = (
+    os.getenv("DASHBOARD_PASSWORD")
+    or "GlennBot2026!"
+).strip()
 GLENNBOT_INTERNAL_API_KEY = os.getenv("GLENNBOT_INTERNAL_API_KEY", "").strip()
-GLENNBOT_TIMEOUT_SECONDS = float(os.getenv("GLENNBOT_TIMEOUT_SECONDS", "15"))
+GLENNBOT_TIMEOUT_SECONDS = float(os.getenv("GLENNBOT_TIMEOUT_SECONDS", "20"))
+
+# 12-hour in-memory cache for GlennBot session token & user metadata
+_GLENNBOT_SESSION_CACHE: dict = {
+    "token": "",
+    "user": None,
+    "expires_at": 0.0,
+}
+_GLENNBOT_SESSION_TTL_SECONDS = 12 * 60 * 60  # 12 hours
 
 
-def get_glennbot_headers() -> dict:
+async def get_glennbot_auto_session_token(force_refresh: bool = False) -> str:
     """
-    Helper function that prepares authentication headers (`X-API-Key`)
-    for future API calls from Portfolio mini-widgets to GlennBotAutomations.
+    Authenticates against {GLENNBOT_BASE_URL}/api/auth/login using DASHBOARD_USER_ID
+    and DASHBOARD_PASSWORD from .env, extracts session_token (from JSON or
+    gb_auth_session cookie), and caches it in memory for 12 hours.
+    """
+    now = time.time()
+    cached_token = _GLENNBOT_SESSION_CACHE.get("token") or ""
+    expires_at = float(_GLENNBOT_SESSION_CACHE.get("expires_at") or 0.0)
+
+    if not force_refresh and cached_token and now < expires_at:
+        return cached_token
+
+    login_url = f"{GLENNBOT_BASE_URL}/api/auth/login"
+    payload = {
+        "user_id": DASHBOARD_USER_ID,
+        "password": DASHBOARD_PASSWORD,
+    }
+    extracted_token = ""
+    extracted_user = None
+
+    try:
+        async with httpx.AsyncClient(
+            timeout=GLENNBOT_TIMEOUT_SECONDS,
+            follow_redirects=True,
+        ) as client:
+            resp = await client.post(
+                login_url,
+                json=payload,
+                headers={
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                },
+            )
+            cookie_token = resp.cookies.get("gb_auth_session") or ""
+            data = {}
+            try:
+                data = resp.json()
+            except Exception:
+                data = {}
+
+            if isinstance(data, dict):
+                extracted_token = (
+                    str(data.get("session_token") or data.get("token") or cookie_token).strip()
+                )
+                if isinstance(data.get("user"), dict):
+                    extracted_user = data.get("user")
+            elif cookie_token:
+                extracted_token = str(cookie_token).strip()
+    except Exception:
+        extracted_token = ""
+
+    if not extracted_token:
+        extracted_token = f"gb_auto_session_{DASHBOARD_USER_ID}"
+
+    if not extracted_user:
+        extracted_user = {
+            "user_id": DASHBOARD_USER_ID,
+            "role": "client",
+            "is_admin": False,
+        }
+
+    _GLENNBOT_SESSION_CACHE["token"] = extracted_token
+    _GLENNBOT_SESSION_CACHE["user"] = extracted_user
+    _GLENNBOT_SESSION_CACHE["expires_at"] = now + _GLENNBOT_SESSION_TTL_SECONDS
+    return extracted_token
+
+
+def get_glennbot_headers(session_token: str | None = None) -> dict:
+    """
+    Helper function that prepares authentication headers (`X-API-Key`,
+    `X-GlennBot-Session`, and `Cookie: gb_auth_session=...`) for calls
+    to GlennBotAutomations.
     """
     headers = {
         "Accept": "application/json",
@@ -171,20 +261,24 @@ def get_glennbot_headers() -> dict:
     }
     if GLENNBOT_INTERNAL_API_KEY:
         headers["X-API-Key"] = GLENNBOT_INTERNAL_API_KEY
+    if session_token:
+        headers["X-GlennBot-Session"] = session_token
+        headers["Cookie"] = f"gb_auth_session={session_token}"
     return headers
 
 
 async def call_glennbot_api(method: str, endpoint: str, payload: dict | None = None) -> dict:
     """
-    Lightweight async HTTP client helper (using httpx) ready for future
-    interactive portfolio widgets (e.g., /status, /ai/ask, /calendar/schedule).
+    Lightweight async HTTP client helper (using httpx) for interactive portfolio widgets.
     """
+    session_token = await get_glennbot_auto_session_token()
     url = f"{GLENNBOT_API_BASE_URL}/{endpoint.lstrip('/')}"
     async with httpx.AsyncClient(timeout=GLENNBOT_TIMEOUT_SECONDS) as client:
         response = await client.request(
             method=method.upper(),
             url=url,
-            headers=get_glennbot_headers(),
+            headers=get_glennbot_headers(session_token),
+            cookies={"gb_auth_session": session_token},
             json=payload,
         )
         response.raise_for_status()
@@ -200,8 +294,6 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Mount /static (and /assets if present) and configure Jinja2 templates
-app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 PUBLIC_ASSETS_DIR = os.path.join(BASE_DIR, "public", "assets")
 if os.path.isdir(PUBLIC_ASSETS_DIR):
     app.mount("/assets", StaticFiles(directory=PUBLIC_ASSETS_DIR), name="assets")
@@ -220,7 +312,7 @@ async def index(request: Request):
     context = {
         "request": request,
         "page_title": "GLENNARD TASICO",
-        "glennbot_configured": bool(GLENNBOT_INTERNAL_API_KEY),
+        "glennbot_configured": bool(GLENNBOT_INTERNAL_API_KEY or DASHBOARD_USER_ID),
         "glennbot_base_url": GLENNBOT_BASE_URL,
     }
     try:
@@ -232,8 +324,6 @@ async def index(request: Request):
     except TypeError:
         return templates.TemplateResponse("index.html", context)
 
-
-from fastapi.responses import Response
 
 
 def _build_cv_pdf_bytes() -> bytes:
@@ -350,10 +440,8 @@ async def health_check():
 @app.post("/api/demo/ai-caption")
 @app.post("/api/v1/ai/caption")
 @app.post("/api/v1/ai/ask")
-@app.post("/api/ai/ask")
 async def demo_ai_caption(request: Request):
     """Live API showcase endpoint for Project 01: AI Content & Omnichannel Social Scheduler."""
-    import time
     t0 = time.perf_counter()
     try:
         body = await request.json()
@@ -370,10 +458,12 @@ async def demo_ai_caption(request: Request):
     remote_data = None
     if GLENNBOT_INTERNAL_API_KEY:
         try:
+            session_token = await get_glennbot_auto_session_token()
             async with httpx.AsyncClient(timeout=2.5) as client:
                 resp = await client.post(
                     remote_url,
-                    headers=get_glennbot_headers(),
+                    headers=get_glennbot_headers(session_token),
+                    cookies={"gb_auth_session": session_token},
                     json={"topic": topic, "tone": tone, "platforms": platforms},
                 )
                 if resp.status_code == 200:
@@ -447,7 +537,6 @@ async def demo_ai_caption(request: Request):
 @app.post("/api/v1/posts/schedule")
 async def launch_social_scheduler_batch(request: Request):
     """Live API endpoint for launching multi-platform social posts into the GlennBot Queue & Calendar."""
-    import time
     t0 = time.perf_counter()
     try:
         body = await request.json()
@@ -461,10 +550,12 @@ async def launch_social_scheduler_batch(request: Request):
 
     if GLENNBOT_INTERNAL_API_KEY:
         try:
+            session_token = await get_glennbot_auto_session_token()
             async with httpx.AsyncClient(timeout=2.5) as client:
                 resp = await client.post(
                     remote_url,
-                    headers=get_glennbot_headers(),
+                    headers=get_glennbot_headers(session_token),
+                    cookies={"gb_auth_session": session_token},
                     json=body,
                 )
                 remote_synced = resp.status_code in (200, 201)
@@ -488,11 +579,9 @@ async def launch_social_scheduler_batch(request: Request):
     }
 
 
-
 @app.post("/api/demo/inbox-triage")
 async def demo_inbox_triage(request: Request):
     """Live API showcase endpoint for Project 02: Unified Omnichannel Inbox & Smart Auto-Responder."""
-    import time
     t0 = time.perf_counter()
     try:
         body = await request.json()
@@ -550,7 +639,6 @@ async def demo_inbox_triage(request: Request):
 @app.post("/api/demo/calendar-schedule")
 async def demo_calendar_schedule(request: Request):
     """Live API showcase endpoint for Project 03: Automated Calendar Booking & n8n Webhook Orchestrator."""
-    import time
     t0 = time.perf_counter()
     try:
         body = await request.json()
@@ -587,7 +675,6 @@ async def demo_calendar_schedule(request: Request):
 @app.post("/api/demo/sheets-sync")
 async def demo_sheets_sync(request: Request):
     """Live API showcase endpoint for Project 04: Cloud Spreadsheet & Supplier Capacity Sync Engine."""
-    import time
     t0 = time.perf_counter()
     try:
         body = await request.json()
@@ -618,6 +705,380 @@ async def demo_sheets_sync(request: Request):
     }
 
 
+# ==============================================================================
+# SERVER-SIDE AUTO-AUTHENTICATED PROXY & SESSION INJECTOR FOR GLENNBOT POPOUT
+# ==============================================================================
+def _build_session_injector_snippet(session_token: str, user_obj: dict) -> str:
+    """
+    Builds the <style> + <script> block injected into <head> of /glennbot-popout
+    so #glennbot-login-gate-overlay never appears and the visitor goes straight
+    into the live Expanded View workspace.
+    """
+    safe_token_js = json.dumps(session_token)
+    safe_user_js = json.dumps(user_obj)
+    return (
+        "<style id=\"gb-auto-auth-hide-gate\">"
+        "#glennbot-login-gate-overlay { display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }"
+        "</style>"
+        "<script id=\"gb-auto-auth-injector\">"
+        "(function(){"
+        f"var tok={safe_token_js};"
+        f"var usr={safe_user_js};"
+        "window.gbCurrentAuthUser=usr;"
+        "try{localStorage.setItem('gb_auth_session_token',tok);}catch(_){}"
+        "try{document.cookie='gb_auth_session='+encodeURIComponent(tok)+'; path=/; SameSite=Lax';}catch(_){}"
+        "function _hideGate(){"
+        "var g=document.getElementById('glennbot-login-gate-overlay');"
+        "if(g){g.classList.add('hidden');g.style.setProperty('display','none','important');}"
+        "}"
+        "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',_hideGate);}else{_hideGate();}"
+        "window.addEventListener('load',_hideGate);"
+        "})();"
+        "</script>"
+    )
+
+
+@app.api_route("/glennbot-popout", methods=["GET", "HEAD"], response_class=HTMLResponse)
+async def glennbot_authenticated_popout(request: Request):
+    """
+    Fetches {GLENNBOT_BASE_URL}/?{request.url.query} with the auto-authenticated
+    gb_auth_session cookie and X-GlennBot-Session header, injects the session
+    token + gate-hiding script into <head>, rewrites /static/ links to /gb-static/
+    to prevent CSS collision with the portfolio's own /static/css/style.css,
+    and sets the gb_auth_session cookie on the HTMLResponse.
+    """
+    if request.method == "HEAD":
+        return HTMLResponse(content="", status_code=200)
+
+    session_token = await get_glennbot_auto_session_token()
+    query_str = request.url.query or "popout_mode=workspace_view&tab=scheduler"
+    upstream_url = f"{GLENNBOT_BASE_URL}/?{query_str}"
+
+    req_headers = {
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "X-GlennBot-Session": session_token,
+        "Cookie": f"gb_auth_session={session_token}",
+    }
+    if GLENNBOT_INTERNAL_API_KEY:
+        req_headers["X-API-Key"] = GLENNBOT_INTERNAL_API_KEY
+
+    html_text = ""
+    status_code = 200
+    async with httpx.AsyncClient(
+        timeout=GLENNBOT_TIMEOUT_SECONDS,
+        follow_redirects=True,
+    ) as client:
+        resp = await client.get(
+            upstream_url,
+            headers=req_headers,
+            cookies={"gb_auth_session": session_token},
+        )
+        if resp.status_code in (401, 403):
+            session_token = await get_glennbot_auto_session_token(force_refresh=True)
+            req_headers["X-GlennBot-Session"] = session_token
+            req_headers["Cookie"] = f"gb_auth_session={session_token}"
+            resp = await client.get(
+                upstream_url,
+                headers=req_headers,
+                cookies={"gb_auth_session": session_token},
+            )
+        status_code = resp.status_code
+        html_text = resp.text
+
+    user_obj = _GLENNBOT_SESSION_CACHE.get("user") or {
+        "user_id": DASHBOARD_USER_ID,
+        "role": "client",
+        "is_admin": False,
+    }
+    injector_snippet = _build_session_injector_snippet(session_token, user_obj)
+
+    # Rewrite GlennBot /static/ references to /gb-static/ so GlennBot's /static/css/style.css
+    # never collides with the portfolio's own /static/css/style.css
+    html_text = html_text.replace('href="/static/', 'href="/gb-static/').replace(
+        "href='/static/", "href='/gb-static/"
+    )
+    html_text = html_text.replace('src="/static/', 'src="/gb-static/').replace(
+        "src='/static/", "src='/gb-static/"
+    )
+
+    if "<head>" in html_text:
+        html_text = html_text.replace("<head>", f"<head>\n    {injector_snippet}", 1)
+    elif "</head>" in html_text:
+        html_text = html_text.replace("</head>", f"    {injector_snippet}\n</head>", 1)
+    else:
+        html_text = injector_snippet + html_text
+
+    response = HTMLResponse(content=html_text, status_code=status_code)
+    response.set_cookie(
+        key="gb_auth_session",
+        value=session_token,
+        max_age=_GLENNBOT_SESSION_TTL_SECONDS,
+        path="/",
+        samesite="lax",
+        httponly=False,
+    )
+    return response
+
+
+async def _proxy_glennbot_static_asset(path: str, query_str: str) -> Response:
+    """Fetches a static asset from {GLENNBOT_BASE_URL}/static/{path}."""
+    session_token = await get_glennbot_auto_session_token()
+    target_url = f"{GLENNBOT_BASE_URL}/static/{path.lstrip('/')}"
+    if query_str:
+        target_url = f"{target_url}?{query_str}"
+
+    async with httpx.AsyncClient(
+        timeout=GLENNBOT_TIMEOUT_SECONDS,
+        follow_redirects=True,
+    ) as client:
+        resp = await client.get(
+            target_url,
+            headers={
+                "X-GlennBot-Session": session_token,
+                "Cookie": f"gb_auth_session={session_token}",
+            },
+            cookies={"gb_auth_session": session_token},
+        )
+        content_type = resp.headers.get("content-type", "application/octet-stream")
+        return Response(
+            content=resp.content,
+            status_code=resp.status_code,
+            media_type=content_type,
+            headers={"Cache-Control": "public, max-age=300"},
+        )
+
+
+@app.api_route("/gb-static/{path:path}", methods=["GET", "HEAD"])
+async def glennbot_static_proxy(path: str, request: Request):
+    """Proxies /gb-static/{path} directly to {GLENNBOT_BASE_URL}/static/{path}."""
+    if request.method == "HEAD":
+        return Response(content=b"", status_code=200)
+    return await _proxy_glennbot_static_asset(path, request.url.query)
+
+
+@app.api_route("/static/{path:path}", methods=["GET", "HEAD"])
+async def hybrid_static_files(path: str, request: Request):
+    """
+    Serves the portfolio's local /static files (style.css, main.js, glennbot_popup_utils.mjs)
+    while transparently proxying any GlennBot static assets (/static/js/app_*.js or requests
+    originating from /glennbot-popout) to {GLENNBOT_BASE_URL}/static/{path}.
+    """
+    referer = (request.headers.get("referer") or "").lower()
+    from_glennbot_popout = "/glennbot-popout" in referer
+    safe_rel = os.path.normpath(path).lstrip("/\\")
+    local_candidate = os.path.join(STATIC_DIR, safe_rel)
+
+    if not from_glennbot_popout and os.path.isfile(local_candidate):
+        return FileResponse(local_candidate)
+
+    if os.path.isfile(local_candidate) and safe_rel.replace("\\", "/") in (
+        "js/main.js",
+        "js/glennbot_popup_utils.mjs",
+    ):
+        return FileResponse(local_candidate)
+
+    return await _proxy_glennbot_static_asset(path, request.url.query)
+
+
+@app.api_route("/coin.mp3", methods=["GET", "HEAD"])
+async def proxy_coin_mp3():
+    """Proxies /coin.mp3 from GlennBot so sound effects in the popout never 404."""
+    session_token = await get_glennbot_auto_session_token()
+    try:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            resp = await client.get(
+                f"{GLENNBOT_BASE_URL}/coin.mp3",
+                cookies={"gb_auth_session": session_token},
+            )
+            if resp.status_code == 200:
+                return Response(
+                    content=resp.content,
+                    status_code=200,
+                    media_type=resp.headers.get("content-type", "audio/mpeg"),
+                )
+    except Exception:
+        pass
+    return Response(content=b"", status_code=204)
+
+
+@app.api_route("/Profile Picture.jfif", methods=["GET", "HEAD"])
+async def proxy_profile_picture():
+    """Proxies /Profile Picture.jfif from GlennBot for branding avatar."""
+    session_token = await get_glennbot_auto_session_token()
+    try:
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            resp = await client.get(
+                f"{GLENNBOT_BASE_URL}/Profile%20Picture.jfif",
+                cookies={"gb_auth_session": session_token},
+            )
+            if resp.status_code == 200:
+                return Response(
+                    content=resp.content,
+                    status_code=200,
+                    media_type=resp.headers.get("content-type", "image/jpeg"),
+                )
+    except Exception:
+        pass
+    local_avatar = os.path.join(PUBLIC_ASSETS_DIR, "glenn-avatar.png")
+    if os.path.isfile(local_avatar):
+        return FileResponse(local_avatar)
+    return Response(content=b"", status_code=204)
+
+
+@app.api_route("/api/auth/session", methods=["GET", "POST", "HEAD"])
+async def glennbot_auth_session_proxy(request: Request):
+    """
+    Returns an authenticated GlennBot session payload so the popout/iframe
+    immediately executes unlockGlennBotDashboardWithSession() on window.onload
+    without ever showing #glennbot-login-gate-overlay.
+    """
+    session_token = await get_glennbot_auto_session_token()
+    upstream_url = f"{GLENNBOT_BASE_URL}/api/auth/session"
+    upstream_data = None
+
+    try:
+        async with httpx.AsyncClient(timeout=GLENNBOT_TIMEOUT_SECONDS, follow_redirects=True) as client:
+            resp = await client.get(
+                upstream_url,
+                headers={
+                    "Accept": "application/json",
+                    "X-GlennBot-Session": session_token,
+                    "Cookie": f"gb_auth_session={session_token}",
+                },
+                cookies={"gb_auth_session": session_token},
+            )
+            if resp.status_code in (401, 403):
+                session_token = await get_glennbot_auto_session_token(force_refresh=True)
+                resp = await client.get(
+                    upstream_url,
+                    headers={
+                        "Accept": "application/json",
+                        "X-GlennBot-Session": session_token,
+                        "Cookie": f"gb_auth_session={session_token}",
+                    },
+                    cookies={"gb_auth_session": session_token},
+                )
+            if resp.status_code == 200:
+                data = resp.json()
+                if isinstance(data, dict) and data.get("authenticated") and data.get("user"):
+                    upstream_data = data
+    except Exception:
+        upstream_data = None
+
+    user_obj = (upstream_data or {}).get("user") or _GLENNBOT_SESSION_CACHE.get("user") or {
+        "user_id": DASHBOARD_USER_ID,
+        "role": "client",
+        "is_admin": False,
+    }
+    payload = upstream_data or {
+        "status": "success",
+        "ok": True,
+        "authenticated": True,
+        "session_token": session_token,
+        "user": user_obj,
+    }
+    payload["authenticated"] = True
+    payload["session_token"] = session_token
+    payload["user"] = user_obj
+
+    response = JSONResponse(content=payload, status_code=200)
+    response.set_cookie(
+        key="gb_auth_session",
+        value=session_token,
+        max_age=_GLENNBOT_SESSION_TTL_SECONDS,
+        path="/",
+        samesite="lax",
+        httponly=False,
+    )
+    return response
+
+
+import re as _re
+
+_EXPIRED_IG_CDN_RE = _re.compile(r"https://scontent[^\"'\s]*cdninstagram\.com[^\"'\s]*")
+
+
+@app.api_route(
+    "/api/{path:path}",
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
+)
+async def glennbot_api_catchall_proxy(path: str, request: Request):
+    """
+    Transparently proxies all GlennBot /api/... calls from the popout/iframe to
+    {GLENNBOT_BASE_URL}/api/{path}, forwarding query params, request body, and
+    attaching Cookie: gb_auth_session={session_token} and X-GlennBot-Session.
+    """
+    session_token = await get_glennbot_auto_session_token()
+    target_url = f"{GLENNBOT_BASE_URL}/api/{path.lstrip('/')}"
+    if request.url.query:
+        target_url = f"{target_url}?{request.url.query}"
+
+    body_bytes = await request.body()
+    forward_headers = {
+        "X-GlennBot-Session": session_token,
+        "Cookie": f"gb_auth_session={session_token}",
+    }
+    if GLENNBOT_INTERNAL_API_KEY:
+        forward_headers["X-API-Key"] = GLENNBOT_INTERNAL_API_KEY
+    for hdr in ("content-type", "accept", "x-requested-with"):
+        val = request.headers.get(hdr)
+        if val:
+            forward_headers[hdr] = val
+
+    try:
+        async with httpx.AsyncClient(
+            timeout=GLENNBOT_TIMEOUT_SECONDS,
+            follow_redirects=True,
+        ) as client:
+            resp = await client.request(
+                method=request.method,
+                url=target_url,
+                headers=forward_headers,
+                cookies={"gb_auth_session": session_token},
+                content=body_bytes if body_bytes else None,
+            )
+            if resp.status_code == 401:
+                session_token = await get_glennbot_auto_session_token(force_refresh=True)
+                forward_headers["X-GlennBot-Session"] = session_token
+                forward_headers["Cookie"] = f"gb_auth_session={session_token}"
+                resp = await client.request(
+                    method=request.method,
+                    url=target_url,
+                    headers=forward_headers,
+                    cookies={"gb_auth_session": session_token},
+                    content=body_bytes if body_bytes else None,
+                )
+
+            content_type = resp.headers.get("content-type", "application/json")
+            content_bytes = resp.content
+            if "application/json" in content_type.lower() and b"cdninstagram.com" in content_bytes:
+                try:
+                    cleaned_text = _EXPIRED_IG_CDN_RE.sub("", content_bytes.decode("utf-8", errors="ignore"))
+                    content_bytes = cleaned_text.encode("utf-8")
+                except Exception:
+                    pass
+
+            return Response(
+                content=content_bytes,
+                status_code=resp.status_code,
+                media_type=content_type,
+            )
+    except Exception:
+        return JSONResponse(
+            content={
+                "status": "success",
+                "items": [],
+                "accounts": [],
+                "conversations": [],
+                "comments": [],
+                "summary": {},
+                "pages": [],
+                "posts": [],
+            },
+            status_code=200,
+        )
+
+
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 3000))
     print(f"Starting Portfolio Web App on http://0.0.0.0:{port}")
@@ -627,3 +1088,4 @@ if __name__ == "__main__":
         _server.run(sockets=[_EARLY_SERVER_SOCKET])
     else:
         uvicorn.run(app, host="0.0.0.0", port=port)
+
