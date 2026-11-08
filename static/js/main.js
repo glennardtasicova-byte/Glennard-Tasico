@@ -523,10 +523,16 @@ window.openGlennBotLivePopup = openGlennBotLivePopup;
     const PROJECTS_DATA = {
       "social-scheduler": {
         sysId: "SYS-01",
-        category: "AI Content & Social Publishing",
+        category: "Social & AI Publishing",
         endpoint: "POST /api/v1/ai/caption",
         demoEndpoint: "/api/demo/ai-caption",
         title: "AI Content & Omnichannel Social Scheduler",
+        tagline: "Context-Aware Gemini Caption Engine + Multi-Platform APScheduler Queue",
+        pipelineNodes: [
+          { label: "Trigger", title: "Topic / Campaign Brief", accent: false },
+          { label: "AI Core", title: "FastAPI + Gemini 2.5", accent: true },
+          { label: "Dispatch", title: "Zernio (FB/IG/TikTok/YT)", accent: false },
+        ],
         bottleneck:
           "Marketing and operations teams were spending 12+ hours weekly manually writing platform-specific social copy, formatting media assets, and logging into separate dashboards for Facebook, Instagram, TikTok, and YouTube.",
         solution:
@@ -538,9 +544,9 @@ window.openGlennBotLivePopup = openGlennBotLivePopup;
           "APScheduler + Zernio API dispatches synchronized posts to FB, IG, TikTok & YouTube",
         ],
         metrics: [
-          { value: "85% Faster", label: "End-to-End Content Ops" },
-          { value: "4 Platforms", label: "Simultaneous Publishing" },
-          { value: "100% Automated", label: "APScheduler Cron Queue" },
+          { value: "85% Faster", label: "Content Production" },
+          { value: "4 Channels", label: "FB • IG • TikTok • YT" },
+          { value: "24/7 Queue", label: "APScheduler + n8n" },
         ],
         sourceFile: "glennbot_automations/routers/social_scheduler.py",
         sourceCode: `from fastapi import APIRouter, Depends, HTTPException, Header
@@ -616,10 +622,16 @@ async def generate_and_queue_social_post(
       },
       "omnichannel-inbox": {
         sysId: "SYS-02",
-        category: "Omnichannel Comms & AI Triage",
+        category: "Omnichannel & AI Triage",
         endpoint: "POST /api/v1/inbox/triage",
         demoEndpoint: "/api/demo/inbox-triage",
         title: "Unified Omnichannel Inbox & Smart Auto-Responder",
+        tagline: "AI Intent Classification, Priority Scoring & Instant Multi-Channel Reply Engine",
+        pipelineNodes: [
+          { label: "Inbound", title: "SMS / SMTP / Social DM", accent: false },
+          { label: "AI Classifier", title: "Intent & Priority Triage", accent: true },
+          { label: "Action", title: "TextBee SMS + CRM Sync", accent: false },
+        ],
         bottleneck:
           "Client inquiries and urgent supplier alerts were scattered across WhatsApp/SMS, Email threads, and Facebook/Instagram DMs—causing delayed response times and missed high-value leads outside business hours.",
         solution:
@@ -631,9 +643,9 @@ async def generate_and_queue_social_post(
           "Smart Auto-Responder dispatches context-aware reply across the originating channel",
         ],
         metrics: [
-          { value: "< 2.5s", label: "AI Triage & Routing Time" },
-          { value: "3 Channels", label: "SMS • Email • Social DMs" },
-          { value: "Zero Missed", label: "24/7 Lead Capture" },
+          { value: "< 2.5s", label: "AI Triage Latency" },
+          { value: "100% Captured", label: "Inbound Lead Routing" },
+          { value: "Unified Hub", label: "SMS • Email • Social" },
         ],
         sourceFile: "glennbot_automations/routers/omnichannel_inbox.py",
         sourceCode: `from fastapi import APIRouter, Depends, Header
@@ -705,10 +717,16 @@ async def triage_inbound_message(
       },
       "calendar-orchestrator": {
         sysId: "SYS-03",
-        category: "Workflow Automation & Booking",
+        category: "Workflow & Booking",
         endpoint: "POST /api/v1/calendar/schedule",
         demoEndpoint: "/api/demo/calendar-schedule",
         title: "Automated Calendar Booking & n8n Webhook Orchestrator",
+        tagline: "Zero-Touch Consultation Scheduling with Composio Meet/Zoom & n8n Pipelines",
+        pipelineNodes: [
+          { label: "Booking Request", title: "Client Slot Selection", accent: false },
+          { label: "Orchestrator", title: "Composio + n8n Webhook", accent: true },
+          { label: "Provisioned", title: "Google Meet + SMS Alert", accent: false },
+        ],
         bottleneck:
           "Back-and-forth timezone emails, manual Google Meet link creation, and forgotten CRM updates were slowing down technical discovery calls and client onboarding.",
         solution:
@@ -720,9 +738,9 @@ async def triage_inbound_message(
           "n8n webhook triggers CRM lead enrichment and schedules TextBee SMS reminder",
         ],
         metrics: [
-          { value: "Zero-Touch", label: "Calendar & Meet Setup" },
-          { value: "3 Webhooks", label: "Meet • Supabase • SMS" },
-          { value: "100% Synced", label: "Timezone-Safe Scheduling" },
+          { value: "Zero-Touch", label: "Meeting Provisioning" },
+          { value: "3 Webhooks", label: "Calendar • CRM • SMS" },
+          { value: "100% Synced", label: "Google Meet / Zoom" },
         ],
         sourceFile: "glennbot_automations/routers/calendar_orchestrator.py",
         sourceCode: `from fastapi import APIRouter, Header
@@ -791,10 +809,16 @@ async def schedule_discovery_session(
       },
       "sheets-capacity-sync": {
         sysId: "SYS-04",
-        category: "Data Pipeline & Kaizen Analytics",
+        category: "Data Pipeline & Sync",
         endpoint: "POST /api/v1/sheets/sync",
         demoEndpoint: "/api/demo/sheets-sync",
         title: "Cloud Spreadsheet & Supplier Capacity Sync Engine",
+        tagline: "Two-Way Google Sheets ↔ PostgreSQL Sync & Automated Bottleneck Detection",
+        pipelineNodes: [
+          { label: "Cloud Source", title: "Google Drive / Sheets", accent: false },
+          { label: "ETL & Audit", title: "SQLAlchemy + Kaizen Rules", accent: true },
+          { label: "Database", title: "PostgreSQL (Supabase)", accent: false },
+        ],
         bottleneck:
           "Inspired by managing 30+ external suppliers at EPSON Precision: engineering teams were manually consolidating Excel/Google Sheets capacity matrices, leading to version drift and delayed bottleneck detection.",
         solution:
@@ -806,9 +830,9 @@ async def schedule_discovery_session(
           "SQLAlchemy bulk-upserts clean records into Supabase PostgreSQL & updates dashboard",
         ],
         metrics: [
-          { value: "30+ Suppliers", label: "Audited Matrix Architecture" },
-          { value: "2-Way Sync", label: "Google Sheets ↔ PostgreSQL" },
-          { value: "Zero Drift", label: "Pydantic Schema Validation" },
+          { value: "30+ Suppliers", label: "Capacity Matrix Logic" },
+          { value: "2-Way Sync", label: "Sheets ↔ PostgreSQL" },
+          { value: "Zero Drift", label: "Automated Validation" },
         ],
         sourceFile: "glennbot_automations/routers/sheets_capacity_sync.py",
         sourceCode: `from fastapi import APIRouter, Depends
@@ -1121,8 +1145,26 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
       endpointEl.textContent = proj.endpoint;
       titleEl.textContent = proj.title;
 
-      // 1. Render Case Study Tab
+      // 1. Render Case Study Tab (including the 3-step pipeline diagram & KPI strip moved from outer card)
+      const pipelineHtml = Array.isArray(proj.pipelineNodes)
+        ? `
+        <div class="project-pipeline-visual modal-pipeline-strip" aria-label="System Architecture Flow">
+          ${proj.pipelineNodes
+            .map(
+              (node, idx) => `
+            <div class="pipeline-node ${node.accent ? "pipeline-node-accent" : ""}">
+              <span class="pipeline-node-label">${escapeHtml(node.label)}</span>
+              <strong class="pipeline-node-title">${escapeHtml(node.title)}</strong>
+            </div>
+            ${idx < proj.pipelineNodes.length - 1 ? '<span class="pipeline-arrow" aria-hidden="true">&rarr;</span>' : ""}
+          `
+            )
+            .join("")}
+        </div>`
+        : "";
+
       panelCaseStudy.innerHTML = `
+        ${pipelineHtml}
         <div class="modal-case-grid">
           <div class="modal-case-card">
             <span class="modal-section-eyebrow">Operational Bottleneck</span>
@@ -1162,7 +1204,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         </div>
         <div class="modal-case-footer">
           <button type="button" class="btn-project-widget" data-switch-tab="live-widget">
-            <span>${projectId === "social-scheduler" ? "⚡ Launch Expanded Widget &rarr;" : "Launch Interactive API Widget &rarr;"}</span>
+            <span>${projectId === "social-scheduler" ? "⚡ Launch Expanded Widget &rarr;" : "⚡ Launch Interactive Widget &rarr;"}</span>
           </button>
         </div>
       `;
