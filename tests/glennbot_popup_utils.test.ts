@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   SYS01_EXPANDED_VIEWS,
   buildGlennBotExpandedUrl,
+  buildInstantPopoutStyleTag,
   computeCenteredPopupFeatures,
 } from "../static/js/glennbot_popup_utils.mjs";
 
@@ -48,3 +49,18 @@ test("computeCenteredPopupFeatures centers popup window within available screen 
   assert.equal(res.top, 110);
   assert.ok(res.features.includes("width=1240,height=860,left=340,top=110"));
 });
+
+test("buildInstantPopoutStyleTag hides homepage chrome and toggles #view-scheduler based on targetTab", () => {
+  const queueCss = buildInstantPopoutStyleTag("queue");
+  assert.ok(queueCss.includes('<style id="gb-instant-popout-css">'));
+  assert.ok(queueCss.includes("#main-dashboard-header"));
+  assert.ok(queueCss.includes("#left-nav-sidebar"));
+  assert.ok(queueCss.includes("#gb-popout-window-bar"));
+  assert.ok(queueCss.includes("#view-scheduler:not(.gb-tab-ready)"));
+  assert.ok(queueCss.includes("#view-queue"));
+
+  const schedCss = buildInstantPopoutStyleTag("scheduler");
+  assert.ok(!schedCss.includes("#view-scheduler:not(.gb-tab-ready)"));
+  assert.ok(schedCss.includes("#view-scheduler {"));
+});
+

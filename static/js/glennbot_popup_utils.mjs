@@ -60,3 +60,27 @@ export function computeCenteredPopupFeatures(width = 1240, height = 860, screenA
   const features = `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`;
   return { w, h, left, top, features };
 }
+
+export function buildInstantPopoutStyleTag(targetTab = "scheduler") {
+  const cleanTab = String(targetTab || "scheduler").trim().toLowerCase() || "scheduler";
+  const nonSchedulerBlock =
+    cleanTab !== "scheduler"
+      ? `  /* If target tab is NOT scheduler, hide #view-scheduler immediately until JS switchTab runs */\n  #view-scheduler:not(.gb-tab-ready) {\n    display: none !important;\n  }\n`
+      : "";
+  return [
+    `<style id="gb-instant-popout-css">`,
+    `  /* Immediately hide login gate and full dashboard homepage chrome */`,
+    `  #glennbot-login-gate-overlay,`,
+    `  #main-dashboard-header,`,
+    `  #left-nav-sidebar {`,
+    `    display: none !important;`,
+    `  }`,
+    `  /* Immediately show the Expanded Focus Window top bar */`,
+    `  #gb-popout-window-bar {`,
+    `    display: flex !important;`,
+    `  }`,
+    nonSchedulerBlock + `  #view-${cleanTab} {\n    display: flex !important;\n  }`,
+    `</style>`,
+  ].join("\n");
+}
+

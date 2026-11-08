@@ -708,89 +708,350 @@ async def demo_sheets_sync(request: Request):
 # ==============================================================================
 # SERVER-SIDE AUTO-AUTHENTICATED PROXY & SESSION INJECTOR FOR GLENNBOT POPOUT
 # ==============================================================================
-def _build_session_injector_snippet(session_token: str, user_obj: dict) -> str:
+_GLENNBOT_VALID_TABS = {
+    "scheduler",
+    "queue",
+    "calendar",
+    "messages",
+    "comments",
+    "analytics",
+    "email",
+    "contacts",
+    "files",
+    "spreadsheet",
+    "automations",
+}
+
+_GLENNBOT_WORKSPACE_VIEW_META: dict[str, dict[str, str]] = {
+    "scheduler": {
+        "title": "Create & Schedule Post — Expanded View",
+        "subtitle": "Multi-Platform Publisher, Media Studio & AI Caption Workspace",
+        "icon": "fa-paper-plane",
+    },
+    "queue": {
+        "title": "Publishing Queue & History — Expanded View",
+        "subtitle": "Live Scheduled, Published & Draft Social Posts Monitor",
+        "icon": "fa-stream",
+    },
+    "calendar": {
+        "title": "Content & Meetings Calendar — Expanded View",
+        "subtitle": "Unified Monthly Schedule for Social Media Posts & Video Appointments",
+        "icon": "fa-calendar-alt",
+    },
+    "analytics": {
+        "title": "Social & Automation Analytics — Expanded View",
+        "subtitle": "Cross-Platform Engagement, Reach & Publishing Performance",
+        "icon": "fa-chart-line",
+    },
+    "contacts": {
+        "title": "CRM Contacts Database — Expanded View",
+        "subtitle": "Unified Directory of Social Leads, Email Senders & SMS Contacts",
+        "icon": "fa-address-book",
+    },
+    "automations": {
+        "title": "GlennBot Native Automations Hub — Expanded View",
+        "subtitle": "24/7 Server-Side Auto-Reply Rules for Comments, DMs, SMS & Emails",
+        "icon": "fa-bolt",
+    },
+    "comments": {
+        "title": "Social Comments Inbox — Expanded View",
+        "subtitle": "Multi-Platform Post Comments & Automated Reply Monitor",
+        "icon": "fa-comment-dots",
+    },
+    "messages": {
+        "title": "Unified Direct Messages & SMS Inbox — Expanded View",
+        "subtitle": "Facebook, Instagram, Telegram & TextBee SIM 2 Conversations",
+        "icon": "fa-comments",
+    },
+    "email": {
+        "title": "Multi-Account Email Hub — Expanded View",
+        "subtitle": "Live IMAP/Gmail Inbox, Sent Folder & Instant Reply Workspace",
+        "icon": "fa-envelope",
+    },
+    "files": {
+        "title": "Cloud Media & Files Vault — Expanded View",
+        "subtitle": "Unified Google Drive & Cloudinary Asset Manager",
+        "icon": "fa-folder-open",
+    },
+    "spreadsheet": {
+        "title": "Cloud Spreadsheet Studio — Expanded View",
+        "subtitle": "Live Two-Way Google Sheets & Formula Workspace",
+        "icon": "fa-table",
+    },
+}
+
+_GLENNBOT_HTML_SHELL_CACHE: dict = {
+    "html": "",
+    "status_code": 200,
+    "expires_at": 0.0,
+}
+_GLENNBOT_STATIC_ASSET_CACHE: dict[str, tuple[bytes, int, str, float]] = {}
+
+
+def _sanitize_popout_tab(raw_tab: str | None) -> str:
+    cleaned = (raw_tab or "scheduler").strip().lower()
+    if cleaned in _GLENNBOT_VALID_TABS:
+        return cleaned
+    return "scheduler"
+
+
+def _build_session_injector_snippet(
+    session_token: str,
+    user_obj: dict,
+    popout_mode: str = "workspace_view",
+    target_tab: str = "scheduler",
+) -> str:
     """
-    Builds the <style> + <script> block injected into <head> of /glennbot-popout
-    so #glennbot-login-gate-overlay never appears and the visitor goes straight
-    into the live Expanded View workspace.
+    Builds the <style id="gb-instant-popout-css"> + synchronous <script> block
+    injected into <head> of /glennbot-popout so #glennbot-login-gate-overlay,
+    #main-dashboard-header, #left-nav-sidebar, and any non-target default tab
+    (#view-scheduler) never flash before applyGlennBotPopoutLayout() runs.
     """
+    clean_mode = (popout_mode or "workspace_view").strip() or "workspace_view"
+    clean_tab = _sanitize_popout_tab(target_tab)
+    meta = _GLENNBOT_WORKSPACE_VIEW_META.get(
+        clean_tab,
+        {
+            "title": f"{clean_tab.upper()} — Expanded View",
+            "subtitle": "Dedicated Standalone Workspace Window",
+            "icon": "fa-window-restore",
+        },
+    )
+
+    non_scheduler_css = ""
+    if clean_tab != "scheduler":
+        non_scheduler_css = (
+            "  /* If target tab is NOT scheduler, hide #view-scheduler immediately until JS switchTab runs */\n"
+            "  #view-scheduler:not(.gb-tab-ready) {\n"
+            "    display: none !important;\n"
+            "  }\n"
+        )
+
+    instant_css = (
+        "<style id=\"gb-instant-popout-css\">\n"
+        "  /* Immediately hide login gate and full dashboard homepage chrome */\n"
+        "  #glennbot-login-gate-overlay,\n"
+        "  #main-dashboard-header,\n"
+        "  #left-nav-sidebar {\n"
+        "    display: none !important;\n"
+        "  }\n"
+        "  /* Immediately show the Expanded Focus Window top bar */\n"
+        "  #gb-popout-window-bar {\n"
+        "    display: flex !important;\n"
+        "  }\n"
+        f"{non_scheduler_css}"
+        f"  #view-{clean_tab} {{\n"
+        "    display: flex !important;\n"
+        "  }\n"
+        "</style>"
+    )
+
     safe_token_js = json.dumps(session_token)
     safe_user_js = json.dumps(user_obj)
-    return (
-        "<style id=\"gb-auto-auth-hide-gate\">"
-        "#glennbot-login-gate-overlay { display: none !important; visibility: hidden !important; opacity: 0 !important; pointer-events: none !important; }"
-        "</style>"
+    safe_mode_js = json.dumps(clean_mode)
+    safe_tab_js = json.dumps(clean_tab)
+    safe_meta_js = json.dumps(meta)
+
+    sync_script = (
         "<script id=\"gb-auto-auth-injector\">"
         "(function(){"
         f"var tok={safe_token_js};"
         f"var usr={safe_user_js};"
+        f"var popMode={safe_mode_js};"
+        f"var targetTab={safe_tab_js};"
+        f"var meta={safe_meta_js};"
         "window.gbCurrentAuthUser=usr;"
+        "window.gbActivePopoutMode=popMode;"
+        "window.gbActivePopoutParams={tab:targetTab};"
+        "if(meta&&meta.title){document.title=meta.title+' \\u2022 GlennBot Automations';}"
         "try{localStorage.setItem('gb_auth_session_token',tok);}catch(_){}"
         "try{document.cookie='gb_auth_session='+encodeURIComponent(tok)+'; path=/; SameSite=Lax';}catch(_){}"
-        "function _hideGate(){"
+        "function _applyInstantExpandedDOM(){"
         "var g=document.getElementById('glennbot-login-gate-overlay');"
-        "if(g){g.classList.add('hidden');g.style.setProperty('display','none','important');}"
+        "if(g&&!g.classList.contains('hidden')){g.classList.add('hidden');g.style.setProperty('display','none','important');}"
+        "var hdr=document.getElementById('main-dashboard-header');"
+        "if(hdr&&!hdr.classList.contains('hidden')){hdr.classList.add('hidden');hdr.style.setProperty('display','none','important');}"
+        "var sb=document.getElementById('left-nav-sidebar');"
+        "if(sb&&!sb.classList.contains('hidden')){sb.classList.add('hidden');sb.style.setProperty('display','none','important');}"
+        "var bar=document.getElementById('gb-popout-window-bar');"
+        "if(bar){bar.classList.remove('hidden');bar.classList.add('flex');bar.style.setProperty('display','flex','important');}"
+        "var tEl=document.getElementById('gb-popout-window-title');"
+        "if(tEl&&meta.title&&tEl.textContent!==meta.title){tEl.textContent=meta.title;}"
+        "var sEl=document.getElementById('gb-popout-window-subtitle');"
+        "if(sEl&&meta.subtitle&&sEl.textContent!==meta.subtitle){sEl.textContent=meta.subtitle;}"
+        "var iEl=document.getElementById('gb-popout-window-icon');"
+        "if(iEl&&meta.icon){iEl.className='fas '+meta.icon+' text-sm';}"
+        "if(targetTab!=='scheduler'){"
+        "var vSched=document.getElementById('view-scheduler');"
+        "if(vSched&&!vSched.classList.contains('gb-tab-ready')){vSched.classList.add('hidden');}"
         "}"
-        "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',_hideGate);}else{_hideGate();}"
-        "window.addEventListener('load',_hideGate);"
+        "var vTarget=document.getElementById('view-'+targetTab);"
+        "if(vTarget){vTarget.classList.remove('hidden');}"
+        "}"
+        "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',_applyInstantExpandedDOM);}else{_applyInstantExpandedDOM();}"
+        "window.addEventListener('load',_applyInstantExpandedDOM);"
         "})();"
         "</script>"
     )
+    return f"{instant_css}\n    {sync_script}"
+
+
+def _apply_instant_popout_dom_transforms(
+    html_text: str,
+    popout_mode: str = "workspace_view",
+    target_tab: str = "scheduler",
+) -> str:
+    """
+    Pre-renders Expanded View classes & header text directly in the server HTML
+    before sending the response so the very first browser paint is already in
+    Expanded Focus Window mode with the active target tab visible.
+    """
+    clean_tab = _sanitize_popout_tab(target_tab)
+    meta = _GLENNBOT_WORKSPACE_VIEW_META.get(
+        clean_tab,
+        {
+            "title": f"{clean_tab.upper()} — Expanded View",
+            "subtitle": "Dedicated Standalone Workspace Window",
+            "icon": "fa-window-restore",
+        },
+    )
+
+    # 1. Hide login gate, main dashboard header, and left sidebar in raw HTML
+    html_text = html_text.replace(
+        'id="glennbot-login-gate-overlay" class="',
+        'id="glennbot-login-gate-overlay" style="display:none!important" class="hidden ',
+        1,
+    )
+    html_text = html_text.replace(
+        'id="main-dashboard-header" class="',
+        'id="main-dashboard-header" style="display:none!important" class="hidden ',
+        1,
+    )
+    html_text = html_text.replace(
+        'id="left-nav-sidebar" class="',
+        'id="left-nav-sidebar" style="display:none!important" class="hidden ',
+        1,
+    )
+
+    # 2. Immediately show #gb-popout-window-bar and populate its title, subtitle, and icon
+    html_text = html_text.replace(
+        'id="gb-popout-window-bar" class="hidden ',
+        'id="gb-popout-window-bar" style="display:flex!important" class="flex ',
+        1,
+    )
+    html_text = html_text.replace(
+        '<i id="gb-popout-window-icon" class="fas fa-external-link-square-alt text-sm"></i>',
+        f'<i id="gb-popout-window-icon" class="fas {meta["icon"]} text-sm"></i>',
+        1,
+    )
+    html_text = html_text.replace(
+        '<h2 id="gb-popout-window-title" class="text-xs sm:text-sm font-extrabold text-white truncate">GlennBot Expanded View</h2>',
+        f'<h2 id="gb-popout-window-title" class="text-xs sm:text-sm font-extrabold text-white truncate">{meta["title"]}</h2>',
+        1,
+    )
+    html_text = html_text.replace(
+        '<p id="gb-popout-window-subtitle" class="text-[10px] text-slate-400 truncate">Dedicated standalone window • Synced live with GlennBot Automations</p>',
+        f'<p id="gb-popout-window-subtitle" class="text-[10px] text-slate-400 truncate">{meta["subtitle"]}</p>',
+        1,
+    )
+
+    # 3. If target_tab is not scheduler, hide #view-scheduler and unhide #view-{target_tab} in raw HTML
+    if clean_tab != "scheduler":
+        html_text = html_text.replace(
+            'id="view-scheduler" class="',
+            'id="view-scheduler" class="hidden ',
+            1,
+        )
+        html_text = html_text.replace(
+            f'id="view-{clean_tab}" class="hidden ',
+            f'id="view-{clean_tab}" class="',
+            1,
+        )
+
+    return html_text
 
 
 @app.api_route("/glennbot-popout", methods=["GET", "HEAD"], response_class=HTMLResponse)
 async def glennbot_authenticated_popout(request: Request):
     """
     Fetches {GLENNBOT_BASE_URL}/?{request.url.query} with the auto-authenticated
-    gb_auth_session cookie and X-GlennBot-Session header, injects the session
-    token + gate-hiding script into <head>, rewrites /static/ links to /gb-static/
-    to prevent CSS collision with the portfolio's own /static/css/style.css,
-    and sets the gb_auth_session cookie on the HTMLResponse.
+    gb_auth_session cookie and X-GlennBot-Session header, injects the instant
+    popout CSS + session script into <head>, pre-transforms the DOM so the target
+    Expanded View renders on the very first frame with zero homepage flash, and
+    rewrites /static/ links to /gb-static/.
     """
     if request.method == "HEAD":
         return HTMLResponse(content="", status_code=200)
 
+    popout_mode = (request.query_params.get("popout_mode") or "workspace_view").strip() or "workspace_view"
+    target_tab = _sanitize_popout_tab(request.query_params.get("tab"))
+
     session_token = await get_glennbot_auto_session_token()
-    query_str = request.url.query or "popout_mode=workspace_view&tab=scheduler"
-    upstream_url = f"{GLENNBOT_BASE_URL}/?{query_str}"
+    now = time.time()
+    cached_html = _GLENNBOT_HTML_SHELL_CACHE.get("html") or ""
+    cached_exp = float(_GLENNBOT_HTML_SHELL_CACHE.get("expires_at") or 0.0)
 
-    req_headers = {
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "X-GlennBot-Session": session_token,
-        "Cookie": f"gb_auth_session={session_token}",
-    }
-    if GLENNBOT_INTERNAL_API_KEY:
-        req_headers["X-API-Key"] = GLENNBOT_INTERNAL_API_KEY
+    if cached_html and now < cached_exp:
+        html_text = cached_html
+        status_code = int(_GLENNBOT_HTML_SHELL_CACHE.get("status_code") or 200)
+    else:
+        query_str = request.url.query or f"popout_mode={popout_mode}&tab={target_tab}"
+        upstream_url = f"{GLENNBOT_BASE_URL}/?{query_str}"
 
-    html_text = ""
-    status_code = 200
-    async with httpx.AsyncClient(
-        timeout=GLENNBOT_TIMEOUT_SECONDS,
-        follow_redirects=True,
-    ) as client:
-        resp = await client.get(
-            upstream_url,
-            headers=req_headers,
-            cookies={"gb_auth_session": session_token},
-        )
-        if resp.status_code in (401, 403):
-            session_token = await get_glennbot_auto_session_token(force_refresh=True)
-            req_headers["X-GlennBot-Session"] = session_token
-            req_headers["Cookie"] = f"gb_auth_session={session_token}"
+        req_headers = {
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "X-GlennBot-Session": session_token,
+            "Cookie": f"gb_auth_session={session_token}",
+        }
+        if GLENNBOT_INTERNAL_API_KEY:
+            req_headers["X-API-Key"] = GLENNBOT_INTERNAL_API_KEY
+
+        html_text = ""
+        status_code = 200
+        async with httpx.AsyncClient(
+            timeout=GLENNBOT_TIMEOUT_SECONDS,
+            follow_redirects=True,
+        ) as client:
             resp = await client.get(
                 upstream_url,
                 headers=req_headers,
                 cookies={"gb_auth_session": session_token},
             )
-        status_code = resp.status_code
-        html_text = resp.text
+            if resp.status_code in (401, 403):
+                session_token = await get_glennbot_auto_session_token(force_refresh=True)
+                req_headers["X-GlennBot-Session"] = session_token
+                req_headers["Cookie"] = f"gb_auth_session={session_token}"
+                resp = await client.get(
+                    upstream_url,
+                    headers=req_headers,
+                    cookies={"gb_auth_session": session_token},
+                )
+            status_code = resp.status_code
+            html_text = resp.text
+
+        if status_code == 200 and html_text:
+            _GLENNBOT_HTML_SHELL_CACHE["html"] = html_text
+            _GLENNBOT_HTML_SHELL_CACHE["status_code"] = status_code
+            _GLENNBOT_HTML_SHELL_CACHE["expires_at"] = now + 300.0
 
     user_obj = _GLENNBOT_SESSION_CACHE.get("user") or {
         "user_id": DASHBOARD_USER_ID,
         "role": "client",
         "is_admin": False,
     }
-    injector_snippet = _build_session_injector_snippet(session_token, user_obj)
+    injector_snippet = _build_session_injector_snippet(
+        session_token=session_token,
+        user_obj=user_obj,
+        popout_mode=popout_mode,
+        target_tab=target_tab,
+    )
+
+    # Pre-transform the DOM so Expanded View bar & target tab are active before JS loads
+    html_text = _apply_instant_popout_dom_transforms(
+        html_text=html_text,
+        popout_mode=popout_mode,
+        target_tab=target_tab,
+    )
 
     # Rewrite GlennBot /static/ references to /gb-static/ so GlennBot's /static/css/style.css
     # never collides with the portfolio's own /static/css/style.css
@@ -821,7 +1082,19 @@ async def glennbot_authenticated_popout(request: Request):
 
 
 async def _proxy_glennbot_static_asset(path: str, query_str: str) -> Response:
-    """Fetches a static asset from {GLENNBOT_BASE_URL}/static/{path}."""
+    """Fetches a static asset from {GLENNBOT_BASE_URL}/static/{path} with in-memory caching."""
+    cache_key = f"{path.lstrip('/')}?{query_str}" if query_str else path.lstrip("/")
+    now = time.time()
+    cached_entry = _GLENNBOT_STATIC_ASSET_CACHE.get(cache_key)
+    if cached_entry and now < cached_entry[3]:
+        content_bytes, status_code, content_type, _ = cached_entry
+        return Response(
+            content=content_bytes,
+            status_code=status_code,
+            media_type=content_type,
+            headers={"Cache-Control": "public, max-age=300"},
+        )
+
     session_token = await get_glennbot_auto_session_token()
     target_url = f"{GLENNBOT_BASE_URL}/static/{path.lstrip('/')}"
     if query_str:
@@ -840,6 +1113,13 @@ async def _proxy_glennbot_static_asset(path: str, query_str: str) -> Response:
             cookies={"gb_auth_session": session_token},
         )
         content_type = resp.headers.get("content-type", "application/octet-stream")
+        if resp.status_code == 200 and resp.content:
+            _GLENNBOT_STATIC_ASSET_CACHE[cache_key] = (
+                resp.content,
+                resp.status_code,
+                content_type,
+                now + 600.0,
+            )
         return Response(
             content=resp.content,
             status_code=resp.status_code,
