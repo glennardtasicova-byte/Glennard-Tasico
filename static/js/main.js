@@ -1,4 +1,23 @@
 // Portfolio Theme Switcher, Viewport-Aware Scroll Reveal, Role Typing Illumination & Animated Circuit Engine
+function openGlennBotLivePopup(tabName, mode = "workspace_view", width = 1240, height = 860) {
+  const isFullUrl = typeof tabName === "string" && /^https?:\/\//i.test(tabName.trim());
+  const cleanTab = isFullUrl ? "scheduler" : String(tabName || "scheduler").trim();
+  const url = isFullUrl
+    ? tabName.trim()
+    : `https://glennbotautomations.onrender.com/?popout_mode=${encodeURIComponent(mode)}&tab=${encodeURIComponent(cleanTab)}&_ts=${Date.now()}`;
+  const availW = window.screen?.availWidth || window.screen?.width || 1440;
+  const availH = window.screen?.availHeight || window.screen?.height || 900;
+  const w = Math.min(width, availW - 40);
+  const h = Math.min(height, availH - 80);
+  const left = Math.max(0, Math.round((availW - w) / 2));
+  const top = Math.max(0, Math.round((availH - h) / 2));
+  const features = `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`;
+  const win = window.open(url, `GlennBotExpanded_${cleanTab}`, features);
+  if (win) win.focus();
+  return win;
+}
+window.openGlennBotLivePopup = openGlennBotLivePopup;
+
 (function () {
   const STORAGE_KEY = "glenn_portfolio_theme";
 
@@ -851,222 +870,44 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         .replace(/"/g, "&quot;");
     }
 
-    // Helper for YYYY-MM-DD formatting in local time
-    function formatDateYMD(dateObj) {
-      const y = dateObj.getFullYear();
-      const m = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const d = String(dateObj.getDate()).padStart(2, "0");
-      return `${y}-${m}-${d}`;
-    }
-
-    const nowDate = new Date();
-    const todayStr = formatDateYMD(nowDate);
-    const tomorrowDate = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate() + 1);
-    const tomorrowStr = formatDateYMD(tomorrowDate);
-    const plusTwoDate = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate() + 2);
-    const plusTwoStr = formatDateYMD(plusTwoDate);
-    const yesterdayDate = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate() - 1);
-    const yesterdayStr = formatDateYMD(yesterdayDate);
-
-    // Built-in Google Drive Files Vault sample assets
-    const VAULT_FILES_LIST = [
-      {
-        id: "vault_reel_01",
-        name: "glennbot_demo_reel.mp4",
-        mimeType: "video/mp4",
-        sizeLabel: "14.2 MB • 9:16 Vertical Reel",
-        thumbUrl: "/assets/aistudio/image_0f71ad01.png",
-        previewUrl: "https://glennbotautomations.onrender.com/vault/glennbot_demo_reel.mp4",
+    // Live Expanded Views Registry for SYS-01 on https://glennbotautomations.onrender.com
+    const SYS01_LIVE_EXPANDED_VIEWS = {
+      scheduler: {
+        tab: "scheduler",
+        shortLabel: "📝 Create Post",
+        title: "Create Post Expanded View",
+        fullTitle: "Create & Schedule Post — Expanded View",
+        subtitle: "Multi-Platform Publisher, Media Studio & AI Caption Workspace",
+        icon: "fas fa-paper-plane",
+        width: 1240,
+        height: 860,
+        url: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=scheduler",
       },
-      {
-        id: "vault_img_02",
-        name: "kaizen_dashboard_preview.png",
-        mimeType: "image/png",
-        sizeLabel: "2.8 MB • 1080x1350 Portrait",
-        thumbUrl: "/assets/aistudio/image_404ebbdb.png",
-        previewUrl: "https://glennbotautomations.onrender.com/vault/kaizen_dashboard_preview.png",
+      queue: {
+        tab: "queue",
+        shortLabel: "⏳ Queue",
+        title: "Queue Expanded View",
+        fullTitle: "Publishing Queue & History — Expanded View",
+        subtitle: "Live Scheduled, Published & Draft Social Posts Monitor",
+        icon: "fas fa-stream",
+        width: 1220,
+        height: 840,
+        url: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=queue",
       },
-      {
-        id: "vault_vid_03",
-        name: "n8n_webhook_pipeline.mp4",
-        mimeType: "video/mp4",
-        sizeLabel: "28.6 MB • 16:9 HD Walkthrough",
-        thumbUrl: "/assets/aistudio/image_68d1ca77.png",
-        previewUrl: "https://glennbotautomations.onrender.com/vault/n8n_webhook_pipeline.mp4",
-      },
-      {
-        id: "vault_img_04",
-        name: "ai_social_carousel.png",
-        mimeType: "image/png",
-        sizeLabel: "3.4 MB • Multi-Slide Cover",
-        thumbUrl: "/assets/aistudio/image_7ed0ded4.png",
-        previewUrl: "https://glennbotautomations.onrender.com/vault/ai_social_carousel.png",
-      },
-    ];
-
-    // Pre-connected Demo Accounts per platform
-    const PLATFORM_META = {
-      facebook: {
-        name: "Facebook",
-        icon: "fab fa-facebook",
-        colorClass: "gb-text-blue",
-        bgColor: "#1877F2",
-        badgeText: "2 pages",
-        accounts: [
-          { id: "fb_glennbot_main", label: "GlennBot AI Solutions (FB)" },
-          { id: "fb_kaizen_hub", label: "GlennBot Ops Automation Hub (FB)" },
-        ],
-      },
-      instagram: {
-        name: "Instagram",
-        icon: "fab fa-instagram",
-        colorClass: "gb-text-pink",
-        bgColor: "#E1306C",
-        badgeText: "2 accts",
-        accounts: [
-          { id: "ig_glennbot_ai", label: "@glennbot.ai (IG)" },
-          { id: "ig_glenn_kaizen", label: "@glenn_kaizen_tech (IG)" },
-        ],
-      },
-      tiktok: {
-        name: "TikTok",
-        icon: "fab fa-tiktok",
-        colorClass: "gb-text-cyan",
-        bgColor: "#06B6D4",
-        badgeText: "1 acct",
-        accounts: [
-          { id: "tt_glennbot_auto", label: "@glennbot_automations (TikTok)" },
-        ],
-      },
-      youtube: {
-        name: "YouTube",
-        icon: "fab fa-youtube",
-        colorClass: "gb-text-red",
-        bgColor: "#FF0000",
-        badgeText: "1 chnl",
-        accounts: [
-          { id: "yt_glennbot_tech", label: "GlennBot Tech Channel (YT)" },
-        ],
+      calendar: {
+        tab: "calendar",
+        shortLabel: "📅 Calendar",
+        title: "Calendar Expanded View",
+        fullTitle: "Content & Meetings Calendar — Expanded View",
+        subtitle: "Unified Monthly Schedule for Social Media Posts & Video Appointments",
+        icon: "fas fa-calendar-alt",
+        width: 1260,
+        height: 860,
+        url: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=calendar",
       },
     };
 
-    // Persistent state for GlennBot Social Scheduler Mini-App
-    const gbSchedulerState = {
-      activeSubTab: "create", // 'create' | 'queue' | 'calendar'
-      selectedPlatforms: {
-        facebook: true,
-        instagram: true,
-        tiktok: false,
-        youtube: false,
-      },
-      formatType: "reels", // 'text' | 'reels' | 'video' | 'image'
-      askAiOpen: false,
-      askAiTopic: "AI Content & Omnichannel Social Scheduler scaling content 10x faster",
-      askAiTone: "Executive & High-Converting",
-      askAiLoading: false,
-      activeVaultPickerPlatform: null,
-      queueFilter: "all",
-      calendarMonth: nowDate.getMonth(),
-      calendarYear: nowDate.getFullYear(),
-      inspectedCalendarDate: todayStr,
-      platformDrafts: {
-        facebook: {
-          accountLabel: "GlennBot AI Solutions (FB)",
-          date: todayStr,
-          time: "18:30",
-          title: "",
-          caption:
-            "How we eliminated 90% of manual social media scheduling using FastAPI, Gemini 2.5 Flash, and asynchronous platform workers. Full architecture breakdown inside! ⚡🚀 #AIAgent #Automation #FastAPI #BuildInPublic",
-          media: VAULT_FILES_LIST[0],
-        },
-        instagram: {
-          accountLabel: "@glennbot.ai (IG)",
-          date: todayStr,
-          time: "19:00",
-          title: "",
-          caption:
-            "Stop copy-pasting across 4 platforms. Watch how GlennBot Social Scheduler generates platform-native hooks & dispatches Reels + Carousels from one unified workspace. ✨🤖 #AIAutomation #TechBuilder #ProductivityHacks",
-          media: VAULT_FILES_LIST[0],
-        },
-        tiktok: {
-          accountLabel: "@glennbot_automations (TikTok)",
-          date: tomorrowStr,
-          time: "20:00",
-          title: "",
-          caption:
-            "POV: Your Python FastAPI backend writes, schedules, and publishes your short-form videos automatically while you sleep ⚡🔥 #Coding #Python #AIWorkflow #TechTok",
-          media: VAULT_FILES_LIST[0],
-        },
-        youtube: {
-          accountLabel: "GlennBot Tech Channel (YT)",
-          date: tomorrowStr,
-          time: "21:00",
-          title: "Automating Omnichannel Content with Python FastAPI & Gemini 2.5 #Shorts",
-          caption:
-            "In this breakdown, we walk through the GlennBot Social Scheduler architecture: Google Drive Vault media streaming, Gemini 2.5 caption synthesis, and zero-lockup background job queues.",
-          media: VAULT_FILES_LIST[2],
-        },
-      },
-      scheduledPostsList: [
-        {
-          id: "post_seed_101",
-          date: todayStr,
-          time: "18:30",
-          platform: "facebook",
-          page_name: "GlennBot AI Solutions (FB)",
-          post_type: "reels",
-          caption:
-            "How we eliminated 90% of manual social media scheduling using FastAPI, Gemini 2.5 Flash, and asynchronous platform workers. ⚡🚀 #AIAgent #Automation",
-          status: "Waiting / Scheduled",
-          media_name: "glennbot_demo_reel.mp4",
-          media_thumb: "/assets/aistudio/image_0f71ad01.png",
-          published_url: "",
-        },
-        {
-          id: "post_seed_102",
-          date: todayStr,
-          time: "19:00",
-          platform: "instagram",
-          page_name: "@glennbot.ai (IG)",
-          post_type: "image",
-          caption:
-            "From Toyota Production System (Kaizen) to AI Systems Engineering: Why standardized workflows beat ad-hoc prompting every single time. 📊✨ #Kaizen #AISystems",
-          status: "Waiting / Scheduled",
-          media_name: "kaizen_dashboard_preview.png",
-          media_thumb: "/assets/aistudio/image_404ebbdb.png",
-          published_url: "",
-        },
-        {
-          id: "post_seed_103",
-          date: tomorrowStr,
-          time: "14:00",
-          platform: "tiktok",
-          page_name: "@glennbot_automations (TikTok)",
-          post_type: "reels",
-          caption:
-            "3 n8n + FastAPI webhook patterns every AI Automation Engineer needs in production 🔥⚡ #n8n #FastAPI #AutomationEngineer",
-          status: "Waiting / Scheduled",
-          media_name: "n8n_webhook_pipeline.mp4",
-          media_thumb: "/assets/aistudio/image_68d1ca77.png",
-          published_url: "",
-        },
-        {
-          id: "post_seed_104",
-          date: yesterdayStr,
-          time: "11:00",
-          platform: "youtube",
-          page_name: "GlennBot Tech Channel (YT)",
-          post_type: "video",
-          title: "Building an Enterprise Omnichannel Social Scheduler in Python",
-          caption:
-            "Full system architecture deep dive: Supabase PostgreSQL 30-day retention queue, Google Drive media chunking, and OAuth token refresh pipelines.",
-          status: "Published",
-          media_name: "n8n_webhook_pipeline.mp4",
-          media_thumb: "/assets/aistudio/image_68d1ca77.png",
-          published_url: "https://youtube.com/watch?v=glennbot_sys01",
-        },
-      ],
-    };
+    let activeSys01ExpandedTab = "scheduler";
 
     function setActiveTab(tabName) {
       activeTab = tabName;
@@ -1095,1146 +936,176 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
       });
     }
 
-    // Format compatibility helper (matches GlennBot updatePreviews logic)
-    function isPlatformFormatIncompatible(platform, formatType) {
-      if (platform === "instagram" && formatType === "text") return true;
-      if ((platform === "tiktok" || platform === "youtube") && (formatType === "text" || formatType === "image")) {
-        return true;
-      }
-      return false;
-    }
+    function renderGlennBotSchedulerWorkspace(container) {
+      if (!container) return;
 
-    // Shared 9-Column Queue Table HTML Builder (replicated from GlennBot buildPostsTableHTML)
-    function buildPostsTableHTML(postsToRender) {
-      if (!postsToRender || postsToRender.length === 0) {
-        return `
-          <div class="gb-empty-preview">
-            <i class="fas fa-calendar-times"></i>
-            <p>No scheduled posts match the selected filter.</p>
-          </div>
-        `;
-      }
+      const activeView =
+        SYS01_LIVE_EXPANDED_VIEWS[activeSys01ExpandedTab] ||
+        SYS01_LIVE_EXPANDED_VIEWS.scheduler;
 
-      const formatBadgeMap = {
-        reels: { label: "Reels/Short", icon: "fas fa-mobile-alt", cls: "gb-format-badge-reels" },
-        image: { label: "Image/Album", icon: "fas fa-images", cls: "gb-format-badge-image" },
-        video: { label: "16:9 Video", icon: "fas fa-video", cls: "gb-format-badge-video" },
-        text: { label: "Text Post", icon: "fas fa-align-left", cls: "gb-format-badge-text" },
-      };
-
-      const rowsHtml = postsToRender
-        .map((post, idx) => {
-          const pMeta = PLATFORM_META[post.platform] || PLATFORM_META.facebook;
-          const fmt = formatBadgeMap[post.post_type] || formatBadgeMap.reels;
-
-          let statusHtml = "";
-          const stLower = (post.status || "").toLowerCase();
-          if (stLower.includes("published")) {
-            statusHtml = `<span class="gb-status-pill gb-status-published"><i class="fas fa-check-circle"></i> Published</span>`;
-          } else if (stLower.includes("processing")) {
-            statusHtml = `<span class="gb-status-pill gb-status-processing"><i class="fas fa-spinner fa-spin"></i> Processing Payload</span>`;
-          } else if (stLower.includes("failed")) {
-            statusHtml = `<span class="gb-status-pill gb-status-failed"><i class="fas fa-exclamation-triangle"></i> Failed</span>`;
-          } else {
-            statusHtml = `<span class="gb-status-pill gb-status-waiting"><i class="fas fa-clock"></i> Waiting / Scheduled</span>`;
-          }
-
-          let mediaCellHtml = `<span class="gb-media-badge"><i class="fas fa-align-left"></i> Text-only</span>`;
-          if (stLower.includes("published") && post.published_url) {
-            mediaCellHtml = `<a href="${escapeHtml(post.published_url)}" target="_blank" rel="noopener noreferrer" class="gb-live-post-link"><i class="fas fa-external-link-alt"></i> View Live Post</a>`;
-          } else if (post.post_type !== "text" && post.media_name) {
-            mediaCellHtml = `<span class="gb-media-badge" title="${escapeHtml(post.media_name)}"><i class="fas fa-photo-video"></i> ${escapeHtml(post.media_name)}</span>`;
-          }
-
-          const displayCaption = post.title
-            ? `[${post.title}] ${post.caption || ""}`
-            : post.caption || "No caption";
-
-          const isPublished = stLower.includes("published");
-
+      const cardsHtml = Object.keys(SYS01_LIVE_EXPANDED_VIEWS)
+        .map((key) => {
+          const item = SYS01_LIVE_EXPANDED_VIEWS[key];
+          const isCurrent = key === activeSys01ExpandedTab;
           return `
-            <tr data-post-row="${escapeHtml(post.id)}">
-              <td class="gb-col-idx">${idx + 1}</td>
-              <td>
-                <div class="gb-sched-date">${escapeHtml(post.date)}</div>
-                <div class="gb-sched-time">${escapeHtml(post.time)}</div>
-              </td>
-              <td>
-                <span class="gb-platform-pill">
-                  <i class="${escapeHtml(pMeta.icon)} ${escapeHtml(pMeta.colorClass)}"></i>
-                  <span>${escapeHtml(pMeta.name)}</span>
-                </span>
-              </td>
-              <td>
-                <span class="gb-page-name">${escapeHtml(post.page_name)}</span>
-              </td>
-              <td>
-                <span class="gb-format-badge ${escapeHtml(fmt.cls)}">
-                  <i class="${escapeHtml(fmt.icon)}"></i>
-                  <span>${escapeHtml(fmt.label)}</span>
-                </span>
-              </td>
-              <td>${mediaCellHtml}</td>
-              <td>
-                <div class="gb-caption-clamp" title="${escapeHtml(displayCaption)}">${escapeHtml(displayCaption)}</div>
-              </td>
-              <td>${statusHtml}</td>
-              <td>
-                <div class="gb-row-actions">
-                  ${
-                    !isPublished
-                      ? `<button type="button" class="gb-btn-publish-now" data-action-publish="${escapeHtml(post.id)}" title="Trigger immediate webhook dispatch">
-                          <i class="fas fa-bolt"></i> Publish Now
-                        </button>`
-                      : ""
-                  }
-                  <button type="button" class="gb-btn-remove-post" data-action-remove="${escapeHtml(post.id)}" title="Remove post from queue">
-                    <i class="fas fa-trash-alt"></i> Remove
-                  </button>
-                </div>
-              </td>
-            </tr>
+            <div class="gb-live-view-card ${isCurrent ? "is-active" : ""}" data-live-card="${escapeHtml(item.tab)}">
+              <div class="gb-live-view-card-top">
+                <span class="gb-live-view-badge">${escapeHtml(item.shortLabel)}</span>
+                <span class="gb-live-view-dims">${item.width}&times;${item.height} Pop-Out</span>
+              </div>
+              <h5 class="gb-live-view-title">${escapeHtml(item.title)}</h5>
+              <p class="gb-live-view-desc">${escapeHtml(item.subtitle)}</p>
+              <div class="gb-live-url-pill" title="${escapeHtml(item.url)}">
+                <code>${escapeHtml(item.url)}</code>
+              </div>
+              <div class="gb-live-view-actions">
+                <button
+                  type="button"
+                  class="gb-btn-popup-launch"
+                  data-popup-tab="${escapeHtml(item.tab)}"
+                  data-popup-width="${item.width}"
+                  data-popup-height="${item.height}"
+                >
+                  <span>🗗 Launch Centered Pop-Up</span>
+                </button>
+                <button
+                  type="button"
+                  class="gb-btn-frame-switch ${isCurrent ? "is-selected" : ""}"
+                  data-frame-tab="${escapeHtml(item.tab)}"
+                >
+                  <span>${isCurrent ? "✓ Active in Live Frame" : "Load in Embedded Frame"}</span>
+                </button>
+              </div>
+            </div>
           `;
         })
         .join("");
 
-      return `
-        <div class="gb-table-scroll">
-          <table class="gb-queue-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Schedule</th>
-                <th>Platform</th>
-                <th>Social Media Page</th>
-                <th>Post Format</th>
-                <th>Media / Link</th>
-                <th>Caption</th>
-                <th>Live Status</th>
-                <th style="text-align: right;">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-            </tbody>
-          </table>
-        </div>
-      `;
-    }
-
-    function renderGlennBotSchedulerWorkspace(container) {
-      if (!container) return;
-
-      const totalQueueCount = gbSchedulerState.scheduledPostsList.length;
-      const scheduledCalendarCount = gbSchedulerState.scheduledPostsList.length;
-
       container.innerHTML = `
         <div class="gb-scheduler-workspace" id="gb-scheduler-app">
-          <!-- Top Sub-Navigation Bar -->
+          <!-- Top Sub-Navigation Bar for the 3 Live Expanded Views -->
           <div class="gb-subnav-bar">
-            <div class="gb-subnav-tabs" role="tablist" aria-label="GlennBot Social Scheduler Views">
-              <button type="button" class="gb-subnav-btn ${gbSchedulerState.activeSubTab === "create" ? "is-active" : ""}" data-gb-subtab="create">
-                <span>📝 Create Post</span>
-              </button>
-              <button type="button" class="gb-subnav-btn ${gbSchedulerState.activeSubTab === "queue" ? "is-active" : ""}" data-gb-subtab="queue">
-                <span>⏳ Queue</span>
-                <span class="gb-subnav-badge" id="gb-badge-queue">${totalQueueCount}</span>
-              </button>
-              <button type="button" class="gb-subnav-btn ${gbSchedulerState.activeSubTab === "calendar" ? "is-active" : ""}" data-gb-subtab="calendar">
-                <span>📅 Calendar</span>
-                <span class="gb-subnav-badge" id="gb-badge-calendar">${scheduledCalendarCount}</span>
-              </button>
+            <div class="gb-subnav-tabs" role="tablist" aria-label="GlennBot Live Expanded Views">
+              ${Object.keys(SYS01_LIVE_EXPANDED_VIEWS)
+                .map((key) => {
+                  const item = SYS01_LIVE_EXPANDED_VIEWS[key];
+                  const isCurrent = key === activeSys01ExpandedTab;
+                  return `
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected="${isCurrent ? "true" : "false"}"
+                      class="gb-subnav-btn ${isCurrent ? "is-active" : ""}"
+                      data-gb-subtab="${escapeHtml(item.tab)}"
+                    >
+                      <span>${escapeHtml(item.shortLabel)}</span>
+                      <span class="gb-subnav-badge">?tab=${escapeHtml(item.tab)}</span>
+                    </button>
+                  `;
+                })
+                .join("")}
             </div>
             <div class="gb-workspace-status">
               <span class="status-dot-live" aria-hidden="true"></span>
-              <span>GlennBot Omnichannel Engine &bull; glennbotautomations.onrender.com Active</span>
+              <span>Live Standalone Mode &bull; <code>?popout_mode=workspace_view</code></span>
+              <button
+                type="button"
+                id="gb-popup-active-top-btn"
+                class="gb-btn-top-popout"
+                data-popup-tab="${escapeHtml(activeView.tab)}"
+                data-popup-width="${activeView.width}"
+                data-popup-height="${activeView.height}"
+              >
+                <span>🗗 Open ${escapeHtml(activeView.shortLabel)} Pop-Up Window</span>
+              </button>
             </div>
           </div>
 
-          <!-- Toast Banner -->
-          <div id="gb-scheduler-toast" class="gb-toast-banner" hidden>
-            <i class="fas fa-check-circle"></i>
-            <span id="gb-scheduler-toast-text"></span>
+          <!-- 3 Real Live Expanded View Launcher Cards -->
+          <div class="gb-live-cards-grid">
+            ${cardsHtml}
           </div>
 
-          <!-- SUB-TAB 1: CREATE POST -->
-          <div id="gb-subview-create" class="gb-subview ${gbSchedulerState.activeSubTab === "create" ? "is-active" : ""}">
-            <div class="gb-create-grid">
-              <!-- Left Column: Platforms & Connected Demo Accounts -->
-              <div class="gb-create-left">
-                <div class="gb-panel-card">
-                  <h4 class="gb-panel-heading"><i class="fas fa-share-alt"></i> Platforms</h4>
-                  <div class="gb-platform-list">
-                    ${Object.keys(PLATFORM_META)
-                      .map((pKey) => {
-                        const meta = PLATFORM_META[pKey];
-                        const isChecked = !!gbSchedulerState.selectedPlatforms[pKey];
-                        return `
-                          <label class="gb-platform-item ${isChecked ? "is-checked" : ""}">
-                            <div class="gb-platform-item-left">
-                              <input type="checkbox" class="gb-platform-checkbox" value="${pKey}" ${isChecked ? "checked" : ""} />
-                              <i class="${meta.icon} ${meta.colorClass}"></i>
-                              <span class="gb-platform-name">${meta.name}</span>
-                            </div>
-                            <span class="gb-platform-acct-badge">${meta.badgeText}</span>
-                          </label>
-                        `;
-                      })
-                      .join("")}
-                  </div>
-
-                  <!-- Connected Demo Accounts Status Box -->
-                  <div class="gb-connected-accounts-box">
-                    <div class="gb-connected-title">
-                      <span>Connected Accounts (glennbotautomations.onrender.com)</span>
-                      <span class="gb-connected-dot" title="OAuth Tokens Active"></span>
-                    </div>
-                    <ul class="gb-connected-list">
-                      <li class="gb-connected-item">
-                        <i class="fab fa-facebook gb-text-blue"></i>
-                        <span>GlennBot AI Solutions (FB)</span>
-                      </li>
-                      <li class="gb-connected-item">
-                        <i class="fab fa-instagram gb-text-pink"></i>
-                        <span>@glennbot.ai (IG)</span>
-                      </li>
-                      <li class="gb-connected-item">
-                        <i class="fab fa-tiktok gb-text-cyan"></i>
-                        <span>@glennbot_automations (TikTok)</span>
-                      </li>
-                      <li class="gb-connected-item">
-                        <i class="fab fa-youtube gb-text-red"></i>
-                        <span>GlennBot Tech Channel (YT)</span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+          <!-- Embedded Live Workspace Frame connected directly to glennbotautomations.onrender.com -->
+          <div class="gb-live-iframe-shell">
+            <div class="gb-live-iframe-toolbar">
+              <div class="gb-live-iframe-meta">
+                <span class="status-dot-live" aria-hidden="true"></span>
+                <strong id="gb-live-iframe-title">${escapeHtml(activeView.fullTitle)}</strong>
+                <code id="gb-live-iframe-url" class="gb-live-iframe-url-code">${escapeHtml(activeView.url)}</code>
               </div>
-
-              <!-- Right Column: Format Type, Ask AI Bar & Per-Platform Live Preview Cards -->
-              <div class="gb-create-right">
-                <div class="gb-panel-card">
-                  <h4 class="gb-panel-heading"><i class="fas fa-sliders-h"></i> Format Type</h4>
-                  <div class="gb-format-grid" role="radiogroup" aria-label="Post Format Type">
-                    <label class="gb-format-option">
-                      <input type="radio" name="gb-format-type" value="text" ${gbSchedulerState.formatType === "text" ? "checked" : ""} />
-                      <div class="gb-format-card">
-                        <i class="fas fa-align-left"></i>
-                        <span>Text Post</span>
-                      </div>
-                    </label>
-                    <label class="gb-format-option">
-                      <input type="radio" name="gb-format-type" value="reels" ${gbSchedulerState.formatType === "reels" ? "checked" : ""} />
-                      <div class="gb-format-card">
-                        <i class="fas fa-mobile-alt"></i>
-                        <span>Reels/Short</span>
-                      </div>
-                    </label>
-                    <label class="gb-format-option">
-                      <input type="radio" name="gb-format-type" value="video" ${gbSchedulerState.formatType === "video" ? "checked" : ""} />
-                      <div class="gb-format-card">
-                        <i class="fas fa-video"></i>
-                        <span>16:9 Video</span>
-                      </div>
-                    </label>
-                    <label class="gb-format-option">
-                      <input type="radio" name="gb-format-type" value="image" ${gbSchedulerState.formatType === "image" ? "checked" : ""} />
-                      <div class="gb-format-card">
-                        <i class="fas fa-images"></i>
-                        <span>Image/Album</span>
-                      </div>
-                    </label>
-                  </div>
-
-                  <!-- Live Preview Header Row + Ask AI Button -->
-                  <div class="gb-preview-header-row">
-                    <span class="gb-preview-label">
-                      <i class="fas fa-eye"></i> Live Preview &amp; Platform Editors
-                    </span>
-                    <button type="button" class="gb-btn-ask-ai" id="gb-toggle-ask-ai-btn">
-                      <span>✨ Ask AI (Gemini)</span>
-                    </button>
-                  </div>
-
-                  <!-- Inline Gemini AI Caption & Title Generator Drawer -->
-                  <div id="gb-ask-ai-drawer" class="gb-ask-ai-drawer" ${gbSchedulerState.askAiOpen ? "" : "hidden"}>
-                    <div class="gb-ask-ai-top">
-                      <span class="gb-ask-ai-title">
-                        <i class="fas fa-robot"></i> Gemini 2.5 Omnichannel Copy &amp; Title Generator
-                      </span>
-                      <button type="button" class="gb-ask-ai-close" id="gb-close-ask-ai-btn">Close &times;</button>
-                    </div>
-                    <div class="gb-preset-chips">
-                      <button type="button" class="gb-preset-chip" data-ai-preset="AI Workflow Case Study: Eliminating 90% of manual social media scheduling with FastAPI & Gemini">
-                        ⚡ AI Workflow Case Study
-                      </button>
-                      <button type="button" class="gb-preset-chip" data-ai-preset="Manufacturing Kaizen Automation: Applying Toyota Production System principles to AI Agent pipelines">
-                        🏭 Manufacturing Kaizen Automation
-                      </button>
-                      <button type="button" class="gb-preset-chip" data-ai-preset="SaaS Feature Launch: Introducing GlennBot Omnichannel Scheduler with Google Drive Vault sync">
-                        🚀 SaaS Feature Launch
-                      </button>
-                    </div>
-                    <div class="gb-ask-ai-controls">
-                      <input
-                        type="text"
-                        id="gb-ai-topic-input"
-                        class="gb-ai-topic-input"
-                        placeholder="Describe your post topic, hook, or campaign..."
-                        value="${escapeHtml(gbSchedulerState.askAiTopic)}"
-                      />
-                      <select id="gb-ai-tone-select" class="gb-ai-tone-select" aria-label="AI Tone">
-                        <option value="Executive & High-Converting" ${gbSchedulerState.askAiTone === "Executive & High-Converting" ? "selected" : ""}>Tone: Executive &amp; High-Converting</option>
-                        <option value="Taglish Tech Builder" ${gbSchedulerState.askAiTone === "Taglish Tech Builder" ? "selected" : ""}>Tone: Taglish Tech Builder</option>
-                        <option value="Engaging & Story-Driven" ${gbSchedulerState.askAiTone === "Engaging & Story-Driven" ? "selected" : ""}>Tone: Engaging &amp; Story-Driven</option>
-                      </select>
-                      <button type="button" class="gb-btn-generate-apply" id="gb-ai-generate-btn">
-                        <i class="fas fa-magic"></i>
-                        <span>Generate &amp; Apply to Selected Platforms</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Per-Platform Editor Cards (#preview-container) -->
-                  <div id="preview-container" class="gb-preview-container"></div>
-
-                  <!-- Bottom Launch Bar -->
-                  <div class="gb-launch-bar">
-                    <button type="button" id="gb-launch-automation-btn" class="gb-btn-launch-automation">
-                      <span>🚀 Launch Automation</span>
-                    </button>
-                  </div>
-                </div>
+              <div class="gb-live-iframe-controls">
+                <button type="button" id="gb-reload-iframe-btn" class="gb-btn-iframe-reload">
+                  <span>🔄 Reload Live View</span>
+                </button>
+                <button
+                  type="button"
+                  id="gb-popup-iframe-btn"
+                  class="gb-btn-popup-launch"
+                  data-popup-tab="${escapeHtml(activeView.tab)}"
+                  data-popup-width="${activeView.width}"
+                  data-popup-height="${activeView.height}"
+                >
+                  <span>🗗 Pop Out Centered Desktop Window (${activeView.width}&times;${activeView.height})</span>
+                </button>
               </div>
             </div>
-          </div>
-
-          <!-- SUB-TAB 2: QUEUE -->
-          <div id="gb-subview-queue" class="gb-subview ${gbSchedulerState.activeSubTab === "queue" ? "is-active" : ""}">
-            <div class="gb-panel-card">
-              <div class="gb-queue-topbar">
-                <div>
-                  <h4 class="gb-queue-title">
-                    <i class="fas fa-list-ul" style="color:#a855f7;"></i>
-                    <span>Scheduled Posts Queue (Tabular View)</span>
-                  </h4>
-                  <p class="gb-queue-subtitle">Chronological master table &bull; Synced with glennbotautomations.onrender.com (Supabase PostgreSQL)</p>
-                </div>
-                <div class="gb-queue-controls">
-                  <select id="gb-queue-filter-select" class="gb-queue-filter-select" aria-label="Filter Queue by Status">
-                    <option value="all" ${gbSchedulerState.queueFilter === "all" ? "selected" : ""}>All Statuses</option>
-                    <option value="processing" ${gbSchedulerState.queueFilter === "processing" ? "selected" : ""}>Processing Payload</option>
-                    <option value="waiting" ${gbSchedulerState.queueFilter === "waiting" ? "selected" : ""}>Waiting / Scheduled</option>
-                    <option value="published" ${gbSchedulerState.queueFilter === "published" ? "selected" : ""}>Published</option>
-                    <option value="failed" ${gbSchedulerState.queueFilter === "failed" ? "selected" : ""}>Failed</option>
-                  </select>
-                  <button type="button" id="gb-queue-refresh-btn" class="gb-btn-queue-refresh">
-                    <i class="fas fa-sync-alt"></i> Refresh
-                  </button>
-                </div>
-              </div>
-              <div id="gb-queue-table-container"></div>
-            </div>
-          </div>
-
-          <!-- SUB-TAB 3: CALENDAR -->
-          <div id="gb-subview-calendar" class="gb-subview ${gbSchedulerState.activeSubTab === "calendar" ? "is-active" : ""}">
-            <div class="gb-panel-card">
-              <div class="gb-calendar-topbar">
-                <h4 class="gb-queue-title">
-                  <i class="fas fa-calendar-alt" style="color:#22d3ee;"></i>
-                  <span>Social Media Scheduled Posts Calendar</span>
-                </h4>
-                <div class="gb-calendar-nav">
-                  <button type="button" class="gb-cal-nav-btn" id="gb-cal-prev-btn" title="Previous Month">
-                    <i class="fas fa-chevron-left"></i>
-                  </button>
-                  <select id="gb-cal-month-select" class="gb-cal-select" aria-label="Select Month"></select>
-                  <select id="gb-cal-year-select" class="gb-cal-select" aria-label="Select Year"></select>
-                  <button type="button" class="gb-cal-nav-btn" id="gb-cal-next-btn" title="Next Month">
-                    <i class="fas fa-chevron-right"></i>
-                  </button>
-                  <button type="button" class="gb-cal-today-btn" id="gb-cal-today-btn">Today</button>
-                </div>
-              </div>
-
-              <!-- 7-Column Calendar Weekday Header -->
-              <div class="gb-calendar-weekdays">
-                <div class="gb-cal-weekday">Sun</div>
-                <div class="gb-cal-weekday">Mon</div>
-                <div class="gb-cal-weekday">Tue</div>
-                <div class="gb-cal-weekday">Wed</div>
-                <div class="gb-cal-weekday">Thu</div>
-                <div class="gb-cal-weekday">Fri</div>
-                <div class="gb-cal-weekday">Sat</div>
-              </div>
-
-              <!-- 7-Column Monthly Calendar Grid -->
-              <div id="gb-calendar-grid" class="gb-calendar-grid"></div>
-
-              <!-- Day Schedule Inspector -->
-              <div id="gb-day-inspector" class="gb-day-inspector" hidden></div>
+            <div class="gb-live-iframe-viewport">
+              <iframe
+                id="gb-live-workspace-iframe"
+                class="gb-live-workspace-iframe"
+                src="${escapeHtml(activeView.url)}"
+                title="${escapeHtml(activeView.fullTitle)}"
+                loading="lazy"
+                allow="clipboard-read; clipboard-write"
+              ></iframe>
             </div>
           </div>
         </div>
       `;
 
-      const toastEl = container.querySelector("#gb-scheduler-toast");
-      const toastTextEl = container.querySelector("#gb-scheduler-toast-text");
-      let toastTimer = null;
+      // Bind all centered pop-up buttons to openGlennBotLivePopup(tabName, 'workspace_view', width, height)
+      container.querySelectorAll("[data-popup-tab]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const tabName = btn.getAttribute("data-popup-tab") || "scheduler";
+          const w = parseInt(btn.getAttribute("data-popup-width") || "1240", 10);
+          const h = parseInt(btn.getAttribute("data-popup-height") || "860", 10);
+          openGlennBotLivePopup(tabName, "workspace_view", w, h);
+        });
+      });
 
-      function showSchedulerToast(msg) {
-        if (!toastEl || !toastTextEl) return;
-        toastTextEl.textContent = msg;
-        toastEl.hidden = false;
-        if (toastTimer) window.clearTimeout(toastTimer);
-        toastTimer = window.setTimeout(() => {
-          toastEl.hidden = true;
-        }, 4200);
+      // Bind sub-tab buttons & frame switcher buttons
+      function switchLiveExpandedTab(targetTab) {
+        if (!SYS01_LIVE_EXPANDED_VIEWS[targetTab]) return;
+        activeSys01ExpandedTab = targetTab;
+        renderGlennBotSchedulerWorkspace(container);
       }
 
-      function updateBadgeCounters() {
-        const qBadge = container.querySelector("#gb-badge-queue");
-        const cBadge = container.querySelector("#gb-badge-calendar");
-        const total = gbSchedulerState.scheduledPostsList.length;
-        if (qBadge) qBadge.textContent = String(total);
-        if (cBadge) cBadge.textContent = String(total);
-      }
-
-      function switchSubTab(subTab) {
-        gbSchedulerState.activeSubTab = subTab;
-        container.querySelectorAll("[data-gb-subtab]").forEach((btn) => {
-          btn.classList.toggle("is-active", btn.getAttribute("data-gb-subtab") === subTab);
-        });
-        const map = {
-          create: container.querySelector("#gb-subview-create"),
-          queue: container.querySelector("#gb-subview-queue"),
-          calendar: container.querySelector("#gb-subview-calendar"),
-        };
-        Object.keys(map).forEach((k) => {
-          if (map[k]) {
-            map[k].classList.toggle("is-active", k === subTab);
-          }
-        });
-        if (subTab === "create") {
-          updatePreviews();
-        } else if (subTab === "queue") {
-          renderQueueTable();
-        } else if (subTab === "calendar") {
-          renderCalendar();
-        }
-      }
-
-      // Render Per-Platform Live Preview Cards inside #preview-container
-      function updatePreviews() {
-        const previewContainer = container.querySelector("#preview-container");
-        if (!previewContainer) return;
-
-        const checkedPlatforms = Object.keys(PLATFORM_META).filter(
-          (p) => gbSchedulerState.selectedPlatforms[p]
-        );
-
-        if (checkedPlatforms.length === 0) {
-          previewContainer.innerHTML = `
-            <div class="gb-empty-preview">
-              <i class="fas fa-hand-point-left"></i>
-              <p>Select at least one platform on the left to start configuring your omnichannel post.</p>
-            </div>
-          `;
-          return;
-        }
-
-        const formatType = gbSchedulerState.formatType;
-
-        previewContainer.innerHTML = checkedPlatforms
-          .map((pKey) => {
-            const meta = PLATFORM_META[pKey];
-            const draft = gbSchedulerState.platformDrafts[pKey];
-            const isIncompatible = isPlatformFormatIncompatible(pKey, formatType);
-
-            const accountOptionsHtml = meta.accounts
-              .map(
-                (acct) =>
-                  `<option value="${escapeHtml(acct.label)}" ${
-                    draft.accountLabel === acct.label ? "selected" : ""
-                  }>${escapeHtml(acct.label)}</option>`
-              )
-              .join("");
-
-            if (isIncompatible) {
-              return `
-                <div class="gb-platform-editor-card" data-platform-card="${pKey}">
-                  <div class="gb-platform-card-header">
-                    <div class="gb-platform-card-identity">
-                      <span class="gb-platform-circle-icon" style="background:${meta.bgColor};">
-                        <i class="${meta.icon}"></i>
-                      </span>
-                      <span class="gb-platform-card-title">${meta.name}</span>
-                    </div>
-                  </div>
-                  <div class="gb-format-warning-banner">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <span>This platform requires an Image or Video format.</span>
-                  </div>
-                </div>
-              `;
-            }
-
-            const editorInputsHtml =
-              pKey === "youtube"
-                ? `
-                  <div>
-                    <label class="gb-editor-field-label">YouTube Video / Short Title</label>
-                    <input
-                      type="text"
-                      class="gb-editor-input"
-                      data-draft-field="title"
-                      data-platform="${pKey}"
-                      placeholder="Enter YouTube Video Title..."
-                      value="${escapeHtml(draft.title || "")}"
-                    />
-                  </div>
-                  <div>
-                    <label class="gb-editor-field-label">YouTube Description &amp; Tags</label>
-                    <textarea
-                      rows="3"
-                      class="gb-editor-textarea"
-                      data-draft-field="caption"
-                      data-platform="${pKey}"
-                      placeholder="Write your YouTube description..."
-                    >${escapeHtml(draft.caption || "")}</textarea>
-                  </div>
-                `
-                : `
-                  <div>
-                    <label class="gb-editor-field-label">${meta.name} Post Caption &amp; Hashtags</label>
-                    <textarea
-                      rows="3"
-                      class="gb-editor-textarea"
-                      data-draft-field="caption"
-                      data-platform="${pKey}"
-                      placeholder="Write your ${meta.name} caption..."
-                    >${escapeHtml(draft.caption || "")}</textarea>
-                  </div>
-                `;
-
-            let mediaBoxHtml = "";
-            if (formatType !== "text") {
-              const attached = draft.media;
-              const isVaultOpen = gbSchedulerState.activeVaultPickerPlatform === pKey;
-
-              const vaultItemsHtml = VAULT_FILES_LIST.map((vFile) => {
-                const isSelected = attached && attached.id === vFile.id;
-                return `
-                  <div class="gb-vault-item ${isSelected ? "is-selected" : ""}" data-select-vault="${vFile.id}" data-platform="${pKey}">
-                    <img src="${escapeHtml(vFile.thumbUrl)}" alt="${escapeHtml(vFile.name)}" class="gb-vault-item-thumb" />
-                    <div class="gb-vault-item-info">
-                      <div class="gb-vault-item-name">${escapeHtml(vFile.name)}</div>
-                      <div class="gb-vault-item-type">${escapeHtml(vFile.sizeLabel)}</div>
-                    </div>
-                  </div>
-                `;
-              }).join("");
-
-              mediaBoxHtml = `
-                <div class="gb-media-attachment-box">
-                  <div class="gb-media-box-top">
-                    <div class="gb-media-selected-info">
-                      ${
-                        attached
-                          ? `<img src="${escapeHtml(attached.thumbUrl)}" alt="${escapeHtml(attached.name)}" class="gb-media-thumb" />`
-                          : `<div class="gb-media-icon-placeholder"><i class="fas fa-photo-video"></i></div>`
-                      }
-                      <div class="gb-media-meta">
-                        <div class="gb-media-filename">${
-                          attached ? escapeHtml(attached.name) : "No media file attached yet"
-                        }</div>
-                        <div class="gb-media-sub">${
-                          attached
-                            ? escapeHtml(attached.sizeLabel || attached.mimeType || "Ready for chunked upload")
-                            : "Select from Google Drive Vault or upload local video/image"
-                        }</div>
-                      </div>
-                    </div>
-                    <div class="gb-media-actions">
-                      <button type="button" class="gb-btn-vault-picker" data-toggle-vault="${pKey}">
-                        <i class="fab fa-google-drive"></i>
-                        <span>Google Drive Files Vault</span>
-                      </button>
-                      <label class="gb-btn-local-upload">
-                        <i class="fas fa-upload"></i>
-                        <span>Upload Local</span>
-                        <input type="file" accept="image/*,video/*" data-local-file="${pKey}" hidden />
-                      </label>
-                    </div>
-                  </div>
-                  <div class="gb-vault-picker-drawer" ${isVaultOpen ? "" : "hidden"}>
-                    <div class="gb-vault-picker-header">
-                      <span><i class="fab fa-google-drive"></i> Select Pre-Synced Media from Google Drive Vault</span>
-                      <button type="button" class="gb-ask-ai-close" data-toggle-vault="${pKey}">Close &times;</button>
-                    </div>
-                    <div class="gb-vault-grid">
-                      ${vaultItemsHtml}
-                    </div>
-                  </div>
-                </div>
-              `;
-            }
-
-            return `
-              <div class="gb-platform-editor-card" data-platform-card="${pKey}">
-                <div class="gb-platform-card-header">
-                  <div class="gb-platform-card-identity">
-                    <span class="gb-platform-circle-icon" style="background:${meta.bgColor};">
-                      <i class="${meta.icon}"></i>
-                    </span>
-                    <span class="gb-platform-card-title">${meta.name}</span>
-                    <select class="gb-account-select" data-draft-field="accountLabel" data-platform="${pKey}" aria-label="${meta.name} Account">
-                      ${accountOptionsHtml}
-                    </select>
-                  </div>
-                  <div class="gb-schedule-Config">
-                    <span class="gb-schedule-label"><i class="far fa-clock"></i> Schedule:</span>
-                    <input
-                      type="date"
-                      class="gb-datetime-input"
-                      data-draft-field="date"
-                      data-platform="${pKey}"
-                      value="${escapeHtml(draft.date)}"
-                      aria-label="${meta.name} Schedule Date"
-                    />
-                    <input
-                      type="time"
-                      class="gb-datetime-input"
-                      data-draft-field="time"
-                      data-platform="${pKey}"
-                      value="${escapeHtml(draft.time)}"
-                      aria-label="${meta.name} Schedule Time"
-                    />
-                  </div>
-                </div>
-                ${editorInputsHtml}
-                ${mediaBoxHtml}
-              </div>
-            `;
-          })
-          .join("");
-
-        // Bind events inside #preview-container
-        previewContainer.querySelectorAll("[data-draft-field]").forEach((inputEl) => {
-          inputEl.addEventListener("input", () => {
-            const pKey = inputEl.getAttribute("data-platform");
-            const field = inputEl.getAttribute("data-draft-field");
-            if (pKey && field && gbSchedulerState.platformDrafts[pKey]) {
-              gbSchedulerState.platformDrafts[pKey][field] = inputEl.value;
-            }
-          });
-        });
-
-        previewContainer.querySelectorAll("[data-toggle-vault]").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const pKey = btn.getAttribute("data-toggle-vault");
-            gbSchedulerState.activeVaultPickerPlatform =
-              gbSchedulerState.activeVaultPickerPlatform === pKey ? null : pKey;
-            updatePreviews();
-          });
-        });
-
-        previewContainer.querySelectorAll("[data-select-vault]").forEach((itemEl) => {
-          itemEl.addEventListener("click", () => {
-            const vaultId = itemEl.getAttribute("data-select-vault");
-            const pKey = itemEl.getAttribute("data-platform");
-            const found = VAULT_FILES_LIST.find((f) => f.id === vaultId);
-            if (found && pKey && gbSchedulerState.platformDrafts[pKey]) {
-              gbSchedulerState.platformDrafts[pKey].media = found;
-              gbSchedulerState.activeVaultPickerPlatform = null;
-              updatePreviews();
-              showSchedulerToast(`Attached "${found.name}" from Google Drive Vault to ${PLATFORM_META[pKey].name}.`);
-            }
-          });
-        });
-
-        previewContainer.querySelectorAll("[data-local-file]").forEach((fileInput) => {
-          fileInput.addEventListener("change", () => {
-            const pKey = fileInput.getAttribute("data-local-file");
-            const file = fileInput.files && fileInput.files[0];
-            if (!file || !pKey || !gbSchedulerState.platformDrafts[pKey]) return;
-            const objectUrl = URL.createObjectURL(file);
-            const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
-            gbSchedulerState.platformDrafts[pKey].media = {
-              id: "local_" + Date.now(),
-              name: file.name,
-              mimeType: file.type || "image/png",
-              sizeLabel: `${sizeMb} MB • Local Upload`,
-              thumbUrl: file.type.startsWith("image/") ? objectUrl : "/assets/aistudio/image_0f71ad01.png",
-              previewUrl: objectUrl,
-            };
-            updatePreviews();
-            showSchedulerToast(`Uploaded local file "${file.name}" to ${PLATFORM_META[pKey].name}.`);
-          });
-        });
-      }
-
-      // Render Queue Sub-Tab Table
-      function renderQueueTable() {
-        const qContainer = container.querySelector("#gb-queue-table-container");
-        if (!qContainer) return;
-
-        const filterVal = gbSchedulerState.queueFilter;
-        const filtered = gbSchedulerState.scheduledPostsList.filter((post) => {
-          if (filterVal === "all") return true;
-          const st = (post.status || "").toLowerCase();
-          return st.includes(filterVal);
-        });
-
-        qContainer.innerHTML = buildPostsTableHTML(filtered);
-        bindQueueTableActions(qContainer);
-      }
-
-      function bindQueueTableActions(scopeEl) {
-        if (!scopeEl) return;
-
-        scopeEl.querySelectorAll("[data-action-publish]").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const postId = btn.getAttribute("data-action-publish");
-            const target = gbSchedulerState.scheduledPostsList.find((p) => p.id === postId);
-            if (target) {
-              target.status = "Published";
-              target.published_url = `https://glennbotautomations.onrender.com/live/${target.platform}/${target.id}`;
-              showSchedulerToast(`🚀 Dispatched ${PLATFORM_META[target.platform].name} post (${target.page_name}) — Status: Published!`);
-              renderQueueTable();
-              if (gbSchedulerState.activeSubTab === "calendar") {
-                renderCalendar();
-              }
-            }
-          });
-        });
-
-        scopeEl.querySelectorAll("[data-action-remove]").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const postId = btn.getAttribute("data-action-remove");
-            const idx = gbSchedulerState.scheduledPostsList.findIndex((p) => p.id === postId);
-            if (idx !== -1) {
-              const removed = gbSchedulerState.scheduledPostsList.splice(idx, 1)[0];
-              updateBadgeCounters();
-              showSchedulerToast(`Removed scheduled ${PLATFORM_META[removed.platform].name} post from Queue.`);
-              renderQueueTable();
-              if (gbSchedulerState.activeSubTab === "calendar") {
-                renderCalendar();
-              }
-            }
-          });
-        });
-      }
-
-      // Render Calendar Sub-Tab
-      function renderCalendar() {
-        const monthSelect = container.querySelector("#gb-cal-month-select");
-        const yearSelect = container.querySelector("#gb-cal-year-select");
-        const calGrid = container.querySelector("#gb-calendar-grid");
-        const dayInspector = container.querySelector("#gb-day-inspector");
-        if (!calGrid || !monthSelect || !yearSelect) return;
-
-        const monthNames = [
-          "January", "February", "March", "April", "May", "June",
-          "July", "August", "September", "October", "November", "December",
-        ];
-
-        monthSelect.innerHTML = monthNames
-          .map(
-            (mName, idx) =>
-              `<option value="${idx}" ${idx === gbSchedulerState.calendarMonth ? "selected" : ""}>${mName}</option>`
-          )
-          .join("");
-
-        const baseYear = nowDate.getFullYear();
-        const years = [baseYear - 1, baseYear, baseYear + 1];
-        yearSelect.innerHTML = years
-          .map(
-            (yr) =>
-              `<option value="${yr}" ${yr === gbSchedulerState.calendarYear ? "selected" : ""}>${yr}</option>`
-          )
-          .join("");
-
-        const year = gbSchedulerState.calendarYear;
-        const month = gbSchedulerState.calendarMonth;
-        const firstDayWeekIdx = new Date(year, month, 1).getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-        const cellsHtml = [];
-        for (let i = 0; i < firstDayWeekIdx; i++) {
-          cellsHtml.push(`<div class="gb-cal-cell is-empty"></div>`);
-        }
-
-        for (let day = 1; day <= daysInMonth; day++) {
-          const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-          const isToday = dateStr === todayStr;
-          const isInspected = dateStr === gbSchedulerState.inspectedCalendarDate;
-          const dayPosts = gbSchedulerState.scheduledPostsList.filter((p) => p.date === dateStr);
-
-          const pillsHtml = dayPosts
-            .map((post) => {
-              const pMeta = PLATFORM_META[post.platform] || PLATFORM_META.facebook;
-              const isPub = (post.status || "").toLowerCase().includes("published");
-              const statusIcon = isPub
-                ? `<i class="fas fa-check-circle" style="color:#34d399;"></i>`
-                : `<i class="fas fa-clock" style="color:#fbbf24;"></i>`;
-              return `
-                <div class="gb-cal-pill" title="${escapeHtml(pMeta.name + " • " + post.time + " • " + (post.caption || ""))}">
-                  <i class="${pMeta.icon} ${pMeta.colorClass}"></i>
-                  <span class="gb-cal-pill-time">${escapeHtml(post.time)}</span>
-                  ${statusIcon}
-                </div>
-              `;
-            })
-            .join("");
-
-          cellsHtml.push(`
-            <div class="gb-cal-cell ${isToday ? "is-today" : ""} ${isInspected ? "is-selected" : ""}" data-cal-date="${dateStr}">
-              <div class="gb-cal-day-header">
-                <span class="gb-cal-day-num">${day}</span>
-                ${
-                  isToday
-                    ? `<span class="gb-cal-today-tag">Today</span>`
-                    : `<span class="gb-cal-expand-icon" title="Inspect Day Schedule"><i class="fas fa-expand-alt"></i></span>`
-                }
-              </div>
-              <div class="gb-cal-pills-list">
-                ${pillsHtml}
-              </div>
-            </div>
-          `);
-        }
-
-        calGrid.innerHTML = cellsHtml.join("");
-
-        calGrid.querySelectorAll("[data-cal-date]").forEach((cell) => {
-          cell.addEventListener("click", () => {
-            const clickedDate = cell.getAttribute("data-cal-date");
-            if (clickedDate) {
-              gbSchedulerState.inspectedCalendarDate = clickedDate;
-              renderCalendar();
-            }
-          });
-        });
-
-        // Render Day Schedule Inspector below calendar grid
-        if (dayInspector && gbSchedulerState.inspectedCalendarDate) {
-          const selDate = gbSchedulerState.inspectedCalendarDate;
-          const dayPosts = gbSchedulerState.scheduledPostsList.filter((p) => p.date === selDate);
-          dayInspector.hidden = false;
-          dayInspector.innerHTML = `
-            <div class="gb-day-inspector-header">
-              <div class="gb-day-inspector-title">
-                <i class="fas fa-calendar-day" style="color:#22d3ee;"></i>
-                <span>Day Schedule Inspector: <strong>${escapeHtml(selDate)}</strong> (${dayPosts.length} post${dayPosts.length === 1 ? "" : "s"})</span>
-              </div>
-              <button type="button" class="gb-btn-schedule-on-date" id="gb-schedule-on-date-btn" data-target-date="${escapeHtml(selDate)}">
-                <span>+ Schedule Post on This Date</span>
-              </button>
-            </div>
-            ${buildPostsTableHTML(dayPosts)}
-          `;
-
-          bindQueueTableActions(dayInspector);
-
-          const jumpBtn = dayInspector.querySelector("#gb-schedule-on-date-btn");
-          if (jumpBtn) {
-            jumpBtn.addEventListener("click", () => {
-              const targetDate = jumpBtn.getAttribute("data-target-date") || todayStr;
-              Object.keys(gbSchedulerState.platformDrafts).forEach((pKey) => {
-                gbSchedulerState.platformDrafts[pKey].date = targetDate;
-              });
-              switchSubTab("create");
-              showSchedulerToast(`📅 Pre-filled schedule date ${targetDate} across all selected platforms.`);
-            });
-          }
-        }
-      }
-
-      // Sub-nav tab clicks
       container.querySelectorAll("[data-gb-subtab]").forEach((btn) => {
         btn.addEventListener("click", () => {
-          const target = btn.getAttribute("data-gb-subtab");
-          if (target) switchSubTab(target);
+          const targetTab = btn.getAttribute("data-gb-subtab");
+          if (targetTab) switchLiveExpandedTab(targetTab);
         });
       });
 
-      // Platform checkbox toggles
-      container.querySelectorAll(".gb-platform-checkbox").forEach((cb) => {
-        cb.addEventListener("change", () => {
-          const pKey = cb.value;
-          gbSchedulerState.selectedPlatforms[pKey] = cb.checked;
-          const parentLabel = cb.closest(".gb-platform-item");
-          if (parentLabel) {
-            parentLabel.classList.toggle("is-checked", cb.checked);
-          }
-          updatePreviews();
+      container.querySelectorAll("[data-frame-tab]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const targetTab = btn.getAttribute("data-frame-tab");
+          if (targetTab) switchLiveExpandedTab(targetTab);
         });
       });
 
-      // Format Type radio buttons
-      container.querySelectorAll('input[name="gb-format-type"]').forEach((radio) => {
-        radio.addEventListener("change", () => {
-          if (radio.checked) {
-            gbSchedulerState.formatType = radio.value;
-            updatePreviews();
-          }
-        });
-      });
-
-      // Ask AI Drawer toggle & presets & generate
-      const toggleAskAiBtn = container.querySelector("#gb-toggle-ask-ai-btn");
-      const closeAskAiBtn = container.querySelector("#gb-close-ask-ai-btn");
-      const askAiDrawer = container.querySelector("#gb-ask-ai-drawer");
-      const aiTopicInput = container.querySelector("#gb-ai-topic-input");
-      const aiToneSelect = container.querySelector("#gb-ai-tone-select");
-      const aiGenerateBtn = container.querySelector("#gb-ai-generate-btn");
-
-      if (toggleAskAiBtn && askAiDrawer) {
-        toggleAskAiBtn.addEventListener("click", () => {
-          gbSchedulerState.askAiOpen = !gbSchedulerState.askAiOpen;
-          askAiDrawer.hidden = !gbSchedulerState.askAiOpen;
+      const reloadBtn = container.querySelector("#gb-reload-iframe-btn");
+      const iframeEl = container.querySelector("#gb-live-workspace-iframe");
+      if (reloadBtn && iframeEl) {
+        reloadBtn.addEventListener("click", () => {
+          const curView =
+            SYS01_LIVE_EXPANDED_VIEWS[activeSys01ExpandedTab] ||
+            SYS01_LIVE_EXPANDED_VIEWS.scheduler;
+          iframeEl.src = `${curView.url}&_ts=${Date.now()}`;
         });
       }
-
-      if (closeAskAiBtn && askAiDrawer) {
-        closeAskAiBtn.addEventListener("click", () => {
-          gbSchedulerState.askAiOpen = false;
-          askAiDrawer.hidden = true;
-        });
-      }
-
-      container.querySelectorAll("[data-ai-preset]").forEach((chip) => {
-        chip.addEventListener("click", () => {
-          const presetText = chip.getAttribute("data-ai-preset") || "";
-          gbSchedulerState.askAiTopic = presetText;
-          if (aiTopicInput) aiTopicInput.value = presetText;
-        });
-      });
-
-      if (aiGenerateBtn) {
-        aiGenerateBtn.addEventListener("click", async () => {
-          const topic = aiTopicInput ? aiTopicInput.value.trim() : gbSchedulerState.askAiTopic;
-          const tone = aiToneSelect ? aiToneSelect.value : gbSchedulerState.askAiTone;
-          gbSchedulerState.askAiTopic = topic || "AI Workflow Automation";
-          gbSchedulerState.askAiTone = tone;
-
-          const checkedPlatforms = Object.keys(PLATFORM_META).filter(
-            (p) => gbSchedulerState.selectedPlatforms[p]
-          );
-
-          aiGenerateBtn.disabled = true;
-          aiGenerateBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span>Synthesizing via Gemini 2.5...</span>`;
-
-          try {
-            const res = await fetch("/api/v1/ai/ask", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                topic: gbSchedulerState.askAiTopic,
-                tone: gbSchedulerState.askAiTone,
-                platforms: checkedPlatforms.join(", "),
-              }),
-            });
-            const rawData = await res.json();
-            const data = rawData.output || rawData.data || rawData;
-
-            checkedPlatforms.forEach((pKey) => {
-              if (pKey === "youtube") {
-                gbSchedulerState.platformDrafts.youtube.title =
-                  data.youtube_title || data.title || `${gbSchedulerState.askAiTopic} #Shorts`;
-                gbSchedulerState.platformDrafts.youtube.caption =
-                  data.youtube_description || data.caption || gbSchedulerState.platformDrafts.youtube.caption;
-              } else if (pKey === "facebook") {
-                gbSchedulerState.platformDrafts.facebook.caption =
-                  data.facebook_caption || data.caption || gbSchedulerState.platformDrafts.facebook.caption;
-              } else if (pKey === "instagram") {
-                gbSchedulerState.platformDrafts.instagram.caption =
-                  data.instagram_caption || data.caption || gbSchedulerState.platformDrafts.instagram.caption;
-              } else if (pKey === "tiktok") {
-                gbSchedulerState.platformDrafts.tiktok.caption =
-                  data.tiktok_caption || data.caption || gbSchedulerState.platformDrafts.tiktok.caption;
-              }
-            });
-
-            updatePreviews();
-            showSchedulerToast(
-              `✨ Gemini 2.5 generated & applied platform-optimized captions to ${checkedPlatforms.length} selected platform(s)!`
-            );
-          } catch (err) {
-            showSchedulerToast(`AI generation error: ${String(err)}`);
-          } finally {
-            aiGenerateBtn.disabled = false;
-            aiGenerateBtn.innerHTML = `<i class="fas fa-magic"></i> <span>Generate & Apply to Selected Platforms</span>`;
-          }
-        });
-      }
-
-      // 🚀 Launch Automation button (submitPost)
-      const launchBtn = container.querySelector("#gb-launch-automation-btn");
-      if (launchBtn) {
-        launchBtn.addEventListener("click", async () => {
-          const checkedPlatforms = Object.keys(PLATFORM_META).filter(
-            (p) => gbSchedulerState.selectedPlatforms[p]
-          );
-
-          if (checkedPlatforms.length === 0) {
-            showSchedulerToast("⚠️ Please select at least one social platform before launching.");
-            return;
-          }
-
-          const incompatible = checkedPlatforms.filter((p) =>
-            isPlatformFormatIncompatible(p, gbSchedulerState.formatType)
-          );
-          if (incompatible.length > 0) {
-            const names = incompatible.map((p) => PLATFORM_META[p].name).join(", ");
-            showSchedulerToast(
-              `⚠️ Cannot launch: ${names} requires an Image or Video format.`
-            );
-            return;
-          }
-
-          launchBtn.disabled = true;
-          launchBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> <span>Dispatching to Supabase Queue...</span>`;
-
-          const postsPayload = checkedPlatforms.map((pKey) => {
-            const draft = gbSchedulerState.platformDrafts[pKey];
-            return {
-              platform: pKey,
-              page_name: draft.accountLabel,
-              date: draft.date || todayStr,
-              time: draft.time || "18:00",
-              post_type: gbSchedulerState.formatType,
-              title: pKey === "youtube" ? draft.title : "",
-              caption: draft.caption,
-              media_name:
-                gbSchedulerState.formatType === "text"
-                  ? ""
-                  : draft.media
-                  ? draft.media.name
-                  : "glennbot_demo_reel.mp4",
-              media_thumb:
-                gbSchedulerState.formatType === "text"
-                  ? ""
-                  : draft.media
-                  ? draft.media.thumbUrl
-                  : "/assets/aistudio/image_0f71ad01.png",
-            };
-          });
-
-          try {
-            await fetch("/api/v1/posts/schedule", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                format_type: gbSchedulerState.formatType,
-                posts: postsPayload,
-              }),
-            });
-          } catch (_) {
-            // Continue local queue insertion even if offline
-          }
-
-          const newEntries = postsPayload.map((item, idx) => ({
-            id: `post_live_${Date.now()}_${idx}`,
-            date: item.date,
-            time: item.time,
-            platform: item.platform,
-            page_name: item.page_name,
-            post_type: item.post_type,
-            title: item.title,
-            caption: item.caption,
-            status: "Waiting / Scheduled",
-            media_name: item.media_name,
-            media_thumb: item.media_thumb,
-            published_url: "",
-          }));
-
-          gbSchedulerState.scheduledPostsList.unshift(...newEntries);
-          if (newEntries[0] && newEntries[0].date) {
-            gbSchedulerState.inspectedCalendarDate = newEntries[0].date;
-          }
-          updateBadgeCounters();
-
-          launchBtn.disabled = false;
-          launchBtn.innerHTML = `<span>🚀 Launch Automation</span>`;
-
-          switchSubTab("queue");
-          showSchedulerToast(
-            `✅ Scheduled ${newEntries.length} post(s) to Queue & Calendar!`
-          );
-        });
-      }
-
-      // Queue filter & refresh controls
-      const queueFilterSelect = container.querySelector("#gb-queue-filter-select");
-      const queueRefreshBtn = container.querySelector("#gb-queue-refresh-btn");
-      if (queueFilterSelect) {
-        queueFilterSelect.addEventListener("change", () => {
-          gbSchedulerState.queueFilter = queueFilterSelect.value;
-          renderQueueTable();
-        });
-      }
-      if (queueRefreshBtn) {
-        queueRefreshBtn.addEventListener("click", () => {
-          renderQueueTable();
-          showSchedulerToast("🔄 Synced Queue state with Supabase PostgreSQL master table.");
-        });
-      }
-
-      // Calendar navigation controls
-      const calPrevBtn = container.querySelector("#gb-cal-prev-btn");
-      const calNextBtn = container.querySelector("#gb-cal-next-btn");
-      const calTodayBtn = container.querySelector("#gb-cal-today-btn");
-      const calMonthSelect = container.querySelector("#gb-cal-month-select");
-      const calYearSelect = container.querySelector("#gb-cal-year-select");
-
-      if (calPrevBtn) {
-        calPrevBtn.addEventListener("click", () => {
-          gbSchedulerState.calendarMonth -= 1;
-          if (gbSchedulerState.calendarMonth < 0) {
-            gbSchedulerState.calendarMonth = 11;
-            gbSchedulerState.calendarYear -= 1;
-          }
-          renderCalendar();
-        });
-      }
-      if (calNextBtn) {
-        calNextBtn.addEventListener("click", () => {
-          gbSchedulerState.calendarMonth += 1;
-          if (gbSchedulerState.calendarMonth > 11) {
-            gbSchedulerState.calendarMonth = 0;
-            gbSchedulerState.calendarYear += 1;
-          }
-          renderCalendar();
-        });
-      }
-      if (calTodayBtn) {
-        calTodayBtn.addEventListener("click", () => {
-          gbSchedulerState.calendarMonth = nowDate.getMonth();
-          gbSchedulerState.calendarYear = nowDate.getFullYear();
-          gbSchedulerState.inspectedCalendarDate = todayStr;
-          renderCalendar();
-        });
-      }
-      if (calMonthSelect) {
-        calMonthSelect.addEventListener("change", () => {
-          gbSchedulerState.calendarMonth = parseInt(calMonthSelect.value, 10);
-          renderCalendar();
-        });
-      }
-      if (calYearSelect) {
-        calYearSelect.addEventListener("change", () => {
-          gbSchedulerState.calendarYear = parseInt(calYearSelect.value, 10);
-          renderCalendar();
-        });
-      }
-
-      // Initial render of active sub-tab
-      updatePreviews();
-      renderQueueTable();
-      renderCalendar();
     }
 
     function renderProjectPanels(projectId) {

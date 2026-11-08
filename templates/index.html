@@ -14,7 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="/static/css/style.css?v=35" />
+  <link rel="stylesheet" href="/static/css/style.css?v=36" />
   <script>
     (function () {
       try {
@@ -565,6 +565,40 @@
               <span>APScheduler</span>
               <span>Cloudinary</span>
             </div>
+
+            <!-- Direct Live Expanded View Pop-Out Buttons (glennbotautomations.onrender.com) -->
+            <div class="sys01-live-popout-strip" aria-label="GlennBot Live Expanded Views">
+              <span class="sys01-live-popout-label">
+                <span class="status-dot-live" aria-hidden="true"></span>
+                <span>Live Expanded Views (<code>?popout_mode=workspace_view</code>):</span>
+              </span>
+              <div class="sys01-live-popout-btns">
+                <button
+                  type="button"
+                  class="btn-sys01-popout"
+                  onclick="event.stopPropagation(); openGlennBotLivePopup('scheduler', 'workspace_view', 1240, 860);"
+                  title="Open Create Post Expanded View (https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=scheduler)"
+                >
+                  <span>📝 Create Post</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn-sys01-popout"
+                  onclick="event.stopPropagation(); openGlennBotLivePopup('queue', 'workspace_view', 1220, 840);"
+                  title="Open Queue Expanded View (https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=queue)"
+                >
+                  <span>⏳ Queue</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn-sys01-popout"
+                  onclick="event.stopPropagation(); openGlennBotLivePopup('calendar', 'workspace_view', 1260, 860);"
+                  title="Open Calendar Expanded View (https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=calendar)"
+                >
+                  <span>📅 Calendar</span>
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="project-card-actions">
@@ -991,6 +1025,6 @@
   </footer>
 
   <!-- Custom Script -->
-  <script src="/static/js/main.js?v=35"></script>
+  <script src="/static/js/main.js?v=36"></script>
 </body>
 </html>
