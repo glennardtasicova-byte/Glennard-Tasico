@@ -524,7 +524,7 @@ window.openGlennBotLivePopup = openGlennBotLivePopup;
       "social-scheduler": {
         sysId: "SYS-01",
         category: "Social & AI Publishing",
-        endpoint: "POST /api/v1/ai/caption",
+        endpoint: "POST /api/v1/ai/ask • /api/v1/posts/schedule",
         demoEndpoint: "/api/demo/ai-caption",
         title: "AI Content & Omnichannel Social Scheduler",
         tagline: "Context-Aware Gemini Caption Engine + Multi-Platform APScheduler Queue",
@@ -548,53 +548,42 @@ window.openGlennBotLivePopup = openGlennBotLivePopup;
           { value: "4 Channels", label: "FB • IG • TikTok • YT" },
           { value: "24/7 Queue", label: "APScheduler + n8n" },
         ],
-        sourceFile: "glennbot_automations/routers/social_scheduler.py",
-        sourceCode: `from fastapi import APIRouter, Depends, HTTPException, Header
-from pydantic import BaseModel, Field
-from google import genai
-import httpx
+        sourceFile: "routers/ai_routes.py & routers/automations_routes.py",
+        sourceCode: `# routers/ai_routes.py & routers/automations_routes.py
+from fastapi import APIRouter, Request
+from fastapi.responses import JSONResponse
+from fastapi.concurrency import run_in_threadpool
+from services.ai_service import _execute_glennbot_ask_ai_core
 
-router = APIRouter(prefix="/api/v1", tags=["AI Content & Social Scheduler"])
+router = APIRouter()
 
-class CaptionScheduleRequest(BaseModel):
-    topic: str = Field(..., min_length=4, description="Campaign topic or product update")
-    tone: str = Field(default="Executive & High-Converting")
-    platforms: list[str] = Field(default=["LinkedIn", "Facebook", "Instagram", "TikTok"])
-    schedule_iso: str | None = None
-
-@router.post("/ai/caption")
-async def generate_and_queue_social_post(
-    payload: CaptionScheduleRequest,
-    x_api_key: str = Header(..., alias="X-API-Key"),
-):
-    client = genai.Client()
-    prompt = (
-        f"Generate a {payload.tone} social media post about: {payload.topic}. "
-        f"Target platforms: {', '.join(payload.platforms)}. Return caption and 6 hashtags."
-    )
-    ai_resp = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt,
-    )
-
-    # Dispatch to Zernio Multi-Platform Scheduler & APScheduler Queue
-    async with httpx.AsyncClient(timeout=15.0) as http:
-        zernio_res = await http.post(
-            "https://api.zernio.io/v1/social/dispatch",
-            headers={"Authorization": f"Bearer {x_api_key}"},
-            json={
-                "caption": ai_resp.text,
-                "platforms": payload.platforms,
-                "scheduled_at": payload.schedule_iso,
-            },
+@router.post("/api/ai/ask")
+@router.post("/api/v1/ai/ask")
+async def api_ask_ai(request: Request):
+    """Generate social titles, captions & hashtags using Gemini Flash + live web search."""
+    body = await request.json()
+    return await run_in_threadpool(
+        lambda: _execute_glennbot_ask_ai_core(
+            user_topic=str(body.get("topic") or body.get("prompt") or "").strip(),
+            tone_str=str(body.get("tone") or "engaging").strip(),
+            lang_str=str(body.get("language") or "taglish").strip(),
+            post_type_str=str(body.get("post_type") or "reels").strip(),
+            platforms_list=body.get("platforms") or ["facebook", "instagram", "tiktok", "youtube"],
+            force_reply_mode=("/api/v1/" in str(request.url.path)),
+            use_search=bool(body.get("use_search", True)),
         )
-        zernio_res.raise_for_status()
+    )
 
-    return {
-        "status": "QUEUED_APSCHEDULER",
-        "platforms_synced": payload.platforms,
-        "generated_caption": ai_resp.text,
-    }`,
+@router.post("/api/v1/posts/publish")
+@router.post("/api/v1/posts/schedule")
+async def api_v1_publish_or_schedule_post(request: Request):
+    """Schedule or publish multi-platform posts (FB, IG, TikTok, YouTube) via Zernio & APScheduler."""
+    key_obj = _verify_internal_api_key(request)
+    if not key_obj:
+        return _unauthorized_v1_response()
+
+    body = await request.json()
+    return await run_in_threadpool(lambda: _v1_publish_or_schedule_post_sync(body))`,
         widgetFields: [
           {
             name: "topic",
@@ -616,7 +605,7 @@ async def generate_and_queue_social_post(
             name: "platforms",
             label: "Target Social Channels (Comma-separated)",
             type: "text",
-            value: "LinkedIn, Facebook, Instagram, TikTok",
+            value: "facebook, instagram, tiktok, youtube",
           },
         ],
       },
