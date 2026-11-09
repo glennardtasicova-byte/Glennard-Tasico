@@ -2057,29 +2057,29 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   gap: 8px;
   padding: 6px 15px;
   border-radius: 999px;
-  background: linear-gradient(90deg, #dc2626 0%, #ef4444 50%, #dc2626 100%);
-  border: 1.5px solid #f87171;
+  background: linear-gradient(90deg, rgba(6, 95, 70, 0.88) 0%, rgba(16, 185, 129, 0.48) 50%, rgba(6, 95, 70, 0.88) 100%);
+  border: 1.5px solid #34d399;
   font-family: var(--font-sans);
   font-size: 0.84rem;
   font-weight: 800;
   letter-spacing: 0.025em;
-  color: #ffffff;
+  color: #ecfdf5;
   box-shadow:
-    0 0 16px rgba(239, 68, 68, 0.65),
-    0 2px 8px rgba(220, 38, 38, 0.45),
-    inset 0 1px 1px rgba(255, 255, 255, 0.28);
+    0 0 16px rgba(16, 185, 129, 0.42),
+    0 2px 8px rgba(5, 150, 105, 0.32),
+    inset 0 1px 1px rgba(255, 255, 255, 0.22);
   white-space: nowrap;
   cursor: default;
   user-select: none;
 }
 
 [data-theme="light"] .project-tryme-callout {
-  background: linear-gradient(90deg, #dc2626 0%, #ef4444 50%, #dc2626 100%);
-  border-color: #fca5a5;
+  background: linear-gradient(90deg, #047857 0%, #10b981 50%, #047857 100%);
+  border-color: #34d399;
   color: #ffffff;
   box-shadow:
-    0 0 14px rgba(239, 68, 68, 0.55),
-    inset 0 1px 1px rgba(255, 255, 255, 0.3);
+    0 0 14px rgba(16, 185, 129, 0.38),
+    inset 0 1px 1px rgba(255, 255, 255, 0.28);
 }
 
 .tryme-bolt-icon {
@@ -2089,11 +2089,11 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
 }
 
 .tryme-callout-text {
-  color: #ffffff;
+  color: #ecfdf5;
   font-size: 0.84rem;
   font-weight: 800;
   letter-spacing: 0.025em;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 0 10px rgba(52, 211, 153, 0.45), 0 1px 3px rgba(0, 0, 0, 0.5);
   animation: trymeTextFadeInOut 1.8s ease-in-out infinite;
 }
 
@@ -2121,7 +2121,7 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   width: 100%;
   height: 100%;
   border-radius: 999px;
-  background-color: #22d3ee;
+  background-color: #34d399;
   opacity: 0.8;
   animation: trymePing 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
@@ -2131,10 +2131,10 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   width: 8px;
   height: 8px;
   border-radius: 999px;
-  background: #22d3ee;
+  background: #34d399;
   box-shadow:
-    0 0 8px #22d3ee,
-    0 0 14px rgba(34, 211, 238, 0.9);
+    0 0 8px #34d399,
+    0 0 14px rgba(52, 211, 153, 0.9);
 }
 
 @keyframes trymePing {
