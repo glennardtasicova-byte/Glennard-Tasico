@@ -223,6 +223,10 @@ export function formatInlineMarkdown(str = "") {
 
 export const SYS02_SAVVY_FINDS_COMMENT_DEMO = {
   recordId: "post_acc452fff96b",
+  fbPostId: "1175872974773981",
+  permalink: "https://www.facebook.com/211715025549935/posts/1175872974773981",
+  blockedSyntheticCommentIds: ["1175872974773981_1794243091445"],
+  blockedSyntheticCommentTexts: ["may gusto ako itanong pwede ba?"],
   commentId: "1175872974773981_1646688186953267",
   postPlatformId: "211715025549935_1175872974773981",
   savvyFindsAccountId: "6ada535d4c608095288e2104",
@@ -265,6 +269,17 @@ export function buildSavvyFindsRoleReversalWebhookPayload(text = "", timestampMs
   };
 }
 
+function isSyntheticBlockedEntry(obj) {
+  if (!obj || typeof obj !== "object") return false;
+  const cid = String(obj.comment_id || obj.id || "").trim();
+  if (SYS02_SAVVY_FINDS_COMMENT_DEMO.blockedSyntheticCommentIds.includes(cid)) return true;
+  const msg = String(obj.message || obj.comment_text || obj.text || "")
+    .trim()
+    .toLowerCase();
+  if (SYS02_SAVVY_FINDS_COMMENT_DEMO.blockedSyntheticCommentTexts.includes(msg)) return true;
+  return false;
+}
+
 export function filterPortfolioCommentsList(comments = []) {
   if (!Array.isArray(comments)) return [];
   const whitelistedTokens = new Set([
@@ -276,23 +291,51 @@ export function filterPortfolioCommentsList(comments = []) {
   const kept = [];
   for (const item of comments) {
     if (!item || typeof item !== "object") continue;
+    if (isSyntheticBlockedEntry(item)) continue;
     const recId = String(item.record_id || item.post_id || "").trim();
-    const cid = String(item.comment_id || item.id || "").trim();
-    if (
-      recId === SYS02_SAVVY_FINDS_COMMENT_DEMO.recordId ||
-      cid === SYS02_SAVVY_FINDS_COMMENT_DEMO.commentId
-    ) {
-      kept.push({ ...item, can_reply: true });
-      continue;
-    }
-    const acctName = String(item.account_name || item.username || "")
+    const idFields = [
+      String(item.comment_id || item.id || ""),
+      String(item.external_post_id || ""),
+      String(item.zernio_post_id || ""),
+      String(item.post_permalink || ""),
+      String(item.comment_permalink || ""),
+    ];
+    const hasTargetPostId = idFields.some((f) => f.includes(SYS02_SAVVY_FINDS_COMMENT_DEMO.fbPostId));
+    const acctLower = String(item.account_name || item.username || "")
       .trim()
       .replace(/^@+/, "")
       .toLowerCase();
-    if (whitelistedTokens.has(acctName)) {
-      kept.push(item);
+    const isSavvyNoConflict =
+      acctLower === "savvy finds" && !idFields.slice(0, 3).some((f) => f.trim().length > 0);
+
+    const cleanedReplies = Array.isArray(item.replies)
+      ? item.replies.filter((r) => !isSyntheticBlockedEntry(r))
+      : undefined;
+
+    if (
+      recId === SYS02_SAVVY_FINDS_COMMENT_DEMO.recordId ||
+      hasTargetPostId ||
+      isSavvyNoConflict
+    ) {
+      const normalized = {
+        ...item,
+        record_id: SYS02_SAVVY_FINDS_COMMENT_DEMO.recordId,
+        post_permalink: SYS02_SAVVY_FINDS_COMMENT_DEMO.permalink,
+        comment_permalink: SYS02_SAVVY_FINDS_COMMENT_DEMO.permalink,
+        can_reply: true,
+      };
+      if (cleanedReplies !== undefined) normalized.replies = cleanedReplies;
+      kept.push(normalized);
+      continue;
+    }
+
+    if (whitelistedTokens.has(acctLower)) {
+      const copy = { ...item };
+      if (cleanedReplies !== undefined) copy.replies = cleanedReplies;
+      kept.push(copy);
     }
   }
   return kept;
 }
+
 

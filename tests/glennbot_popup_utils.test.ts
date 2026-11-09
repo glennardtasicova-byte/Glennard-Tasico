@@ -189,7 +189,7 @@ test("SYS01_PROJECT_SPEC and formatInlineMarkdown match production GlennBot Auto
   );
 });
 
-test("SYS-02 Savvy Finds comment thread whitelisting and role-reversal webhook payload", () => {
+test("SYS-02 Savvy Finds comment thread whitelisting, canonical post ID resolution, synthetic filtering, and role-reversal webhook payload", () => {
   assert.equal(
     SYS02_SAVVY_FINDS_COMMENT_DEMO.popupUrl,
     "/glennbot-popout?popout_mode=comment_thread&record_id=post_acc452fff96b&comment_id=1175872974773981_1646688186953267"
@@ -203,16 +203,31 @@ test("SYS-02 Savvy Finds comment thread whitelisting and role-reversal webhook p
   const filtered = filterPortfolioCommentsList([
     { record_id: "post_other", account_name: "Unlisted Page", can_reply: false },
     {
-      record_id: "post_acc452fff96b",
-      comment_id: "1175872974773981_1646688186953267",
+      record_id: "post_ext_b158973506",
+      comment_id: "1175872974773981_1794243091445",
+      account_name: "Savvy Finds",
+      message: "may gusto ako itanong pwede ba?",
+    },
+    {
+      record_id: "post_ext_b158973506",
+      comment_id: "1175872974773981_9999999999",
+      external_post_id: "211715025549935_1175872974773981",
+      post_permalink: "https://www.facebook.com/1157964799898132/posts/1175872974773981",
       account_name: "Savvy Finds",
       can_reply: false,
+      replies: [
+        { id: "1175872974773981_1794243091445", message: "may gusto ako itanong pwede ba?" },
+        { id: "1175872974773981_1024646813991583", message: "Loud and clear!" },
+      ],
     },
     { record_id: "post_gb", account_name: "GlennBot Automations", can_reply: true },
   ]);
   assert.equal(filtered.length, 2);
   assert.equal(filtered[0].record_id, "post_acc452fff96b");
+  assert.equal(filtered[0].post_permalink, "https://www.facebook.com/211715025549935/posts/1175872974773981");
   assert.equal(filtered[0].can_reply, true);
+  assert.equal(filtered[0].replies.length, 1);
+  assert.equal(filtered[0].replies[0].id, "1175872974773981_1024646813991583");
 
   const payload = buildSavvyFindsRoleReversalWebhookPayload("What are Glennard's AI automation skills?", 1710000000123);
   assert.equal(payload.event, "comment.received");
@@ -224,5 +239,6 @@ test("SYS-02 Savvy Finds comment thread whitelisting and role-reversal webhook p
   assert.equal(payload.comment.isOwnAccount, false);
   assert.equal(payload.comment.isOwner, false);
 });
+
 
 
