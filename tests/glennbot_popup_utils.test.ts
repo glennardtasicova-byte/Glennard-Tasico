@@ -57,8 +57,9 @@ test("computeCenteredPopupFeatures centers popup window within available screen 
   assert.ok(res.features.includes("width=1240,height=860,left=340,top=110"));
 });
 
-test("buildInstantPopoutStyleTag hides homepage chrome, hides Composio calendar UI, and toggles #view-scheduler", () => {
+test("buildInstantPopoutStyleTag hides homepage chrome, hides Composio calendar UI, hides bottom reply composer, and toggles #view-scheduler", () => {
   const queueCss = buildInstantPopoutStyleTag("queue");
+  assert.ok(queueCss.includes('<style id="gb-portfolio-cal-lock">'));
   assert.ok(queueCss.includes('<style id="gb-instant-popout-css">'));
   assert.ok(queueCss.includes("#main-dashboard-header"));
   assert.ok(queueCss.includes("#left-nav-sidebar"));
@@ -67,6 +68,11 @@ test("buildInstantPopoutStyleTag hides homepage chrome, hides Composio calendar 
   assert.ok(queueCss.includes("#schedule-meeting-modal"));
   assert.ok(queueCss.includes("#view-scheduler > div:first-child > div:nth-child(2)"));
   assert.ok(queueCss.includes("#connect-accounts-modal"));
+  assert.ok(queueCss.includes("#comment-detail-panel > div > div.bg-slate-900\\/90.rounded-xl.p-3"));
+  assert.ok(queueCss.includes("#reply-target-label"));
+  assert.ok(queueCss.includes("#comment-reply-input"));
+  assert.ok(queueCss.includes("#btn-send-reply"));
+  assert.ok(queueCss.includes('button[onclick*="insertQuickReply("]'));
   assert.ok(queueCss.includes("#gb-popout-window-bar"));
   assert.ok(queueCss.includes("#view-scheduler:not(.gb-tab-ready)"));
   assert.ok(queueCss.includes("#view-queue"));
