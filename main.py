@@ -841,6 +841,13 @@ def _build_session_injector_snippet(
         "  #schedule-meeting-modal {\n"
         "    display: none !important;\n"
         "  }\n"
+        "  /* Hide the Connect Accounts box inside Create Post (#view-scheduler) and the Connect Accounts modal */\n"
+        "  #view-scheduler > div:first-child > div:nth-child(2),\n"
+        "  #view-scheduler > div:first-child > div:has(> div > button[onclick*=\"openConnectAccountsModal\"]),\n"
+        "  #view-scheduler > div:first-child > div:has(#sidebar-connected-count),\n"
+        "  #connect-accounts-modal {\n"
+        "    display: none !important;\n"
+        "  }\n"
         "  /* Immediately show the Expanded Focus Window top bar */\n"
         "  #gb-popout-window-bar {\n"
         "    display: flex !important;\n"
@@ -854,6 +861,13 @@ def _build_session_injector_snippet(
         "  #cal-subtab-composio,\n"
         "  #calendar-composio-toolbar,\n"
         "  #schedule-meeting-modal {\n"
+        "    display: none !important;\n"
+        "  }\n"
+        "  /* Hide the Connect Accounts box inside Create Post (#view-scheduler) and the Connect Accounts modal */\n"
+        "  #view-scheduler > div:first-child > div:nth-child(2),\n"
+        "  #view-scheduler > div:first-child > div:has(> div > button[onclick*=\"openConnectAccountsModal\"]),\n"
+        "  #view-scheduler > div:first-child > div:has(#sidebar-connected-count),\n"
+        "  #connect-accounts-modal {\n"
         "    display: none !important;\n"
         "  }\n"
         "</style>"
@@ -981,8 +995,8 @@ def _apply_instant_popout_dom_transforms(
             1,
         )
 
-    # 4. Hide Composio Calendars & Meetings elements in raw HTML
-    for cal_id in ("cal-subtab-composio", "calendar-composio-toolbar", "schedule-meeting-modal"):
+    # 4. Hide Composio Calendars & Meetings elements and Connect Accounts modal in raw HTML
+    for cal_id in ("cal-subtab-composio", "calendar-composio-toolbar", "schedule-meeting-modal", "connect-accounts-modal"):
         html_text = html_text.replace(
             f'id="{cal_id}" class="',
             f'id="{cal_id}" style="display:none!important" class="hidden ',
@@ -995,8 +1009,9 @@ def _apply_instant_popout_dom_transforms(
 def _build_calendar_lock_body_script() -> str:
     """
     Builds the script injected at the end of <body> in /glennbot-popout to lock
-    the Calendar view strictly to Social Media Content Calendar ('posts' mode)
-    and disable all Composio Calendar / Meeting modals and OAuth flows.
+    the Calendar view strictly to Social Media Content Calendar ('posts' mode),
+    hide the Connect Accounts box inside #view-scheduler, and disable all Composio
+    Calendar / Meeting modals and OAuth flows.
     """
     return (
         "<script id=\"gb-calendar-lock-script\">"
@@ -1016,10 +1031,12 @@ def _build_calendar_lock_body_script() -> str:
         "if(psEl&&psEl.textContent!==SUBHEADING_TEXT){psEl.textContent=SUBHEADING_TEXT;}"
         "document.title=POPOUT_CAL_TITLE+' \\u2022 GlennBot Automations';"
         "}"
-        "['cal-subtab-composio','calendar-composio-toolbar','schedule-meeting-modal'].forEach(function(id){"
+        "['cal-subtab-composio','calendar-composio-toolbar','schedule-meeting-modal','connect-accounts-modal'].forEach(function(id){"
         "var el=document.getElementById(id);"
         "if(el){el.classList.add('hidden');el.style.setProperty('display','none','important');}"
         "});"
+        "var connectBox=document.querySelector('#view-scheduler > div:first-child > div:nth-child(2)');"
+        "if(connectBox){connectBox.classList.add('hidden');connectBox.style.setProperty('display','none','important');}"
         "var currentSwitch=window.switchCalendarSubTab;"
         "if(!currentSwitch||!currentSwitch._gbPortfolioLocked){"
         "var origSwitch=(typeof currentSwitch==='function')?currentSwitch:null;"
@@ -1036,6 +1053,7 @@ def _build_calendar_lock_body_script() -> str:
         "}"
         "window.openScheduleMeetingModal=function(){};"
         "window.startCalendarOAuthPopup=function(){};"
+        "window.openConnectAccountsModal=function(){};"
         "}"
         "_lockCalendarDomAndFns();"
         "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',_lockCalendarDomAndFns);}"

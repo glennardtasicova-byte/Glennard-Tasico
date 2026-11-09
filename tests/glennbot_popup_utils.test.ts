@@ -60,6 +60,8 @@ test("buildInstantPopoutStyleTag hides homepage chrome, hides Composio calendar 
   assert.ok(queueCss.includes("#cal-subtab-composio"));
   assert.ok(queueCss.includes("#calendar-composio-toolbar"));
   assert.ok(queueCss.includes("#schedule-meeting-modal"));
+  assert.ok(queueCss.includes("#view-scheduler > div:first-child > div:nth-child(2)"));
+  assert.ok(queueCss.includes("#connect-accounts-modal"));
   assert.ok(queueCss.includes("#gb-popout-window-bar"));
   assert.ok(queueCss.includes("#view-scheduler:not(.gb-tab-ready)"));
   assert.ok(queueCss.includes("#view-queue"));
