@@ -734,8 +734,8 @@ _GLENNBOT_WORKSPACE_VIEW_META: dict[str, dict[str, str]] = {
         "icon": "fa-stream",
     },
     "calendar": {
-        "title": "Content & Meetings Calendar — Expanded View",
-        "subtitle": "Unified Monthly Schedule for Social Media Posts & Video Appointments",
+        "title": "Social Media Content Calendar — Expanded View",
+        "subtitle": "Visual monthly schedule of queued and published omnichannel social media posts",
         "icon": "fa-calendar-alt",
     },
     "analytics": {
@@ -835,6 +835,12 @@ def _build_session_injector_snippet(
         "  #left-nav-sidebar {\n"
         "    display: none !important;\n"
         "  }\n"
+        "  /* Immediately hide Calendars & Meetings (Composio) sub-tab, toolbar, and modal */\n"
+        "  #cal-subtab-composio,\n"
+        "  #calendar-composio-toolbar,\n"
+        "  #schedule-meeting-modal {\n"
+        "    display: none !important;\n"
+        "  }\n"
         "  /* Immediately show the Expanded Focus Window top bar */\n"
         "  #gb-popout-window-bar {\n"
         "    display: flex !important;\n"
@@ -842,6 +848,13 @@ def _build_session_injector_snippet(
         f"{non_scheduler_css}"
         f"  #view-{clean_tab} {{\n"
         "    display: flex !important;\n"
+        "  }\n"
+        "</style>\n"
+        "<style id=\"gb-instant-popout-style\">\n"
+        "  #cal-subtab-composio,\n"
+        "  #calendar-composio-toolbar,\n"
+        "  #schedule-meeting-modal {\n"
+        "    display: none !important;\n"
         "  }\n"
         "</style>"
     )
@@ -968,7 +981,68 @@ def _apply_instant_popout_dom_transforms(
             1,
         )
 
+    # 4. Hide Composio Calendars & Meetings elements in raw HTML
+    for cal_id in ("cal-subtab-composio", "calendar-composio-toolbar", "schedule-meeting-modal"):
+        html_text = html_text.replace(
+            f'id="{cal_id}" class="',
+            f'id="{cal_id}" style="display:none!important" class="hidden ',
+            1,
+        )
+
     return html_text
+
+
+def _build_calendar_lock_body_script() -> str:
+    """
+    Builds the script injected at the end of <body> in /glennbot-popout to lock
+    the Calendar view strictly to Social Media Content Calendar ('posts' mode)
+    and disable all Composio Calendar / Meeting modals and OAuth flows.
+    """
+    return (
+        "<script id=\"gb-calendar-lock-script\">"
+        "(function(){"
+        "var HEADING_TEXT='Social Media Content Calendar';"
+        "var SUBHEADING_TEXT='Visual monthly schedule of queued and published omnichannel social media posts';"
+        "var POPOUT_CAL_TITLE='Social Media Content Calendar \\u2014 Expanded View';"
+        "function _lockCalendarDomAndFns(){"
+        "var hEl=document.getElementById('calendar-main-heading');"
+        "if(hEl&&hEl.textContent!==HEADING_TEXT){hEl.textContent=HEADING_TEXT;}"
+        "var sEl=document.getElementById('calendar-main-subheading');"
+        "if(sEl&&sEl.textContent!==SUBHEADING_TEXT){sEl.textContent=SUBHEADING_TEXT;}"
+        "if(window.gbActivePopoutParams&&window.gbActivePopoutParams.tab==='calendar'){"
+        "var ptEl=document.getElementById('gb-popout-window-title');"
+        "if(ptEl&&ptEl.textContent!==POPOUT_CAL_TITLE){ptEl.textContent=POPOUT_CAL_TITLE;}"
+        "var psEl=document.getElementById('gb-popout-window-subtitle');"
+        "if(psEl&&psEl.textContent!==SUBHEADING_TEXT){psEl.textContent=SUBHEADING_TEXT;}"
+        "document.title=POPOUT_CAL_TITLE+' \\u2022 GlennBot Automations';"
+        "}"
+        "['cal-subtab-composio','calendar-composio-toolbar','schedule-meeting-modal'].forEach(function(id){"
+        "var el=document.getElementById(id);"
+        "if(el){el.classList.add('hidden');el.style.setProperty('display','none','important');}"
+        "});"
+        "var currentSwitch=window.switchCalendarSubTab;"
+        "if(!currentSwitch||!currentSwitch._gbPortfolioLocked){"
+        "var origSwitch=(typeof currentSwitch==='function')?currentSwitch:null;"
+        "var lockedSwitch=function(mode){"
+        "if(mode==='composio')return;"
+        "if(typeof origSwitch==='function'){origSwitch('posts');}"
+        "var h=document.getElementById('calendar-main-heading');"
+        "if(h&&h.textContent!==HEADING_TEXT){h.textContent=HEADING_TEXT;}"
+        "var s=document.getElementById('calendar-main-subheading');"
+        "if(s&&s.textContent!==SUBHEADING_TEXT){s.textContent=SUBHEADING_TEXT;}"
+        "};"
+        "lockedSwitch._gbPortfolioLocked=true;"
+        "window.switchCalendarSubTab=lockedSwitch;"
+        "}"
+        "window.openScheduleMeetingModal=function(){};"
+        "window.startCalendarOAuthPopup=function(){};"
+        "}"
+        "_lockCalendarDomAndFns();"
+        "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',_lockCalendarDomAndFns);}"
+        "window.addEventListener('load',function(){_lockCalendarDomAndFns();setTimeout(_lockCalendarDomAndFns,150);});"
+        "})();"
+        "</script>"
+    )
 
 
 @app.api_route("/glennbot-popout", methods=["GET", "HEAD"], response_class=HTMLResponse)
@@ -1068,6 +1142,12 @@ async def glennbot_authenticated_popout(request: Request):
         html_text = html_text.replace("</head>", f"    {injector_snippet}\n</head>", 1)
     else:
         html_text = injector_snippet + html_text
+
+    calendar_lock_script = _build_calendar_lock_body_script()
+    if "</body>" in html_text:
+        html_text = html_text.replace("</body>", f"    {calendar_lock_script}\n</body>", 1)
+    else:
+        html_text = html_text + f"\n{calendar_lock_script}"
 
     response = HTMLResponse(content=html_text, status_code=status_code)
     response.set_cookie(
@@ -1624,6 +1704,33 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
     """
     clean_path = path.strip("/").lower()
     method_upper = request.method.upper()
+
+    # Layer 2: Block Calendar & Meeting Endpoints (Composio Google Calendar / Outlook / Meet / Teams / Zoom)
+    if (
+        clean_path.startswith("calendar/")
+        or clean_path == "calendar"
+        or clean_path.startswith("v1/calendar/")
+        or clean_path == "v1/calendar"
+        or clean_path.startswith("oauth/calendar/")
+        or clean_path == "oauth/calendar"
+    ):
+        if method_upper in ("POST", "PUT", "DELETE", "PATCH"):
+            return JSONResponse(
+                content={
+                    "status": "error",
+                    "message": "Calendars & Meetings are restricted in Portfolio Demo Mode.",
+                },
+                status_code=403,
+            )
+        if clean_path in ("calendar/accounts", "v1/calendar/accounts"):
+            return JSONResponse(
+                content={"status": "success", "accounts": []},
+                status_code=200,
+            )
+        return JSONResponse(
+            content={"status": "success", "events": [], "accounts": []},
+            status_code=200,
+        )
 
     # 3. Protect Connected Accounts from Visitor Deletion
     if (

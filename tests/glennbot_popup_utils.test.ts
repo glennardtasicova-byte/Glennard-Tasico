@@ -6,6 +6,7 @@ import {
   buildInstantPopoutStyleTag,
   computeCenteredPopupFeatures,
   filterPortfolioSocialAccounts,
+  resolveCalendarProxyIntercept,
 } from "../static/js/glennbot_popup_utils.mjs";
 
 test("SYS-01 defines the 3 auto-authenticated /glennbot-popout Expanded View URLs and upstream URLs", () => {
@@ -51,11 +52,14 @@ test("computeCenteredPopupFeatures centers popup window within available screen 
   assert.ok(res.features.includes("width=1240,height=860,left=340,top=110"));
 });
 
-test("buildInstantPopoutStyleTag hides homepage chrome and toggles #view-scheduler based on targetTab", () => {
+test("buildInstantPopoutStyleTag hides homepage chrome, hides Composio calendar UI, and toggles #view-scheduler", () => {
   const queueCss = buildInstantPopoutStyleTag("queue");
   assert.ok(queueCss.includes('<style id="gb-instant-popout-css">'));
   assert.ok(queueCss.includes("#main-dashboard-header"));
   assert.ok(queueCss.includes("#left-nav-sidebar"));
+  assert.ok(queueCss.includes("#cal-subtab-composio"));
+  assert.ok(queueCss.includes("#calendar-composio-toolbar"));
+  assert.ok(queueCss.includes("#schedule-meeting-modal"));
   assert.ok(queueCss.includes("#gb-popout-window-bar"));
   assert.ok(queueCss.includes("#view-scheduler:not(.gb-tab-ready)"));
   assert.ok(queueCss.includes("#view-queue"));
@@ -103,5 +107,36 @@ test("filterPortfolioSocialAccounts keeps only the 4 whitelisted portfolio accou
   assert.deepEqual(filtered.whatsapp, []);
   assert.deepEqual(filtered.telegram, []);
 });
+
+test("resolveCalendarProxyIntercept blocks calendar/meeting endpoints in Portfolio Demo Mode", () => {
+  const accountsRes = resolveCalendarProxyIntercept("GET", "calendar/accounts");
+  assert.equal(accountsRes?.statusCode, 200);
+  assert.deepEqual(accountsRes?.body, { status: "success", accounts: [] });
+
+  const eventsRes = resolveCalendarProxyIntercept("GET", "calendar/events");
+  assert.equal(eventsRes?.statusCode, 200);
+  assert.deepEqual(eventsRes?.body, { status: "success", events: [], accounts: [] });
+
+  const v1EventsRes = resolveCalendarProxyIntercept("GET", "v1/calendar/events");
+  assert.equal(v1EventsRes?.statusCode, 200);
+  assert.deepEqual(v1EventsRes?.body, { status: "success", events: [], accounts: [] });
+
+  const postScheduleRes = resolveCalendarProxyIntercept("POST", "v1/calendar/schedule");
+  assert.equal(postScheduleRes?.statusCode, 403);
+  assert.deepEqual(postScheduleRes?.body, {
+    status: "error",
+    message: "Calendars & Meetings are restricted in Portfolio Demo Mode.",
+  });
+
+  const oauthStartRes = resolveCalendarProxyIntercept("POST", "oauth/calendar/start");
+  assert.equal(oauthStartRes?.statusCode, 403);
+  assert.deepEqual(oauthStartRes?.body, {
+    status: "error",
+    message: "Calendars & Meetings are restricted in Portfolio Demo Mode.",
+  });
+
+  assert.equal(resolveCalendarProxyIntercept("GET", "social/accounts"), null);
+});
+
 
 

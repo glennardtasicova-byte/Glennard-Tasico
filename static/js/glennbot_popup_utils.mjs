@@ -27,8 +27,8 @@ export const SYS01_EXPANDED_VIEWS = {
   calendar: {
     tab: "calendar",
     label: "📅 Calendar",
-    title: "Content & Meetings Calendar — Expanded View",
-    subtitle: "Unified Monthly Schedule for Social Media Posts & Video Appointments",
+    title: "Social Media Content Calendar — Expanded View",
+    subtitle: "Visual monthly schedule of queued and published omnichannel social media posts",
     icon: "fas fa-calendar-alt",
     width: 1260,
     height: 860,
@@ -75,6 +75,12 @@ export function buildInstantPopoutStyleTag(targetTab = "scheduler") {
     `  #left-nav-sidebar {`,
     `    display: none !important;`,
     `  }`,
+    `  /* Immediately hide Calendars & Meetings (Composio) sub-tab, toolbar, and modal */`,
+    `  #cal-subtab-composio,`,
+    `  #calendar-composio-toolbar,`,
+    `  #schedule-meeting-modal {`,
+    `    display: none !important;`,
+    `  }`,
     `  /* Immediately show the Expanded Focus Window top bar */`,
     `  #gb-popout-window-bar {`,
     `    display: flex !important;`,
@@ -82,6 +88,40 @@ export function buildInstantPopoutStyleTag(targetTab = "scheduler") {
     nonSchedulerBlock + `  #view-${cleanTab} {\n    display: flex !important;\n  }`,
     `</style>`,
   ].join("\n");
+}
+
+export function resolveCalendarProxyIntercept(method = "GET", rawPath = "") {
+  const cleanPath = String(rawPath || "").replace(/^\/+|\/+$/g, "").toLowerCase();
+  const methodUpper = String(method || "GET").toUpperCase();
+  const isCalendarPath =
+    cleanPath.startsWith("calendar/") ||
+    cleanPath === "calendar" ||
+    cleanPath.startsWith("v1/calendar/") ||
+    cleanPath === "v1/calendar" ||
+    cleanPath.startsWith("oauth/calendar/") ||
+    cleanPath === "oauth/calendar";
+
+  if (!isCalendarPath) return null;
+
+  if (["POST", "PUT", "DELETE", "PATCH"].includes(methodUpper)) {
+    return {
+      statusCode: 403,
+      body: {
+        status: "error",
+        message: "Calendars & Meetings are restricted in Portfolio Demo Mode.",
+      },
+    };
+  }
+  if (cleanPath === "calendar/accounts" || cleanPath === "v1/calendar/accounts") {
+    return {
+      statusCode: 200,
+      body: { status: "success", accounts: [] },
+    };
+  }
+  return {
+    statusCode: 200,
+    body: { status: "success", events: [], accounts: [] },
+  };
 }
 
 export const PORTFOLIO_WHITELISTED_ACCOUNTS = {
@@ -148,5 +188,6 @@ export function filterPortfolioSocialAccounts(rawPayload = {}) {
     result.facebook.length + result.instagram.length + result.tiktok.length + result.youtube.length;
   return result;
 }
+
 
 
