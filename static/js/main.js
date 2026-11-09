@@ -524,29 +524,29 @@ window.openGlennBotLivePopup = openGlennBotLivePopup;
       "social-scheduler": {
         sysId: "SYS-01",
         category: "Social & AI Publishing",
-        endpoint: "POST /api/ai/ask • POST /api/schedule • GET /api/scheduled",
+        endpoint: "POST /api/ai/ask • POST /api/schedule • GET & DELETE /api/scheduled",
         demoEndpoint: "/api/demo/ai-caption",
         title: "AI Content & Omnichannel Social Scheduler",
-        tagline: "Context-Aware Gemini Caption Engine + Multi-Platform APScheduler Queue",
+        tagline: "Context-Aware Gemini 3.5 Flash Caption Engine + Multi-Platform APScheduler Queue",
         pipelineNodes: [
-          { label: "Trigger", title: "Topic / Create Post UI", accent: false },
-          { label: "AI Core", title: "FastAPI + Gemini 3.5 Flash", accent: true },
-          { label: "Dispatch & Sync", title: "Zernio + PostgreSQL + APScheduler", accent: false },
+          { label: "Create Post UI", title: "Gemini 3.5 Flash + Live Web Search", accent: false },
+          { label: "Media & Queue DB", title: "Zernio Presign • GDrive • Cloudinary • PostgreSQL", accent: true },
+          { label: "Auto-Dispatch & Sync", title: "APScheduler + Zernio Omnichannel API", accent: false },
         ],
         bottleneck:
-          "Marketing and operations teams were spending 12+ hours weekly manually writing platform-specific social copy, formatting media assets, and logging into separate dashboards for Facebook, Instagram, TikTok, and YouTube.",
+          "Marketing and operations teams were spending 12+ hours weekly manually researching topics, writing platform-specific social copy, formatting media assets, and logging into separate dashboards to schedule and track posts across Facebook, Instagram, TikTok, and YouTube.",
         solution:
-          "Architected a unified FastAPI publishing engine (`routers/scheduler_routes.py` & `services/ai_service.py`) powering **Create Post**, **Queue**, and **Content Calendar**. It enriches prompts with live web search (Bing/Google News/Wikipedia), generates platform-tailored titles, captions & hashtags via **Google Gemini 3.5 Flash**, streams media through **Zernio Presigned Cloud, Google Drive Vault, and Cloudinary CDN**, persists queue state in **PostgreSQL (`glennbot_scheduled_posts`)**, and dispatches synchronized posts via **APScheduler** and **Zernio API**.",
+          "Architected a native FastAPI publishing engine (routers/scheduler_routes.py, routers/ai_routes.py & services/ai_service.py) powering Create Post, Queue, and Content Calendar. It enriches topics with free live web search (Bing RSS, Google News RSS & Wikipedia), generates platform-tailored titles, captions & hashtags via Google Gemini 3.5 Flash, streams media through Zernio Presigned Cloud, Google Drive Vault, and Cloudinary CDN, persists queue records in PostgreSQL (glennbot_scheduled_posts), and dispatches synchronized posts via APScheduler (SQLAlchemyJobStore) and Zernio API.",
         architectureSteps: [
-          "**Create Post & AI Generation (`/api/ai/ask`)** — Topic submitted via Create Post UI or n8n; enriches context with live web search and calls **Google Gemini 3.5 Flash** (`gemini-3.5-flash`) for FB, IG, TikTok & YouTube copy.",
-          "**3-Tier Cloud Media & DB Persistence (`/api/schedule`)** — Immediately records the job in **PostgreSQL (`glennbot_scheduled_posts`)** while uploading Reels, 16:9 Videos, or Image Albums via **Zernio Presign, Google Drive Vault, or Cloudinary CDN**.",
-          "**Automated Dispatch & Auto-Cleanup (`APScheduler` + `Zernio API`)** — Registers scheduled dispatches on Zernio and triggers `post_to_facebook`, `post_to_instagram`, `post_to_tiktok`, and `post_to_youtube`, followed by automated Cloudinary cleanup (+20 mins).",
-          "**Live Queue & Content Calendar Sync (`GET /api/scheduled`)** — Real-time status reconciliation (`sync_single_scheduled_row_with_zernio`) updates the **Queue Table** and **Monthly Content Calendar** with live statuses (`waiting`, `published`, `failed`) and permalinks.",
+          "**Create Post & AI Generation (`POST /api/ai/ask`)** — User submits a topic in the **Create Post** studio; FastAPI enriches context with live web search (Bing/Google News/Wikipedia) and calls **Google Gemini 3.5 Flash** (`gemini-3.5-flash`) to generate tailored FB, IG, TikTok & YouTube titles, captions, and hashtags.",
+          "**3-Tier Cloud Media & DB Persistence (`POST /api/schedule`)** — Immediately inserts the record into **PostgreSQL (`glennbot_scheduled_posts`)** with `processing_payload` status while uploading Reels, 16:9 Videos, or Image Albums via **Zernio Presign, Google Drive Vault, or Cloudinary CDN**.",
+          "**Native Scheduled Dispatch & Auto-Cleanup (`APScheduler` + `Zernio API`)** — Pre-registers the schedule on Zernio and queues native Python **APScheduler** jobs (`post_to_facebook`, `post_to_instagram`, `post_to_tiktok`, `post_to_youtube`), plus automated Cloudinary media cleanup 20 minutes after publishing.",
+          "**Live Queue & Content Calendar Sync (`GET & DELETE /api/scheduled`)** — Real-time status reconciliation (`sync_single_scheduled_row_with_zernio`) powers both the **Queue Table** and **Monthly Content Calendar** with live statuses (`waiting`, `published`, `failed`), published permalinks, and instant job cancellation.",
         ],
         metrics: [
           { value: "85% Faster", label: "Content Production" },
           { value: "4 Channels", label: "FB • IG • TikTok • YT" },
-          { value: "24/7 Queue", label: "APScheduler + n8n" },
+          { value: "24/7 Queue", label: "APScheduler + PostgreSQL" },
         ],
         sourceFile: "routers/scheduler_routes.py & routers/ai_routes.py",
         sourceCode: `# routers/scheduler_routes.py & routers/ai_routes.py
@@ -555,20 +555,19 @@ from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import text
 from datetime import datetime, timedelta
 from typing import Optional, List
-import uuid, time, threading, pytz
+import uuid, threading, pytz
 
-from core.database import db_engine, scheduler
+from core.database import db_engine, scheduler, _coerce_db_datetime
 from services.ai_service import _execute_glennbot_ask_ai_core
 from services.zernio_service import (
-    register_scheduled_post_on_zernio, post_to_facebook,
-    post_to_instagram, post_to_tiktok, post_to_youtube, cleanup_cloudinary
+    register_scheduled_post_on_zernio, post_to_facebook, post_to_instagram,
+    post_to_tiktok, post_to_youtube, _cancel_zernio_scheduled_post, cleanup_cloudinary
 )
 
 router = APIRouter()
 
 # 1. CREATE POST — ASK AI CAPTION & HASHTAG GENERATOR (Gemini 3.5 Flash + Live Web Search)
 @router.post("/api/ai/ask")
-@router.post("/api/v1/ai/ask")
 async def api_ask_ai(request: Request):
     body = await request.json()
     return await run_in_threadpool(
@@ -582,7 +581,7 @@ async def api_ask_ai(request: Request):
         )
     )
 
-# 2. CREATE POST — OMNICHANNEL SCHEDULER & BACKGROUND MEDIA PIPELINE
+# 2. CREATE POST — NATIVE OMNICHANNEL SCHEDULER & 3-TIER CLOUD MEDIA PIPELINE
 @router.post("/api/schedule")
 async def receive_schedule(
     platform: str = Form(...), post_type: str = Form(...), pageId: str = Form(""),
@@ -600,7 +599,7 @@ async def receive_schedule(
     )
     record_id = f"post_{uuid.uuid4().hex[:12]}"
 
-    # Persist row in PostgreSQL immediately so Queue & Calendar stay in sync
+    # Persist row in PostgreSQL immediately so Queue & Calendar never lose track of a post
     def _insert_initial_sched_row():
         with db_engine.begin() as conn:
             conn.execute(
@@ -650,6 +649,9 @@ def get_scheduled_posts(month: Optional[int] = None, year: Optional[int] = None)
         items = []
         for r in rows:
             r_dict = dict(r)
+            sched_dt = _coerce_db_datetime(r_dict.get("scheduled_time"), manila_tz)
+            if month and year and (not sched_dt or sched_dt.month != int(month) or sched_dt.year != int(year)):
+                continue
             synced = sync_single_scheduled_row_with_zernio(r_dict)
             items.append({
                 "id": r_dict["id"],
@@ -658,16 +660,28 @@ def get_scheduled_posts(month: Optional[int] = None, year: Optional[int] = None)
                 "post_type": r_dict["post_type"],
                 "caption": r_dict["caption"] or "",
                 "media_preview_url": r_dict["media_preview_url"] or "",
+                "scheduled_iso": sched_dt.isoformat() if sched_dt else "",
                 "status": synced["status"],
                 "permalink_url": synced["permalink_url"],
             })
-        return {"status": "success", "items": items}`,
+        return {"status": "success", "items": items}
+
+# 4. QUEUE & CALENDAR — CANCEL SCHEDULED JOB & CLEANUP CLOUD MEDIA
+@router.delete("/api/scheduled/{record_id}")
+def delete_scheduled_post(record_id: str):
+    try:
+        scheduler.remove_job(record_id)
+    except Exception:
+        pass
+    with db_engine.begin() as conn:
+        conn.execute(text("DELETE FROM glennbot_scheduled_posts WHERE id = :id"), {"id": record_id})
+    return {"status": "success"}`,
         widgetFields: [
           {
             name: "topic",
             label: "Campaign Topic / Operational Update",
             type: "text",
-            value: "Automated Lead Capture & CRM Sync with FastAPI + n8n",
+            value: "Automated Omnichannel Social Publishing with FastAPI + Gemini 3.5 Flash",
           },
           {
             name: "tone",
@@ -998,8 +1012,8 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         tab: "calendar",
         shortLabel: "📅 Calendar",
         title: "Calendar Expanded View",
-        fullTitle: "Content & Meetings Calendar — Expanded View",
-        subtitle: "Unified Monthly Schedule for Social Media Posts & Video Appointments",
+        fullTitle: "Social Media Content Calendar — Expanded View",
+        subtitle: "Visual Monthly Schedule of Queued & Published Omnichannel Social Posts",
         icon: "fas fa-calendar-alt",
         width: 1260,
         height: 860,

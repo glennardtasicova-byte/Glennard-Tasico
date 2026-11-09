@@ -145,7 +145,19 @@ test("resolveCalendarProxyIntercept blocks calendar/meeting endpoints in Portfol
 test("SYS01_PROJECT_SPEC and formatInlineMarkdown match production GlennBot Automations architecture", () => {
   assert.equal(
     SYS01_PROJECT_SPEC.endpoint,
-    "POST /api/ai/ask • POST /api/schedule • GET /api/scheduled"
+    "POST /api/ai/ask • POST /api/schedule • GET & DELETE /api/scheduled"
+  );
+  assert.equal(
+    SYS01_PROJECT_SPEC.tagline,
+    "Context-Aware Gemini 3.5 Flash Caption Engine + Multi-Platform APScheduler Queue"
+  );
+  assert.equal(
+    SYS01_EXPANDED_VIEWS.calendar.title,
+    "Social Media Content Calendar — Expanded View"
+  );
+  assert.equal(
+    SYS01_EXPANDED_VIEWS.calendar.subtitle,
+    "Visual Monthly Schedule of Queued & Published Omnichannel Social Posts"
   );
   assert.deepEqual(SYS01_PROJECT_SPEC.stackPills, [
     "FastAPI",
@@ -166,10 +178,11 @@ test("SYS01_PROJECT_SPEC and formatInlineMarkdown match production GlennBot Auto
   ]);
 
   const formatted = formatInlineMarkdown(
-    "**Create Post & AI Generation (`/api/ai/ask`)** — calls **Google Gemini 3.5 Flash** (`gemini-3.5-flash`)"
+    "**Create Post & AI Generation (`POST /api/ai/ask`)** — calls **Google Gemini 3.5 Flash** (`gemini-3.5-flash`)"
   );
   assert.equal(
     formatted,
-    "<strong>Create Post &amp; AI Generation (<code>/api/ai/ask</code>)</strong> — calls <strong>Google Gemini 3.5 Flash</strong> (<code>gemini-3.5-flash</code>)"
+    "<strong>Create Post &amp; AI Generation (<code>POST /api/ai/ask</code>)</strong> — calls <strong>Google Gemini 3.5 Flash</strong> (<code>gemini-3.5-flash</code>)"
   );
 });
+

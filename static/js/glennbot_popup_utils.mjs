@@ -28,7 +28,7 @@ export const SYS01_EXPANDED_VIEWS = {
     tab: "calendar",
     label: "📅 Calendar",
     title: "Social Media Content Calendar — Expanded View",
-    subtitle: "Visual monthly schedule of queued and published omnichannel social media posts",
+    subtitle: "Visual Monthly Schedule of Queued & Published Omnichannel Social Posts",
     icon: "fas fa-calendar-alt",
     width: 1260,
     height: 860,
@@ -197,7 +197,8 @@ export function filterPortfolioSocialAccounts(rawPayload = {}) {
 }
 
 export const SYS01_PROJECT_SPEC = {
-  endpoint: "POST /api/ai/ask • POST /api/schedule • GET /api/scheduled",
+  endpoint: "POST /api/ai/ask • POST /api/schedule • GET & DELETE /api/scheduled",
+  tagline: "Context-Aware Gemini 3.5 Flash Caption Engine + Multi-Platform APScheduler Queue",
   stackPills: [
     "FastAPI",
     "Gemini 3.5 Flash",
