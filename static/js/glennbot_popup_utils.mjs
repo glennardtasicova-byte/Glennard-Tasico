@@ -84,3 +84,69 @@ export function buildInstantPopoutStyleTag(targetTab = "scheduler") {
   ].join("\n");
 }
 
+export const PORTFOLIO_WHITELISTED_ACCOUNTS = {
+  facebook: {
+    matchToken: "glennbot automations",
+    defaultId: "6af0b109818eb5c88d1e87a6",
+    name: "GlennBot Automations",
+    username: "GlennBot Automations",
+  },
+  youtube: {
+    matchToken: "glennardtasico",
+    defaultId: "6af17412c05e9c3bed5f068f",
+    name: "glennardtasico",
+    username: "glennardtasico",
+  },
+  tiktok: {
+    matchToken: "glennbot.automation",
+    defaultId: "6ad9e897085e3e64e595fe65",
+    name: "@glennbot.automation",
+    username: "glennbot.automation",
+  },
+  instagram: {
+    matchToken: "glennard.tasico.va",
+    defaultId: "6ad9e9b2e5d470e468e58d87",
+    name: "@glennard.tasico.va",
+    username: "glennard.tasico.va",
+  },
+};
+
+export function filterPortfolioSocialAccounts(rawPayload = {}) {
+  const src = rawPayload && typeof rawPayload === "object" ? rawPayload : {};
+  const result = {
+    facebook: [],
+    instagram: [],
+    tiktok: [],
+    youtube: [],
+    whatsapp: [],
+    telegram: [],
+    total_connected: 0,
+  };
+
+  for (const plat of ["facebook", "instagram", "tiktok", "youtube"]) {
+    const spec = PORTFOLIO_WHITELISTED_ACCOUNTS[plat];
+    const list = Array.isArray(src[plat]) ? src[plat] : [];
+    const matched = list.find((item) => {
+      if (!item || typeof item !== "object") return false;
+      const candidates = [item.name, item.account_name, item.username]
+        .map((v) => String(v || "").trim().replace(/^@+/, "").toLowerCase())
+        .filter(Boolean);
+      return candidates.includes(spec.matchToken);
+    });
+
+    const id = String(matched?.id || spec.defaultId);
+    const avatar = String(matched?.avatar || "");
+    const db_id = String(matched?.db_id || `${plat}_${id}`);
+    const entry =
+      plat === "facebook"
+        ? { id, name: spec.name, avatar, connected_by: "External API", db_id }
+        : { id, name: spec.name, username: spec.username, avatar, connected_by: "External API", db_id };
+    result[plat] = [entry];
+  }
+
+  result.total_connected =
+    result.facebook.length + result.instagram.length + result.tiktok.length + result.youtube.length;
+  return result;
+}
+
+

@@ -1277,6 +1277,339 @@ import re as _re
 
 _EXPIRED_IG_CDN_RE = _re.compile(r"https://scontent[^\"'\s]*cdninstagram\.com[^\"'\s]*")
 
+# ==============================================================================
+# PORTFOLIO 4-ACCOUNT WHITELIST & PROTECTION FOR GLENNBOT PROXY
+# ==============================================================================
+_PORTFOLIO_WHITELISTED_ACCOUNTS: dict[str, dict] = {
+    "facebook": {
+        "match_tokens": {"glennbot automations"},
+        "default_id": "6af0b109818eb5c88d1e87a6",
+        "default_db_id": "facebook_6af0b109818eb5c88d1e87a6",
+        "name": "GlennBot Automations",
+        "username": "GlennBot Automations",
+    },
+    "youtube": {
+        "match_tokens": {"glennardtasico"},
+        "default_id": "6af17412c05e9c3bed5f068f",
+        "default_db_id": "youtube_6af17412c05e9c3bed5f068f",
+        "name": "glennardtasico",
+        "username": "glennardtasico",
+    },
+    "tiktok": {
+        "match_tokens": {"glennbot.automation"},
+        "default_id": "6ad9e897085e3e64e595fe65",
+        "default_db_id": "tiktok_6ad9e897085e3e64e595fe65",
+        "name": "@glennbot.automation",
+        "username": "glennbot.automation",
+    },
+    "instagram": {
+        "match_tokens": {"glennard.tasico.va"},
+        "default_id": "6ad9e9b2e5d470e468e58d87",
+        "default_db_id": "instagram_6ad9e9b2e5d470e468e58d87",
+        "name": "@glennard.tasico.va",
+        "username": "glennard.tasico.va",
+    },
+}
+
+_PORTFOLIO_ACCOUNTS_RUNTIME_CACHE: dict[str, dict] = {
+    "by_platform": {},
+    "expires_at": 0.0,
+}
+
+
+def _normalize_account_token(val: object) -> str:
+    return str(val or "").strip().lstrip("@").strip().lower()
+
+
+def _matches_whitelisted_portfolio_account(platform: str | None, item: dict) -> bool:
+    if not isinstance(item, dict):
+        return False
+    plat = str(platform or item.get("platform") or "").strip().lower()
+    spec = _PORTFOLIO_WHITELISTED_ACCOUNTS.get(plat)
+    if not spec:
+        return False
+
+    # Check ID match against known real upstream account ID or cached runtime ID
+    cached_plat = (_PORTFOLIO_ACCOUNTS_RUNTIME_CACHE.get("by_platform") or {}).get(plat) or {}
+    known_ids = {
+        spec["default_id"],
+        spec["default_db_id"],
+        str(cached_plat.get("id") or "").strip(),
+        str(cached_plat.get("db_id") or "").strip(),
+    }
+    known_ids.discard("")
+
+    for id_key in ("id", "account_id", "page_id", "db_id"):
+        raw_id = str(item.get(id_key) or "").strip()
+        if raw_id and raw_id in known_ids:
+            return True
+
+    # Check case-insensitive name / username match (stripping leading '@')
+    for field in ("name", "account_name", "username", "displayName", "handle"):
+        token = _normalize_account_token(item.get(field))
+        if token and token in spec["match_tokens"]:
+            return True
+
+    return False
+
+
+def _filter_social_accounts_payload(raw_data: dict | None) -> dict:
+    """
+    Filters GET /api/social/accounts so ONLY the 4 whitelisted portfolio accounts
+    appear, preserving real id, avatar, and db_id when present and providing a
+    deterministic fallback entry for any missing platform.
+    """
+    src = raw_data if isinstance(raw_data, dict) else {}
+    by_plat_cache = _PORTFOLIO_ACCOUNTS_RUNTIME_CACHE.setdefault("by_platform", {})
+
+    filtered_out: dict[str, list | int] = {
+        "facebook": [],
+        "instagram": [],
+        "tiktok": [],
+        "youtube": [],
+        "whatsapp": [],
+        "telegram": [],
+    }
+
+    for plat in ("facebook", "instagram", "tiktok", "youtube"):
+        spec = _PORTFOLIO_WHITELISTED_ACCOUNTS[plat]
+        raw_list = src.get(plat)
+        candidates = raw_list if isinstance(raw_list, list) else []
+        matched = next(
+            (item for item in candidates if _matches_whitelisted_portfolio_account(plat, item)),
+            None,
+        )
+        cached_prev = by_plat_cache.get(plat) or {}
+
+        real_id = str(
+            (matched or {}).get("id")
+            or (matched or {}).get("account_id")
+            or cached_prev.get("id")
+            or spec["default_id"]
+        ).strip()
+        real_avatar = str(
+            (matched or {}).get("avatar")
+            or (matched or {}).get("avatar_url")
+            or cached_prev.get("avatar")
+            or ""
+        ).strip()
+        real_db_id = str(
+            (matched or {}).get("db_id")
+            or cached_prev.get("db_id")
+            or f"{plat}_{real_id}"
+        ).strip()
+        connected_by = str(
+            (matched or {}).get("connected_by")
+            or cached_prev.get("connected_by")
+            or "External API"
+        ).strip()
+
+        by_plat_cache[plat] = {
+            "id": real_id,
+            "avatar": real_avatar,
+            "db_id": real_db_id,
+            "connected_by": connected_by,
+        }
+
+        if plat == "facebook":
+            entry = {
+                "id": real_id,
+                "name": spec["name"],
+                "avatar": real_avatar,
+                "connected_by": connected_by,
+                "db_id": real_db_id,
+            }
+        else:
+            entry = {
+                "id": real_id,
+                "name": spec["name"],
+                "username": spec["username"],
+                "avatar": real_avatar,
+                "connected_by": connected_by,
+                "db_id": real_db_id,
+            }
+        filtered_out[plat] = [entry]
+
+    total_count = sum(
+        len(filtered_out[p]) for p in ("facebook", "instagram", "tiktok", "youtube")
+    )
+    filtered_out["total_connected"] = total_count
+    _PORTFOLIO_ACCOUNTS_RUNTIME_CACHE["expires_at"] = time.time() + 300.0
+    return filtered_out
+
+
+def _filter_connected_accounts_payload(raw_data: dict | None) -> dict:
+    """
+    Filters GET /api/connected_accounts so ONLY the 4 whitelisted portfolio accounts
+    are returned in the 'accounts' array, preserving real id, account_id, and avatar_url.
+    """
+    src = raw_data if isinstance(raw_data, dict) else {}
+    raw_accounts = src.get("accounts")
+    candidates = raw_accounts if isinstance(raw_accounts, list) else []
+    by_plat_cache = _PORTFOLIO_ACCOUNTS_RUNTIME_CACHE.setdefault("by_platform", {})
+
+    filtered_accounts = []
+    for plat in ("facebook", "instagram", "tiktok", "youtube"):
+        spec = _PORTFOLIO_WHITELISTED_ACCOUNTS[plat]
+        matched = next(
+            (
+                item
+                for item in candidates
+                if isinstance(item, dict)
+                and str(item.get("platform") or "").strip().lower() == plat
+                and _matches_whitelisted_portfolio_account(plat, item)
+            ),
+            None,
+        )
+        cached_prev = by_plat_cache.get(plat) or {}
+
+        real_acc_id = str(
+            (matched or {}).get("account_id")
+            or (matched or {}).get("id")
+            or cached_prev.get("id")
+            or spec["default_id"]
+        ).strip()
+        real_row_id = str(
+            (matched or {}).get("id")
+            or cached_prev.get("db_id")
+            or f"{plat}_{real_acc_id}"
+        ).strip()
+        real_avatar = str(
+            (matched or {}).get("avatar_url")
+            or (matched or {}).get("avatar")
+            or cached_prev.get("avatar")
+            or ""
+        ).strip()
+        connected_by = str(
+            (matched or {}).get("connected_by")
+            or cached_prev.get("connected_by")
+            or "External API"
+        ).strip()
+
+        by_plat_cache[plat] = {
+            "id": real_acc_id,
+            "avatar": real_avatar,
+            "db_id": real_row_id,
+            "connected_by": connected_by,
+        }
+
+        filtered_accounts.append(
+            {
+                "id": real_row_id,
+                "platform": plat,
+                "account_id": real_acc_id,
+                "account_name": spec["name"],
+                "username": spec["username"],
+                "avatar_url": real_avatar,
+                "connected_by": connected_by,
+                "has_token": True,
+            }
+        )
+
+    return {"status": "success", "accounts": filtered_accounts}
+
+
+def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> dict:
+    """
+    Ensures Queue (/api/scheduled), Calendar, Comments (/api/comments),
+    Messages (/api/messages/conversations), Analytics (/api/analytics), and
+    OAuth Discover endpoints only surface the 4 whitelisted social accounts.
+    """
+    if not isinstance(data, dict):
+        return data
+
+    if clean_path == "social/accounts":
+        return _filter_social_accounts_payload(data)
+
+    if clean_path == "connected_accounts":
+        return _filter_connected_accounts_payload(data)
+
+    if clean_path == "scheduled" and isinstance(data.get("items"), list):
+        kept = []
+        for item in data["items"]:
+            if not isinstance(item, dict):
+                continue
+            plat = str(item.get("platform") or "").strip().lower()
+            if _matches_whitelisted_portfolio_account(plat, item):
+                norm_item = dict(item)
+                norm_item["account_name"] = _PORTFOLIO_WHITELISTED_ACCOUNTS[plat]["name"]
+                kept.append(norm_item)
+        data["items"] = kept
+        return data
+
+    if clean_path == "comments" and isinstance(data.get("comments"), list):
+        kept = []
+        for item in data["comments"]:
+            if not isinstance(item, dict):
+                continue
+            plat = str(item.get("platform") or "").strip().lower()
+            if _matches_whitelisted_portfolio_account(plat, item):
+                norm_item = dict(item)
+                norm_item["account_name"] = _PORTFOLIO_WHITELISTED_ACCOUNTS[plat]["name"]
+                kept.append(norm_item)
+        data["comments"] = kept
+        return data
+
+    if clean_path == "messages/conversations":
+        if isinstance(data.get("conversations"), list):
+            kept_convs = []
+            for conv in data["conversations"]:
+                if not isinstance(conv, dict):
+                    continue
+                plat = str(conv.get("platform") or "").strip().lower()
+                if plat in ("sms", "textbee"):
+                    kept_convs.append(conv)
+                elif _matches_whitelisted_portfolio_account(plat, conv):
+                    norm_conv = dict(conv)
+                    norm_conv["account_name"] = _PORTFOLIO_WHITELISTED_ACCOUNTS[plat]["name"]
+                    kept_convs.append(norm_conv)
+            data["conversations"] = kept_convs
+        if isinstance(data.get("connected_pages"), list):
+            kept_pages = []
+            for pg in data["connected_pages"]:
+                if not isinstance(pg, dict):
+                    continue
+                plat = str(pg.get("platform") or "").strip().lower()
+                if plat in ("sms", "textbee"):
+                    kept_pages.append(pg)
+                elif _matches_whitelisted_portfolio_account(plat, pg):
+                    norm_pg = dict(pg)
+                    norm_pg["account_name"] = _PORTFOLIO_WHITELISTED_ACCOUNTS[plat]["name"]
+                    norm_pg["name"] = _PORTFOLIO_WHITELISTED_ACCOUNTS[plat]["name"]
+                    kept_pages.append(norm_pg)
+            data["connected_pages"] = kept_pages
+        return data
+
+    if clean_path == "analytics":
+        if isinstance(data.get("pages"), list):
+            kept_pages = []
+            for pg in data["pages"]:
+                if not isinstance(pg, dict):
+                    continue
+                plat = str(pg.get("platform") or "").strip().lower()
+                if _matches_whitelisted_portfolio_account(plat, pg):
+                    norm_pg = dict(pg)
+                    norm_pg["account_name"] = _PORTFOLIO_WHITELISTED_ACCOUNTS[plat]["name"]
+                    norm_pg["name"] = _PORTFOLIO_WHITELISTED_ACCOUNTS[plat]["name"]
+                    norm_pg["username"] = _PORTFOLIO_WHITELISTED_ACCOUNTS[plat]["username"]
+                    kept_pages.append(norm_pg)
+            data["pages"] = kept_pages
+        if isinstance(data.get("posts"), list):
+            kept_posts = []
+            for post in data["posts"]:
+                if not isinstance(post, dict):
+                    continue
+                plat = str(post.get("platform") or "").strip().lower()
+                if _matches_whitelisted_portfolio_account(plat, post):
+                    norm_post = dict(post)
+                    norm_post["account_name"] = _PORTFOLIO_WHITELISTED_ACCOUNTS[plat]["name"]
+                    kept_posts.append(norm_post)
+            data["posts"] = kept_posts
+        data["connected_platforms"] = ["facebook", "instagram", "tiktok", "youtube"]
+        return data
+
+    return data
+
 
 @app.api_route(
     "/api/{path:path}",
@@ -1287,7 +1620,37 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
     Transparently proxies all GlennBot /api/... calls from the popout/iframe to
     {GLENNBOT_BASE_URL}/api/{path}, forwarding query params, request body, and
     attaching Cookie: gb_auth_session={session_token} and X-GlennBot-Session.
+    Enforces the 4-account portfolio whitelist and blocks visitor account deletion.
     """
+    clean_path = path.strip("/").lower()
+    method_upper = request.method.upper()
+
+    # 3. Protect Connected Accounts from Visitor Deletion
+    if (
+        (method_upper == "DELETE" and clean_path.startswith("connected_accounts"))
+        or clean_path == "oauth/disconnect"
+        or clean_path.startswith("oauth/disconnect/")
+    ):
+        return JSONResponse(
+            content={
+                "status": "error",
+                "message": "Account disconnection is disabled in Portfolio Demo Mode.",
+            },
+            status_code=403,
+        )
+
+    # Fast cached path for GET /api/social/accounts & GET /api/connected_accounts
+    # if we already populated _PORTFOLIO_ACCOUNTS_RUNTIME_CACHE recently
+    now = time.time()
+    cache_valid = (
+        bool(_PORTFOLIO_ACCOUNTS_RUNTIME_CACHE.get("by_platform"))
+        and now < float(_PORTFOLIO_ACCOUNTS_RUNTIME_CACHE.get("expires_at") or 0.0)
+    )
+    if method_upper == "GET" and clean_path == "social/accounts" and cache_valid:
+        return JSONResponse(content=_filter_social_accounts_payload({}), status_code=200)
+    if method_upper == "GET" and clean_path == "connected_accounts" and cache_valid:
+        return JSONResponse(content=_filter_connected_accounts_payload({}), status_code=200)
+
     session_token = await get_glennbot_auto_session_token()
     target_url = f"{GLENNBOT_BASE_URL}/api/{path.lstrip('/')}"
     if request.url.query:
@@ -1305,9 +1668,12 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
         if val:
             forward_headers[hdr] = val
 
+    # Use a responsive timeout for account discovery endpoints so fallback safety kicks in without stalling UI
+    req_timeout = 8.0 if clean_path in ("social/accounts", "connected_accounts") else GLENNBOT_TIMEOUT_SECONDS
+
     try:
         async with httpx.AsyncClient(
-            timeout=GLENNBOT_TIMEOUT_SECONDS,
+            timeout=req_timeout,
             follow_redirects=True,
         ) as client:
             resp = await client.request(
@@ -1338,12 +1704,25 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
                 except Exception:
                     pass
 
+            if method_upper == "GET" and "application/json" in content_type.lower():
+                try:
+                    parsed_json = json.loads(content_bytes.decode("utf-8", errors="replace"))
+                    if isinstance(parsed_json, dict):
+                        filtered_json = _filter_whitelisted_records_in_proxy_json(clean_path, parsed_json)
+                        return JSONResponse(content=filtered_json, status_code=resp.status_code)
+                except Exception:
+                    pass
+
             return Response(
                 content=content_bytes,
                 status_code=resp.status_code,
                 media_type=content_type,
             )
     except Exception:
+        if method_upper == "GET" and clean_path == "social/accounts":
+            return JSONResponse(content=_filter_social_accounts_payload({}), status_code=200)
+        if method_upper == "GET" and clean_path == "connected_accounts":
+            return JSONResponse(content=_filter_connected_accounts_payload({}), status_code=200)
         return JSONResponse(
             content={
                 "status": "success",
