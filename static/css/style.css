@@ -2467,6 +2467,23 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   color: var(--text-body);
 }
 
+.modal-section-text strong,
+.modal-step-list li strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.modal-section-text code,
+.modal-step-list li code {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.28);
+  color: var(--accent-primary);
+}
+
 .modal-arch-steps {
   padding: 16px 18px;
   border-radius: 12px;
@@ -2546,6 +2563,9 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
 .modal-case-footer {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 /* Tab 2: Backend Source Code Viewer */

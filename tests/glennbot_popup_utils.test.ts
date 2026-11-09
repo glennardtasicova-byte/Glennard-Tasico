@@ -2,10 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   SYS01_EXPANDED_VIEWS,
+  SYS01_PROJECT_SPEC,
   buildGlennBotExpandedUrl,
   buildInstantPopoutStyleTag,
   computeCenteredPopupFeatures,
   filterPortfolioSocialAccounts,
+  formatInlineMarkdown,
   resolveCalendarProxyIntercept,
 } from "../static/js/glennbot_popup_utils.mjs";
 
@@ -140,5 +142,34 @@ test("resolveCalendarProxyIntercept blocks calendar/meeting endpoints in Portfol
   assert.equal(resolveCalendarProxyIntercept("GET", "social/accounts"), null);
 });
 
+test("SYS01_PROJECT_SPEC and formatInlineMarkdown match production GlennBot Automations architecture", () => {
+  assert.equal(
+    SYS01_PROJECT_SPEC.endpoint,
+    "POST /api/ai/ask • POST /api/schedule • GET /api/scheduled"
+  );
+  assert.deepEqual(SYS01_PROJECT_SPEC.stackPills, [
+    "FastAPI",
+    "Gemini 3.5 Flash",
+    "Zernio API",
+    "PostgreSQL",
+    "Cloudinary & GDrive",
+    "APScheduler",
+  ]);
+  assert.equal(
+    SYS01_PROJECT_SPEC.sourceFile,
+    "routers/scheduler_routes.py & routers/ai_routes.py"
+  );
+  assert.deepEqual(SYS01_PROJECT_SPEC.footerButtons, [
+    "📝 Create Post",
+    "⏳ Queue",
+    "📅 Calendar",
+  ]);
 
-
+  const formatted = formatInlineMarkdown(
+    "**Create Post & AI Generation (`/api/ai/ask`)** — calls **Google Gemini 3.5 Flash** (`gemini-3.5-flash`)"
+  );
+  assert.equal(
+    formatted,
+    "<strong>Create Post &amp; AI Generation (<code>/api/ai/ask</code>)</strong> — calls <strong>Google Gemini 3.5 Flash</strong> (<code>gemini-3.5-flash</code>)"
+  );
+});

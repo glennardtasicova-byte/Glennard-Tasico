@@ -524,43 +524,52 @@ window.openGlennBotLivePopup = openGlennBotLivePopup;
       "social-scheduler": {
         sysId: "SYS-01",
         category: "Social & AI Publishing",
-        endpoint: "POST /api/v1/ai/ask • /api/v1/posts/schedule",
+        endpoint: "POST /api/ai/ask • POST /api/schedule • GET /api/scheduled",
         demoEndpoint: "/api/demo/ai-caption",
         title: "AI Content & Omnichannel Social Scheduler",
         tagline: "Context-Aware Gemini Caption Engine + Multi-Platform APScheduler Queue",
         pipelineNodes: [
-          { label: "Trigger", title: "Topic / Campaign Brief", accent: false },
-          { label: "AI Core", title: "FastAPI + Gemini 2.5", accent: true },
-          { label: "Dispatch", title: "Zernio (FB/IG/TikTok/YT)", accent: false },
+          { label: "Trigger", title: "Topic / Create Post UI", accent: false },
+          { label: "AI Core", title: "FastAPI + Gemini 3.5 Flash", accent: true },
+          { label: "Dispatch & Sync", title: "Zernio + PostgreSQL + APScheduler", accent: false },
         ],
         bottleneck:
           "Marketing and operations teams were spending 12+ hours weekly manually writing platform-specific social copy, formatting media assets, and logging into separate dashboards for Facebook, Instagram, TikTok, and YouTube.",
         solution:
-          "Architected a unified FastAPI microservice inside GlennBot Automations that ingests a single campaign brief, generates platform-tailored captions & hashtag sets via Google Gemini AI, optimizes media via Cloudinary, and schedules multi-channel dispatches through Zernio Social APIs and APScheduler.",
+          "Architected a unified FastAPI publishing engine (`routers/scheduler_routes.py` & `services/ai_service.py`) powering **Create Post**, **Queue**, and **Content Calendar**. It enriches prompts with live web search (Bing/Google News/Wikipedia), generates platform-tailored titles, captions & hashtags via **Google Gemini 3.5 Flash**, streams media through **Zernio Presigned Cloud, Google Drive Vault, and Cloudinary CDN**, persists queue state in **PostgreSQL (`glennbot_scheduled_posts`)**, and dispatches synchronized posts via **APScheduler** and **Zernio API**.",
         architectureSteps: [
-          "Campaign Brief / Topic submitted via Dashboard or n8n Webhook trigger",
-          "FastAPI service calls Google Gemini 2.5 Flash with brand voice & platform constraints",
-          "Cloudinary pipeline validates aspect ratios and CDN URLs for reels/carousels",
-          "APScheduler + Zernio API dispatches synchronized posts to FB, IG, TikTok & YouTube",
+          "**Create Post & AI Generation (`/api/ai/ask`)** — Topic submitted via Create Post UI or n8n; enriches context with live web search and calls **Google Gemini 3.5 Flash** (`gemini-3.5-flash`) for FB, IG, TikTok & YouTube copy.",
+          "**3-Tier Cloud Media & DB Persistence (`/api/schedule`)** — Immediately records the job in **PostgreSQL (`glennbot_scheduled_posts`)** while uploading Reels, 16:9 Videos, or Image Albums via **Zernio Presign, Google Drive Vault, or Cloudinary CDN**.",
+          "**Automated Dispatch & Auto-Cleanup (`APScheduler` + `Zernio API`)** — Registers scheduled dispatches on Zernio and triggers `post_to_facebook`, `post_to_instagram`, `post_to_tiktok`, and `post_to_youtube`, followed by automated Cloudinary cleanup (+20 mins).",
+          "**Live Queue & Content Calendar Sync (`GET /api/scheduled`)** — Real-time status reconciliation (`sync_single_scheduled_row_with_zernio`) updates the **Queue Table** and **Monthly Content Calendar** with live statuses (`waiting`, `published`, `failed`) and permalinks.",
         ],
         metrics: [
           { value: "85% Faster", label: "Content Production" },
           { value: "4 Channels", label: "FB • IG • TikTok • YT" },
           { value: "24/7 Queue", label: "APScheduler + n8n" },
         ],
-        sourceFile: "routers/ai_routes.py & routers/automations_routes.py",
-        sourceCode: `# routers/ai_routes.py & routers/automations_routes.py
-from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse
+        sourceFile: "routers/scheduler_routes.py & routers/ai_routes.py",
+        sourceCode: `# routers/scheduler_routes.py & routers/ai_routes.py
+from fastapi import APIRouter, Form, File, UploadFile, Request
 from fastapi.concurrency import run_in_threadpool
+from sqlalchemy import text
+from datetime import datetime, timedelta
+from typing import Optional, List
+import uuid, time, threading, pytz
+
+from core.database import db_engine, scheduler
 from services.ai_service import _execute_glennbot_ask_ai_core
+from services.zernio_service import (
+    register_scheduled_post_on_zernio, post_to_facebook,
+    post_to_instagram, post_to_tiktok, post_to_youtube, cleanup_cloudinary
+)
 
 router = APIRouter()
 
+# 1. CREATE POST — ASK AI CAPTION & HASHTAG GENERATOR (Gemini 3.5 Flash + Live Web Search)
 @router.post("/api/ai/ask")
 @router.post("/api/v1/ai/ask")
 async def api_ask_ai(request: Request):
-    """Generate social titles, captions & hashtags using Gemini Flash + live web search."""
     body = await request.json()
     return await run_in_threadpool(
         lambda: _execute_glennbot_ask_ai_core(
@@ -569,21 +578,90 @@ async def api_ask_ai(request: Request):
             lang_str=str(body.get("language") or "taglish").strip(),
             post_type_str=str(body.get("post_type") or "reels").strip(),
             platforms_list=body.get("platforms") or ["facebook", "instagram", "tiktok", "youtube"],
-            force_reply_mode=("/api/v1/" in str(request.url.path)),
             use_search=bool(body.get("use_search", True)),
         )
     )
 
-@router.post("/api/v1/posts/publish")
-@router.post("/api/v1/posts/schedule")
-async def api_v1_publish_or_schedule_post(request: Request):
-    """Schedule or publish multi-platform posts (FB, IG, TikTok, YouTube) via Zernio & APScheduler."""
-    key_obj = _verify_internal_api_key(request)
-    if not key_obj:
-        return _unauthorized_v1_response()
+# 2. CREATE POST — OMNICHANNEL SCHEDULER & BACKGROUND MEDIA PIPELINE
+@router.post("/api/schedule")
+async def receive_schedule(
+    platform: str = Form(...), post_type: str = Form(...), pageId: str = Form(""),
+    accountName: str = Form(""), date_val: str = Form("", alias="date"),
+    time_val: str = Form("", alias="time"), title: str = Form(""), caption: str = Form(""),
+    thumbnail: Optional[UploadFile] = File(None), media: Optional[UploadFile] = File(None),
+    media_files: Optional[List[UploadFile]] = File(None),
+    vault_media_file_id: str = Form(""), vault_thumb_file_id: str = Form(""),
+):
+    manila_tz = pytz.timezone("Asia/Manila")
+    now_manila = datetime.now(manila_tz)
+    scheduled_time = (
+        manila_tz.localize(datetime.strptime(f"{date_val} {time_val}", "%Y-%m-%d %H:%M"))
+        if (date_val and time_val) else (now_manila + timedelta(seconds=10))
+    )
+    record_id = f"post_{uuid.uuid4().hex[:12]}"
 
-    body = await request.json()
-    return await run_in_threadpool(lambda: _v1_publish_or_schedule_post_sync(body))`,
+    # Persist row in PostgreSQL immediately so Queue & Calendar stay in sync
+    def _insert_initial_sched_row():
+        with db_engine.begin() as conn:
+            conn.execute(
+                text("""
+                    INSERT INTO glennbot_scheduled_posts
+                    (id, platform, page_id, account_name, post_type, caption,
+                     media_preview_url, scheduled_time, status, status_message)
+                    VALUES (:id, :platform, :page_id, :account_name, :post_type, :caption,
+                            :preview, :sched_time, 'processing_payload', :status_msg)
+                """),
+                {
+                    "id": record_id, "platform": platform, "page_id": pageId,
+                    "account_name": accountName or platform.capitalize(),
+                    "post_type": post_type, "caption": title.strip() or caption,
+                    "preview": f"/api/files/{vault_media_file_id}/stream" if vault_media_file_id else "",
+                    "sched_time": scheduled_time,
+                    "status_msg": "Processing Payload • Uploading media & queueing...",
+                },
+            )
+
+    await run_in_threadpool(_insert_initial_sched_row)
+
+    # Offload Zernio Presign / Google Drive Vault / Cloudinary upload & APScheduler registration
+    threading.Thread(
+        target=_process_schedule_payload_background,
+        args=(record_id, platform, post_type, pageId, accountName, title, caption, scheduled_time),
+        daemon=True,
+    ).start()
+
+    return {"status": "success", "id": record_id, "queue_status": "processing_payload"}
+
+# 3. QUEUE & CONTENT CALENDAR — LIVE POSTGRESQL + ZERNIO STATUS SYNC
+@router.get("/api/scheduled")
+def get_scheduled_posts(month: Optional[int] = None, year: Optional[int] = None):
+    manila_tz = pytz.timezone("Asia/Manila")
+    with db_engine.connect() as conn:
+        rows = conn.execute(
+            text("""
+                SELECT id, platform, page_id, account_name, post_type, caption,
+                       media_preview_url, scheduled_time, status, status_message,
+                       external_post_id, permalink_url, created_at
+                FROM glennbot_scheduled_posts
+                ORDER BY scheduled_time ASC
+            """)
+        ).mappings().all()
+
+        items = []
+        for r in rows:
+            r_dict = dict(r)
+            synced = sync_single_scheduled_row_with_zernio(r_dict)
+            items.append({
+                "id": r_dict["id"],
+                "platform": r_dict["platform"],
+                "account_name": r_dict["account_name"],
+                "post_type": r_dict["post_type"],
+                "caption": r_dict["caption"] or "",
+                "media_preview_url": r_dict["media_preview_url"] or "",
+                "status": synced["status"],
+                "permalink_url": synced["permalink_url"],
+            })
+        return {"status": "success", "items": items}`,
         widgetFields: [
           {
             name: "topic",
@@ -884,6 +962,12 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         .replace(/"/g, "&quot;");
     }
 
+    function formatInlineMarkdown(str) {
+      return escapeHtml(str)
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/`([^`]+)`/g, "<code>$1</code>");
+    }
+
     // Auto-Authenticated Live Expanded Views Registry for SYS-01 via /glennbot-popout proxy
     const SYS01_LIVE_EXPANDED_VIEWS = {
       scheduler: {
@@ -1152,18 +1236,54 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         </div>`
         : "";
 
+      const caseFooterHtml =
+        projectId === "social-scheduler"
+          ? `
+        <div class="modal-case-footer modal-case-footer-sys01">
+          <button
+            type="button"
+            class="btn-sys01-popout btn-live-launcher"
+            onclick="event.stopPropagation(); openGlennBotLivePopup('scheduler');"
+            title="Open Create Post Expanded View"
+          >
+            <span>📝 Create Post</span>
+          </button>
+          <button
+            type="button"
+            class="btn-sys01-popout btn-live-launcher"
+            onclick="event.stopPropagation(); openGlennBotLivePopup('queue');"
+            title="Open Queue Expanded View"
+          >
+            <span>⏳ Queue</span>
+          </button>
+          <button
+            type="button"
+            class="btn-sys01-popout btn-live-launcher"
+            onclick="event.stopPropagation(); openGlennBotLivePopup('calendar');"
+            title="Open Calendar Expanded View"
+          >
+            <span>📅 Calendar</span>
+          </button>
+        </div>`
+          : `
+        <div class="modal-case-footer">
+          <button type="button" class="btn-project-widget" data-switch-tab="live-widget">
+            <span>⚡ Launch Interactive Widget &rarr;</span>
+          </button>
+        </div>`;
+
       panelCaseStudy.innerHTML = `
         ${pipelineHtml}
         <div class="modal-case-grid">
           <div class="modal-case-card">
             <span class="modal-section-eyebrow">Operational Bottleneck</span>
             <h4 class="modal-section-heading">The Challenge</h4>
-            <p class="modal-section-text">${escapeHtml(proj.bottleneck)}</p>
+            <p class="modal-section-text">${formatInlineMarkdown(proj.bottleneck)}</p>
           </div>
           <div class="modal-case-card modal-case-card-accent">
             <span class="modal-section-eyebrow">Engineered Solution</span>
             <h4 class="modal-section-heading">GlennBot Architecture</h4>
-            <p class="modal-section-text">${escapeHtml(proj.solution)}</p>
+            <p class="modal-section-text">${formatInlineMarkdown(proj.solution)}</p>
           </div>
         </div>
         <div class="modal-arch-steps">
@@ -1174,7 +1294,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
                 (step, idx) => `
               <li>
                 <span class="modal-step-num">0${idx + 1}</span>
-                <span>${escapeHtml(step)}</span>
+                <span>${formatInlineMarkdown(step)}</span>
               </li>`
               )
               .join("")}
@@ -1191,11 +1311,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
             )
             .join("")}
         </div>
-        <div class="modal-case-footer">
-          <button type="button" class="btn-project-widget" data-switch-tab="live-widget">
-            <span>${projectId === "social-scheduler" ? "⚡ Launch Expanded Widget &rarr;" : "⚡ Launch Interactive Widget &rarr;"}</span>
-          </button>
-        </div>
+        ${caseFooterHtml}
       `;
 
       const switchBtn = panelCaseStudy.querySelector("[data-switch-tab]");

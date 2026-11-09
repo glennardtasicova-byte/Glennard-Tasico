@@ -196,5 +196,26 @@ export function filterPortfolioSocialAccounts(rawPayload = {}) {
   return result;
 }
 
+export const SYS01_PROJECT_SPEC = {
+  endpoint: "POST /api/ai/ask • POST /api/schedule • GET /api/scheduled",
+  stackPills: [
+    "FastAPI",
+    "Gemini 3.5 Flash",
+    "Zernio API",
+    "PostgreSQL",
+    "Cloudinary & GDrive",
+    "APScheduler",
+  ],
+  sourceFile: "routers/scheduler_routes.py & routers/ai_routes.py",
+  footerButtons: ["📝 Create Post", "⏳ Queue", "📅 Calendar"],
+};
 
-
+export function formatInlineMarkdown(str = "") {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+}
