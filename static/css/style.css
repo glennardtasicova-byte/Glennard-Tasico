@@ -2021,61 +2021,96 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
 .project-tryme-dock {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 7px;
+  align-items: stretch;
+  gap: 8px;
   padding: 9px 11px;
-  border-radius: 12px;
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%);
-  border: 1px solid rgba(52, 211, 153, 0.42);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(6, 36, 46, 0.88) 0%, rgba(4, 24, 34, 0.94) 100%);
+  border: 1px solid rgba(45, 212, 191, 0.42);
   box-shadow:
-    0 0 18px rgba(16, 185, 129, 0.14),
+    0 4px 18px rgba(0, 0, 0, 0.35),
+    0 0 16px rgba(16, 185, 129, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  cursor: default;
   transition: border-color 180ms ease, box-shadow 180ms ease;
 }
 
 .web-card.project-showcase-card:hover .project-tryme-dock {
-  border-color: rgba(52, 211, 153, 0.68);
+  border-color: rgba(45, 212, 191, 0.68);
   box-shadow:
-    0 0 24px rgba(16, 185, 129, 0.22),
+    0 6px 22px rgba(0, 0, 0, 0.42),
+    0 0 22px rgba(20, 184, 166, 0.22),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
 }
 
 [data-theme="light"] .project-tryme-dock {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12) 0%, rgba(6, 182, 212, 0.1) 100%);
-  border-color: rgba(5, 150, 105, 0.45);
-  box-shadow: 0 4px 14px rgba(5, 150, 105, 0.12);
+  background: linear-gradient(180deg, rgba(13, 56, 68, 0.94) 0%, rgba(9, 41, 52, 0.97) 100%);
+  border-color: rgba(20, 184, 166, 0.55);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
 }
 
 .project-tryme-callout {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 8px;
+  justify-content: center;
+  width: 100%;
+  gap: 8px;
+  padding: 6px 15px;
   border-radius: 999px;
-  background: rgba(6, 182, 212, 0.14);
-  border: 1px solid rgba(34, 211, 238, 0.45);
-  font-family: var(--font-mono);
-  font-size: 0.64rem;
+  background: linear-gradient(90deg, #dc2626 0%, #ef4444 50%, #dc2626 100%);
+  border: 1.5px solid #f87171;
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
   font-weight: 800;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: #67e8f9;
-  box-shadow: 0 0 12px rgba(6, 182, 212, 0.22);
+  letter-spacing: 0.025em;
+  color: #ffffff;
+  box-shadow:
+    0 0 16px rgba(239, 68, 68, 0.65),
+    0 2px 8px rgba(220, 38, 38, 0.45),
+    inset 0 1px 1px rgba(255, 255, 255, 0.28);
   white-space: nowrap;
+  cursor: default;
+  user-select: none;
 }
 
 [data-theme="light"] .project-tryme-callout {
-  background: rgba(5, 150, 105, 0.15);
-  border-color: rgba(5, 150, 105, 0.48);
-  color: #065f46;
-  box-shadow: none;
+  background: linear-gradient(90deg, #dc2626 0%, #ef4444 50%, #dc2626 100%);
+  border-color: #fca5a5;
+  color: #ffffff;
+  box-shadow:
+    0 0 14px rgba(239, 68, 68, 0.55),
+    inset 0 1px 1px rgba(255, 255, 255, 0.3);
+}
+
+.tryme-bolt-icon {
+  font-size: 0.86rem;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+}
+
+.tryme-callout-text {
+  color: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.025em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  animation: trymeTextFadeInOut 1.8s ease-in-out infinite;
+}
+
+@keyframes trymeTextFadeInOut {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.18;
+  }
 }
 
 .tryme-dot-wrapper {
   position: relative;
   display: inline-flex;
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
@@ -2086,18 +2121,20 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   width: 100%;
   height: 100%;
   border-radius: 999px;
-  background-color: #34d399;
-  opacity: 0.75;
+  background-color: #22d3ee;
+  opacity: 0.8;
   animation: trymePing 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
 .tryme-dot-core {
   position: relative;
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #34d399 0%, #22d3ee 100%);
-  box-shadow: 0 0 8px #34d399;
+  background: #22d3ee;
+  box-shadow:
+    0 0 8px #22d3ee,
+    0 0 14px rgba(34, 211, 238, 0.9);
 }
 
 @keyframes trymePing {
@@ -2108,21 +2145,24 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
 }
 
 .tryme-pointer-icon {
-  font-size: 0.68rem;
-  color: #34d399;
+  font-size: 0.78rem;
+  line-height: 1;
+  color: #14b8a6;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
   animation: statusPulse 1.8s ease-in-out infinite;
 }
 
 [data-theme="light"] .tryme-pointer-icon {
-  color: #059669;
+  color: #2dd4bf;
 }
 
 .project-tryme-buttons {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: center;
+  width: 100%;
 }
 
 .btn-project-ghost,
@@ -2154,16 +2194,19 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
 .btn-live-launcher {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
-  padding: 6px 11px;
+  padding: 6px 12px;
   border-radius: 9px;
   font-family: var(--font-sans);
-  font-size: 0.75rem;
+  font-size: 0.76rem;
   font-weight: 700;
   color: #ffffff;
-  background: linear-gradient(90deg, rgba(16, 185, 129, 0.28) 0%, rgba(6, 182, 212, 0.28) 100%);
-  border: 1px solid rgba(52, 211, 153, 0.72);
-  box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+  background: linear-gradient(180deg, rgba(14, 78, 92, 0.88) 0%, rgba(9, 54, 66, 0.95) 100%);
+  border: 1px solid rgba(45, 212, 191, 0.55);
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   cursor: pointer;
   white-space: nowrap;
   transition:
@@ -2177,30 +2220,32 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
 .btn-sys01-popout:hover,
 .btn-project-widget:hover,
 .btn-live-launcher:hover {
-  background: linear-gradient(90deg, rgba(16, 185, 129, 0.45) 0%, rgba(6, 182, 212, 0.45) 100%);
-  border-color: #22d3ee;
+  background: linear-gradient(180deg, rgba(20, 108, 124, 0.95) 0%, rgba(13, 76, 92, 0.98) 100%);
+  border-color: #2dd4bf;
   color: #ffffff;
-  box-shadow: 0 0 22px rgba(6, 182, 212, 0.5);
-  transform: translateY(-2px);
+  box-shadow:
+    0 0 16px rgba(45, 212, 191, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  transform: translateY(-1.5px);
 }
 
 [data-theme="light"] .btn-sys01-popout,
 [data-theme="light"] .btn-project-widget,
 [data-theme="light"] .btn-live-launcher {
   color: #ffffff;
-  background: linear-gradient(90deg, #059669 0%, #0891b2 100%);
-  border-color: #047857;
-  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.28);
+  background: linear-gradient(180deg, #0e4e5c 0%, #093642 100%);
+  border-color: rgba(45, 212, 191, 0.65);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
 }
 
 [data-theme="light"] .btn-sys01-popout:hover,
 [data-theme="light"] .btn-project-widget:hover,
 [data-theme="light"] .btn-live-launcher:hover {
-  background: linear-gradient(90deg, #047857 0%, #0e7490 100%);
-  border-color: #065f46;
+  background: linear-gradient(180deg, #13687a 0%, #0c4756 100%);
+  border-color: #2dd4bf;
   color: #ffffff;
-  box-shadow: 0 6px 18px rgba(6, 182, 212, 0.38);
-  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(20, 184, 166, 0.4);
+  transform: translateY(-1.5px);
 }
 
 /* ==========================================================================

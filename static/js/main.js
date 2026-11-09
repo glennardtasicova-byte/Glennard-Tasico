@@ -1363,13 +1363,13 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
     // Bind clicking anywhere on a .project-showcase-card
     document.querySelectorAll(".project-showcase-card").forEach((card) => {
       card.addEventListener("click", (e) => {
-        if (e.target.closest("button, a")) return;
+        if (e.target.closest("button, a, .project-tryme-dock, .project-tryme-callout")) return;
         const projId = card.getAttribute("data-project-id");
         openProjectModal(projId, "case-study");
       });
       card.addEventListener("keydown", (e) => {
         if (e.key === "Enter" || e.key === " ") {
-          if (e.target.closest("button, a")) return;
+          if (e.target.closest("button, a, .project-tryme-dock, .project-tryme-callout")) return;
           e.preventDefault();
           const projId = card.getAttribute("data-project-id");
           openProjectModal(projId, "case-study");
