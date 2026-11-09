@@ -647,11 +647,27 @@
               <div class="project-tryme-buttons">
                 <button
                   type="button"
-                  class="btn-project-widget btn-live-launcher"
-                  data-project-open="omnichannel-inbox"
-                  data-tab="live-widget"
+                  class="btn-sys01-popout btn-live-launcher"
+                  onclick="event.stopPropagation(); openGlennBotCustomPopup('/glennbot-popout?popout_mode=comment_thread&record_id=post_acc452fff96b&comment_id=1175872974773981_1646688186953267', 'GlennBotCommentThread_SavvyFinds', 1100, 860);"
+                  title="Comment as GlennBot Automations on Savvy Finds's Post and watch AI auto-reply"
                 >
-                  <span>⚡ Launch Widget &rarr;</span>
+                  <span>💬 Post a Comment</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn-sys01-popout btn-live-launcher"
+                  onclick="event.stopPropagation(); openGlennBotLivePopup('messages');"
+                  title="Open Unified Direct Messages & SMS Inbox Expanded View"
+                >
+                  <span>✉️ Send a DM</span>
+                </button>
+                <button
+                  type="button"
+                  class="btn-sys01-popout btn-live-launcher"
+                  onclick="event.stopPropagation(); openGlennBotLivePopup('email');"
+                  title="Open Multi-Account Email Hub Expanded View"
+                >
+                  <span>📧 Send an Email</span>
                 </button>
               </div>
             </div>
@@ -904,6 +920,6 @@
   </footer>
 
   <!-- Custom Script -->
-  <script src="/static/js/main.js?v=41"></script>
+  <script src="/static/js/main.js?v=42"></script>
 </body>
 </html>

@@ -220,3 +220,79 @@ export function formatInlineMarkdown(str = "") {
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/`([^`]+)`/g, "<code>$1</code>");
 }
+
+export const SYS02_SAVVY_FINDS_COMMENT_DEMO = {
+  recordId: "post_acc452fff96b",
+  commentId: "1175872974773981_1646688186953267",
+  postPlatformId: "211715025549935_1175872974773981",
+  savvyFindsAccountId: "6ada535d4c608095288e2104",
+  glennBotAuthorId: "1340688402467466",
+  glennBotAuthorName: "GlennBot Automations",
+  popupUrl:
+    "/glennbot-popout?popout_mode=comment_thread&record_id=post_acc452fff96b&comment_id=1175872974773981_1646688186953267",
+  popupWindowName: "GlennBotCommentThread_SavvyFinds",
+  footerButtons: ["💬 Post a Comment", "✉️ Send a DM", "📧 Send an Email"],
+};
+
+export function buildSavvyFindsRoleReversalWebhookPayload(text = "", timestampMs = Date.now()) {
+  const cleanText = String(text || "").trim();
+  const simCid = `1175872974773981_${Math.trunc(Number(timestampMs) || Date.now())}`;
+  return {
+    event: "comment.received",
+    platform: "facebook",
+    accountId: SYS02_SAVVY_FINDS_COMMENT_DEMO.savvyFindsAccountId,
+    accountName: "Savvy Finds",
+    comment: {
+      id: simCid,
+      postId: SYS02_SAVVY_FINDS_COMMENT_DEMO.recordId,
+      platformPostId: SYS02_SAVVY_FINDS_COMMENT_DEMO.postPlatformId,
+      text: cleanText,
+      author: {
+        id: SYS02_SAVVY_FINDS_COMMENT_DEMO.glennBotAuthorId,
+        name: SYS02_SAVVY_FINDS_COMMENT_DEMO.glennBotAuthorName,
+        username: SYS02_SAVVY_FINDS_COMMENT_DEMO.glennBotAuthorName,
+        isOwner: false,
+      },
+      isOwnAccount: false,
+      isOwner: false,
+      parentId: SYS02_SAVVY_FINDS_COMMENT_DEMO.commentId,
+    },
+    post: {
+      id: SYS02_SAVVY_FINDS_COMMENT_DEMO.recordId,
+      platformPostId: SYS02_SAVVY_FINDS_COMMENT_DEMO.postPlatformId,
+      accountId: SYS02_SAVVY_FINDS_COMMENT_DEMO.savvyFindsAccountId,
+    },
+  };
+}
+
+export function filterPortfolioCommentsList(comments = []) {
+  if (!Array.isArray(comments)) return [];
+  const whitelistedTokens = new Set([
+    "glennbot automations",
+    "glennardtasico",
+    "glennbot.automation",
+    "glennard.tasico.va",
+  ]);
+  const kept = [];
+  for (const item of comments) {
+    if (!item || typeof item !== "object") continue;
+    const recId = String(item.record_id || item.post_id || "").trim();
+    const cid = String(item.comment_id || item.id || "").trim();
+    if (
+      recId === SYS02_SAVVY_FINDS_COMMENT_DEMO.recordId ||
+      cid === SYS02_SAVVY_FINDS_COMMENT_DEMO.commentId
+    ) {
+      kept.push({ ...item, can_reply: true });
+      continue;
+    }
+    const acctName = String(item.account_name || item.username || "")
+      .trim()
+      .replace(/^@+/, "")
+      .toLowerCase();
+    if (whitelistedTokens.has(acctName)) {
+      kept.push(item);
+    }
+  }
+  return kept;
+}
+

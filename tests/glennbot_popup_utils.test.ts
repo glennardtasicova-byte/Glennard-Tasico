@@ -3,9 +3,12 @@ import assert from "node:assert/strict";
 import {
   SYS01_EXPANDED_VIEWS,
   SYS01_PROJECT_SPEC,
+  SYS02_SAVVY_FINDS_COMMENT_DEMO,
   buildGlennBotExpandedUrl,
   buildInstantPopoutStyleTag,
+  buildSavvyFindsRoleReversalWebhookPayload,
   computeCenteredPopupFeatures,
+  filterPortfolioCommentsList,
   filterPortfolioSocialAccounts,
   formatInlineMarkdown,
   resolveCalendarProxyIntercept,
@@ -185,4 +188,41 @@ test("SYS01_PROJECT_SPEC and formatInlineMarkdown match production GlennBot Auto
     "<strong>Create Post &amp; AI Generation (<code>POST /api/ai/ask</code>)</strong> — calls <strong>Google Gemini 3.5 Flash</strong> (<code>gemini-3.5-flash</code>)"
   );
 });
+
+test("SYS-02 Savvy Finds comment thread whitelisting and role-reversal webhook payload", () => {
+  assert.equal(
+    SYS02_SAVVY_FINDS_COMMENT_DEMO.popupUrl,
+    "/glennbot-popout?popout_mode=comment_thread&record_id=post_acc452fff96b&comment_id=1175872974773981_1646688186953267"
+  );
+  assert.deepEqual(SYS02_SAVVY_FINDS_COMMENT_DEMO.footerButtons, [
+    "💬 Post a Comment",
+    "✉️ Send a DM",
+    "📧 Send an Email",
+  ]);
+
+  const filtered = filterPortfolioCommentsList([
+    { record_id: "post_other", account_name: "Unlisted Page", can_reply: false },
+    {
+      record_id: "post_acc452fff96b",
+      comment_id: "1175872974773981_1646688186953267",
+      account_name: "Savvy Finds",
+      can_reply: false,
+    },
+    { record_id: "post_gb", account_name: "GlennBot Automations", can_reply: true },
+  ]);
+  assert.equal(filtered.length, 2);
+  assert.equal(filtered[0].record_id, "post_acc452fff96b");
+  assert.equal(filtered[0].can_reply, true);
+
+  const payload = buildSavvyFindsRoleReversalWebhookPayload("What are Glennard's AI automation skills?", 1710000000123);
+  assert.equal(payload.event, "comment.received");
+  assert.equal(payload.accountId, "6ada535d4c608095288e2104");
+  assert.equal(payload.comment.id, "1175872974773981_1710000000123");
+  assert.equal(payload.comment.parentId, "1175872974773981_1646688186953267");
+  assert.equal(payload.comment.author.name, "GlennBot Automations");
+  assert.equal(payload.comment.author.id, "1340688402467466");
+  assert.equal(payload.comment.isOwnAccount, false);
+  assert.equal(payload.comment.isOwner, false);
+});
+
 

@@ -19,6 +19,23 @@ function openGlennBotLivePopup(tabName, mode = "workspace_view", width = 1240, h
 }
 window.openGlennBotLivePopup = openGlennBotLivePopup;
 
+function openGlennBotCustomPopup(url, windowName = "GlennBotCustomPopup", width = 1100, height = 860) {
+  const cleanUrl = String(url || "/glennbot-popout").trim();
+  const sep = cleanUrl.includes("?") ? "&" : "?";
+  const finalUrl = cleanUrl.includes("_ts=") ? cleanUrl : `${cleanUrl}${sep}_ts=${Date.now()}`;
+  const availW = window.screen?.availWidth || window.screen?.width || 1440;
+  const availH = window.screen?.availHeight || window.screen?.height || 900;
+  const w = Math.min(Number(width) || 1100, availW - 40);
+  const h = Math.min(Number(height) || 860, availH - 80);
+  const left = Math.max(0, Math.round((availW - w) / 2));
+  const top = Math.max(0, Math.round((availH - h) / 2));
+  const features = `width=${w},height=${h},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`;
+  const win = window.open(finalUrl, String(windowName || "GlennBotCustomPopup"), features);
+  if (win) win.focus();
+  return win;
+}
+window.openGlennBotCustomPopup = openGlennBotCustomPopup;
+
 (function () {
   const STORAGE_KEY = "glenn_portfolio_theme";
 
@@ -1277,6 +1294,34 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
             title="Open Calendar Expanded View"
           >
             <span>📅 Calendar</span>
+          </button>
+        </div>`
+          : projectId === "omnichannel-inbox"
+          ? `
+        <div class="modal-case-footer modal-case-footer-sys02">
+          <button
+            type="button"
+            class="btn-sys01-popout btn-live-launcher"
+            onclick="event.stopPropagation(); openGlennBotCustomPopup('/glennbot-popout?popout_mode=comment_thread&record_id=post_acc452fff96b&comment_id=1175872974773981_1646688186953267', 'GlennBotCommentThread_SavvyFinds', 1100, 860);"
+            title="Comment as GlennBot Automations on Savvy Finds's Post and watch AI auto-reply"
+          >
+            <span>💬 Post a Comment</span>
+          </button>
+          <button
+            type="button"
+            class="btn-sys01-popout btn-live-launcher"
+            onclick="event.stopPropagation(); openGlennBotLivePopup('messages');"
+            title="Open Unified Direct Messages & SMS Inbox Expanded View"
+          >
+            <span>✉️ Send a DM</span>
+          </button>
+          <button
+            type="button"
+            class="btn-sys01-popout btn-live-launcher"
+            onclick="event.stopPropagation(); openGlennBotLivePopup('email');"
+            title="Open Multi-Account Email Hub Expanded View"
+          >
+            <span>📧 Send an Email</span>
           </button>
         </div>`
           : `
