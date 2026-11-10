@@ -4,10 +4,12 @@ import {
   SYS01_EXPANDED_VIEWS,
   SYS01_PROJECT_SPEC,
   SYS02_SAVVY_FINDS_COMMENT_DEMO,
+  buildCommentSplitWorkspaceConfig,
   buildGlennBotExpandedUrl,
   buildInstantPopoutStyleTag,
   buildSavvyFindsRoleReversalWebhookPayload,
   computeCenteredPopupFeatures,
+  computeRightDockedPopupFeatures,
   filterPortfolioCommentsList,
   filterPortfolioSocialAccounts,
   formatInlineMarkdown,
@@ -195,10 +197,18 @@ test("SYS01_PROJECT_SPEC and formatInlineMarkdown match production GlennBot Auto
   );
 });
 
-test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous Post caption replacement, and role-reversal webhook payload", () => {
+test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous Post caption replacement, and 2-Column Split Workspace", () => {
   assert.equal(
     SYS02_SAVVY_FINDS_COMMENT_DEMO.popupUrl,
     "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023"
+  );
+  assert.equal(
+    SYS02_SAVVY_FINDS_COMMENT_DEMO.upstreamUrl,
+    "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023"
+  );
+  assert.equal(
+    SYS02_SAVVY_FINDS_COMMENT_DEMO.permalink,
+    "https://www.facebook.com/61595021080265/posts/122118104811500702/"
   );
   assert.equal(
     SYS02_SAVVY_FINDS_COMMENT_DEMO.popupWindowName,
@@ -207,6 +217,14 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
   assert.equal(
     SYS02_SAVVY_FINDS_COMMENT_DEMO.igPopupUrl,
     "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683"
+  );
+  assert.equal(
+    SYS02_SAVVY_FINDS_COMMENT_DEMO.igUpstreamUrl,
+    "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683"
+  );
+  assert.equal(
+    SYS02_SAVVY_FINDS_COMMENT_DEMO.igPermalink,
+    "https://www.instagram.com/p/DfkfvyEvx3b/"
   );
   assert.equal(
     SYS02_SAVVY_FINDS_COMMENT_DEMO.igPopupWindowName,
@@ -218,19 +236,47 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
     "📧 Send an Email",
   ]);
 
+  const fbSplit = buildCommentSplitWorkspaceConfig("facebook", 1710000000000);
+  assert.equal(
+    fbSplit.upstreamIframeUrl,
+    "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023&_ts=1710000000000"
+  );
+  assert.equal(
+    fbSplit.actualPostUrl,
+    "https://www.facebook.com/61595021080265/posts/122118104811500702/"
+  );
+  assert.equal(fbSplit.badge_label, "GlennBot Automations — Facebook Page");
+  assert.equal(fbSplit.primary_btn_label, "Open / Focus Actual Facebook Post Window");
+
+  const igSplit = buildCommentSplitWorkspaceConfig("instagram", 1710000000000);
+  assert.equal(
+    igSplit.upstreamIframeUrl,
+    "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683&_ts=1710000000000"
+  );
+  assert.equal(igSplit.actualPostUrl, "https://www.instagram.com/p/DfkfvyEvx3b/");
+  assert.equal(igSplit.badge_label, "GlennBot Automations — Instagram");
+  assert.equal(igSplit.primary_btn_label, "Open / Focus Actual Instagram Post Window");
+
+  const docked = computeRightDockedPopupFeatures(1920, 1080, 0, 0);
+  assert.equal(docked.popupWidth, 806);
+  assert.equal(docked.popupHeight, 929);
+  assert.equal(docked.popupLeft, 1920 - 806 - 20);
+  assert.equal(docked.popupTop, Math.round((1080 - 929) / 2));
+  assert.ok(docked.features.includes("width=806,height=929,left=1094,top=76"));
+
   const filtered = filterPortfolioCommentsList([
     { record_id: "post_other", account_name: "Unlisted Page", can_reply: false },
     {
       record_id: "post_ext_b158973506",
       comment_id: "1175872974773981_1794243091445",
-      account_name: "Savvy Finds",
+      account_name: "Unlisted Legacy Page",
       message: "may gusto ako itanong pwede ba?",
     },
     {
       record_id: "post_ext_legacy",
       comment_id: "122118104811500702_1150007564513023",
-      external_post_id: "1340688402467466_122118104811500702",
-      post_permalink: "https://www.facebook.com/1340688402467466/posts/122118104811500702",
+      external_post_id: "61595021080265_122118104811500702",
+      post_permalink: "https://www.facebook.com/61595021080265/posts/122118104811500702/",
       post_caption: "Previous Post",
       account_name: "GlennBot Automations",
       can_reply: false,
@@ -253,7 +299,7 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
   assert.equal(filtered[0].record_id, "post_ext_dc6a96869a");
   assert.equal(filtered[0].platform, "facebook");
   assert.equal(filtered[0].post_type, "text");
-  assert.equal(filtered[0].post_permalink, "https://www.facebook.com/1340688402467466/posts/122118104811500702");
+  assert.equal(filtered[0].post_permalink, "https://www.facebook.com/61595021080265/posts/122118104811500702/");
   assert.ok(filtered[0].post_caption.startsWith("Hello future clients!"));
   assert.equal(filtered[0].can_reply, true);
   assert.equal(filtered[0].replies.length, 1);
@@ -271,7 +317,7 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
     {
       record_id: "post_ext_b158973506",
       comment_id: "1175872974773981_1794243091445",
-      account_name: "Savvy Finds",
+      account_name: "Unlisted Legacy Page",
       message: "may gusto ako itanong pwede ba?",
     },
   ]);
@@ -283,10 +329,11 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
   assert.equal(payload.comment.id, "122118104811500702_1710000000123");
   assert.equal(payload.comment.parentId, "122118104811500702_1150007564513023");
   assert.equal(payload.comment.author.name, "GlennBot Automations");
-  assert.equal(payload.comment.author.id, "1340688402467466");
+  assert.equal(payload.comment.author.id, "61595021080265");
   assert.equal(payload.comment.isOwnAccount, false);
   assert.equal(payload.comment.isOwner, false);
 });
+
 
 
 

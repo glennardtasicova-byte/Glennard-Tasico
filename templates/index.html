@@ -13,8 +13,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-  <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="/static/css/style.css?v=46" />
+  <!-- Font Awesome Icons & Custom Stylesheet -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="/static/css/style.css?v=47" />
   <script>
     (function () {
       try {
@@ -917,7 +918,7 @@
         <div>
           <span class="gb-comment-chooser-eyebrow">SYS-02 &bull; Live Gemini AI Auto-Responder</span>
           <h3 id="gb-comment-chooser-title" class="gb-comment-chooser-title">💬 Choose a Live Post to Comment On</h3>
-          <p class="gb-comment-chooser-subtitle">Select which official <strong>GlennBot Automations</strong> social post you want to test with a live comment and watch Gemini AI auto-reply in real time:</p>
+          <p class="gb-comment-chooser-subtitle">Select which official <strong>GlennBot Automations</strong> social post you want to test in our 2-Column Live Workspace (Left Live Dashboard + Right Docked Social Post):</p>
         </div>
         <button type="button" class="gb-comment-chooser-close" onclick="closeCommentPlatformChooser();" aria-label="Close platform chooser">
           <span>&times;</span>
@@ -928,17 +929,17 @@
           type="button"
           id="gb-choose-fb-comment-btn"
           class="gb-comment-choice-card gb-comment-choice-fb"
-          onclick="event.stopPropagation(); closeCommentPlatformChooser(); openGlennBotCustomPopup('/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023', 'GlennBotCommentThread_FB', 1100, 860);"
+          onclick="event.stopPropagation(); closeCommentPlatformChooser(); openCommentSplitWorkspace('facebook', true);"
         >
           <div class="gb-comment-choice-icon gb-comment-choice-icon-fb">
             <i class="fab fa-facebook"></i>
           </div>
           <div class="gb-comment-choice-body">
             <div class="gb-comment-choice-top">
-              <strong class="gb-comment-choice-name">Facebook &mdash; GlennBot Automations</strong>
+              <strong class="gb-comment-choice-name">Option 1: Comment on Facebook (GlennBot Automations Page)</strong>
               <span class="gb-comment-choice-badge">Text Post</span>
             </div>
-            <p class="gb-comment-choice-desc">Comment on the official Facebook Page sample post (<code>122118104811500702</code>) and watch Gemini AI auto-reply with 5s live sync.</p>
+            <p class="gb-comment-choice-desc">Opens the 2-Column Live Workspace with the GlennBot Dashboard on the left and docks the actual Facebook post (<code>61595021080265/posts/122118104811500702</code>) on the right.</p>
           </div>
           <span class="gb-comment-choice-arrow" aria-hidden="true">&rarr;</span>
         </button>
@@ -947,20 +948,181 @@
           type="button"
           id="gb-choose-ig-comment-btn"
           class="gb-comment-choice-card gb-comment-choice-ig"
-          onclick="event.stopPropagation(); closeCommentPlatformChooser(); openGlennBotCustomPopup('/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683', 'GlennBotCommentThread_IG', 1100, 860);"
+          onclick="event.stopPropagation(); closeCommentPlatformChooser(); openCommentSplitWorkspace('instagram', true);"
         >
           <div class="gb-comment-choice-icon gb-comment-choice-icon-ig">
             <i class="fab fa-instagram"></i>
           </div>
           <div class="gb-comment-choice-body">
             <div class="gb-comment-choice-top">
-              <strong class="gb-comment-choice-name">Instagram &mdash; GlennBot Automations (<code>@glennard.tasico.va</code>)</strong>
+              <strong class="gb-comment-choice-name">Option 2: Comment on Instagram (GlennBot Automations IG)</strong>
               <span class="gb-comment-choice-badge gb-comment-choice-badge-ig">Image Post</span>
             </div>
-            <p class="gb-comment-choice-desc">Comment on the official Instagram sample post (<code>17956773894039696</code>) and watch Gemini AI auto-reply with 5s live sync.</p>
+            <p class="gb-comment-choice-desc">Opens the 2-Column Live Workspace with the GlennBot Dashboard on the left and docks the actual Instagram post (<code>instagram.com/p/DfkfvyEvx3b/</code>) on the right.</p>
           </div>
           <span class="gb-comment-choice-arrow" aria-hidden="true">&rarr;</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2-Column Side-by-Side Live Comment Workspace Modal (Option B: Left Live Dashboard Iframe + Right Docked Social Post Pop-up Window) -->
+  <div id="gb-comment-split-workspace-modal" class="gb-split-workspace-backdrop" role="dialog" aria-modal="true" aria-labelledby="gb-split-workspace-title" hidden>
+    <div class="gb-split-workspace-dialog w-[96vw] max-w-[1600px] h-[90vh]" onclick="event.stopPropagation();">
+      <!-- Top Header Bar -->
+      <header class="gb-split-workspace-header">
+        <div class="gb-split-header-left">
+          <span class="status-dot-live" aria-hidden="true"></span>
+          <h3 id="gb-split-workspace-title" class="gb-split-header-title">LIVE GLENNBOT DASHBOARD — REAL-TIME SYNC</h3>
+        </div>
+
+        <div class="gb-split-header-controls">
+          <!-- Platform Switcher Toggle (Facebook | Instagram) -->
+          <div class="gb-split-platform-switcher" role="group" aria-label="Select Live Social Platform">
+            <button
+              type="button"
+              id="gb-split-toggle-facebook"
+              class="gb-split-platform-btn is-active"
+              data-split-platform="facebook"
+              onclick="switchCommentSplitPlatform('facebook', true);"
+            >
+              <i class="fab fa-facebook"></i>
+              <span>Facebook</span>
+            </button>
+            <button
+              type="button"
+              id="gb-split-toggle-instagram"
+              class="gb-split-platform-btn"
+              data-split-platform="instagram"
+              onclick="switchCommentSplitPlatform('instagram', true);"
+            >
+              <i class="fab fa-instagram"></i>
+              <span>Instagram</span>
+            </button>
+          </div>
+
+          <!-- Refresh Live View Button -->
+          <button
+            type="button"
+            id="gb-split-refresh-iframe-btn"
+            class="gb-split-refresh-btn"
+            onclick="refreshCommentSplitIframe();"
+            title="Reload the Live GlennBot Dashboard Iframe with a fresh timestamp"
+          >
+            <i id="gb-split-refresh-icon" class="fas fa-sync-alt"></i>
+            <span>Refresh Live View</span>
+          </button>
+
+          <!-- Close Button -->
+          <button
+            type="button"
+            id="gb-split-close-btn"
+            class="gb-split-close-btn"
+            onclick="closeCommentSplitWorkspace();"
+            aria-label="Close 2-Column Live Comment Workspace"
+          >
+            <span>&times;</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- 2-Column Split-Screen Body (grid-cols-1 lg:grid-cols-12) -->
+      <div class="gb-split-workspace-grid grid-cols-1 lg:grid-cols-12">
+        <!-- Left Column (lg:col-span-7, 58% width): Live GlennBot Expanded View (<iframe>) -->
+        <div class="gb-split-col-left lg:col-span-7">
+          <iframe
+            id="gb-comment-split-iframe"
+            class="gb-comment-split-iframe w-full h-full rounded-xl border border-cyan-500/30"
+            src="about:blank"
+            data-upstream-url="https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023"
+            title="Live GlennBot Dashboard — Real-Time Comment Sync"
+            allow="clipboard-read; clipboard-write"
+          ></iframe>
+        </div>
+
+        <!-- Right Column (lg:col-span-5, 42% width): Actual Social Post Launchpad & Docked Pop-Up Controller -->
+        <div class="gb-split-col-right lg:col-span-5">
+          <div class="gb-split-launchpad-card">
+            <!-- 1. Platform Badge -->
+            <div class="gb-split-badge-row">
+              <span id="gb-split-platform-badge" class="gb-split-platform-badge is-facebook">
+                <i id="gb-split-platform-badge-icon" class="fab fa-facebook"></i>
+                <span id="gb-split-platform-badge-text">GlennBot Automations — Facebook Page</span>
+              </span>
+              <span class="gb-split-dock-tag">Right-Side Docked Window</span>
+            </div>
+
+            <!-- 2. Sample Post Caption Preview -->
+            <div class="gb-split-caption-box">
+              <div class="gb-split-caption-header">
+                <span class="gb-split-section-label">Sample Post Caption Preview</span>
+                <span id="gb-split-post-type-tag" class="gb-split-post-type-tag">Text Post &bull; Live Gemini AI</span>
+              </div>
+              <p id="gb-split-caption-text" class="gb-split-caption-text">
+                "Hello future clients! Feel free to leave a comment on this sample post, and this AI-powered chatbot (powered by Gemini) will instantly answer any questions you have about my background, skills, and services. Everything you need to know about me is already loaded into its knowledge base. Go ahead and test it out—drop a comment below!"
+              </p>
+              <div class="gb-split-url-strip">
+                <span class="gb-split-url-label">Actual Social Post URL:</span>
+                <a
+                  id="gb-split-actual-post-link"
+                  href="https://www.facebook.com/61595021080265/posts/122118104811500702/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="gb-split-url-code"
+                  onclick="event.preventDefault(); openDockedSocialPostPopup();"
+                >https://www.facebook.com/61595021080265/posts/122118104811500702/</a>
+              </div>
+            </div>
+
+            <!-- 3. Clear 3-Step Live Test Guide -->
+            <div class="gb-split-steps-box">
+              <span class="gb-split-section-label">How to Test Live Gemini AI Auto-Reply</span>
+              <ol class="gb-split-steps-list">
+                <li class="gb-split-step-item">
+                  <span class="gb-split-step-badge">Step 1</span>
+                  <p class="gb-split-step-desc">
+                    Drop any question or comment in the docked <strong id="gb-split-step-platform-name">Facebook</strong> window on the right.
+                  </p>
+                </li>
+                <li class="gb-split-step-item">
+                  <span class="gb-split-step-badge">Step 2</span>
+                  <p class="gb-split-step-desc">
+                    Watch your comment appear live in the <strong>GlennBot Dashboard</strong> on the left column.
+                  </p>
+                </li>
+                <li class="gb-split-step-item">
+                  <span class="gb-split-step-badge">Step 3</span>
+                  <p class="gb-split-step-desc">
+                    See <strong>Gemini AI</strong> automatically craft and post a reply on both the dashboard and the actual social post!
+                  </p>
+                </li>
+              </ol>
+            </div>
+
+            <!-- 4. Primary & Secondary Controller Buttons -->
+            <div class="gb-split-actions-group">
+              <button
+                type="button"
+                id="gb-split-open-social-popup-btn"
+                class="gb-split-btn-primary"
+                onclick="openDockedSocialPostPopup();"
+              >
+                <i id="gb-split-primary-btn-icon" class="fab fa-facebook"></i>
+                <span id="gb-split-primary-btn-text">Open / Focus Actual Facebook Post Window</span>
+              </button>
+
+              <button
+                type="button"
+                id="gb-split-open-dashboard-window-btn"
+                class="gb-split-btn-secondary"
+                onclick="openLeftDashboardInSeparateWindow();"
+              >
+                <i class="fas fa-columns"></i>
+                <span>Open Left Dashboard in Separate Window</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -975,6 +1137,6 @@
   </footer>
 
   <!-- Custom Script -->
-  <script src="/static/js/main.js?v=45"></script>
+  <script src="/static/js/main.js?v=47"></script>
 </body>
 </html>

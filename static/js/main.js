@@ -36,15 +36,233 @@ function openGlennBotCustomPopup(url, windowName = "GlennBotCustomPopup", width 
 }
 window.openGlennBotCustomPopup = openGlennBotCustomPopup;
 
+const SHARED_SHOWCASE_CAPTION_TEXT =
+  "Hello future clients! Feel free to leave a comment on this sample post, and this AI-powered chatbot (powered by Gemini) will instantly answer any questions you have about my background, skills, and services. Everything you need to know about me is already loaded into its knowledge base. Go ahead and test it out—drop a comment below!";
+
+const COMMENT_SPLIT_PLATFORMS = {
+  facebook: {
+    key: "facebook",
+    platformLabel: "Facebook",
+    badgeText: "GlennBot Automations — Facebook Page",
+    badgeClass: "is-facebook",
+    iconClass: "fab fa-facebook",
+    postTypeLabel: "Text Post • Live Gemini AI",
+    recordId: "post_ext_dc6a96869a",
+    commentId: "122118104811500702_1150007564513023",
+    proxyDashboardUrl:
+      "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023",
+    upstreamDashboardUrl:
+      "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023",
+    actualPostUrl: "https://www.facebook.com/61595021080265/posts/122118104811500702/",
+    primaryBtnText: "Open / Focus Actual Facebook Post Window",
+    dashboardWindowName: "GlennBotCommentThread_FB",
+    dockedWindowName: "GlennBotDockedSocialPost_facebook",
+    caption: SHARED_SHOWCASE_CAPTION_TEXT,
+  },
+  instagram: {
+    key: "instagram",
+    platformLabel: "Instagram",
+    badgeText: "GlennBot Automations — Instagram",
+    badgeClass: "is-instagram",
+    iconClass: "fab fa-instagram",
+    postTypeLabel: "Image Post • Live Gemini AI (@glennard.tasico.va)",
+    recordId: "post_ext_b10078462e",
+    commentId: "18198560143393683",
+    proxyDashboardUrl:
+      "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683",
+    upstreamDashboardUrl:
+      "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683",
+    actualPostUrl: "https://www.instagram.com/p/DfkfvyEvx3b/",
+    primaryBtnText: "Open / Focus Actual Instagram Post Window",
+    dashboardWindowName: "GlennBotCommentThread_IG",
+    dockedWindowName: "GlennBotDockedSocialPost_instagram",
+    caption: SHARED_SHOWCASE_CAPTION_TEXT,
+  },
+};
+window.COMMENT_SPLIT_PLATFORMS = COMMENT_SPLIT_PLATFORMS;
+
+let activeCommentSplitPlatform = "facebook";
+let activeDockedSocialPopupRef = null;
+
+function computeRightDockedPopupFeatures() {
+  const availW = window.screen?.availWidth || window.innerWidth || 1440;
+  const availH = window.screen?.availHeight || window.innerHeight || 900;
+  const screenLeft = window.screenLeft !== undefined ? window.screenLeft : window.screenX || 0;
+  const screenTop = window.screenTop !== undefined ? window.screenTop : window.screenY || 0;
+  const popupWidth = Math.max(480, Math.round(availW * 0.42));
+  const popupHeight = Math.max(680, Math.round(availH * 0.86));
+  const popupLeft = Math.round(screenLeft + availW - popupWidth - 20);
+  const popupTop = Math.round(screenTop + (availH - popupHeight) / 2);
+  const features = `width=${popupWidth},height=${popupHeight},left=${popupLeft},top=${popupTop},menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes`;
+  return {
+    popupWidth,
+    popupHeight,
+    popupLeft,
+    popupTop,
+    features,
+  };
+}
+window.computeRightDockedPopupFeatures = computeRightDockedPopupFeatures;
+
+function openDockedSocialPostPopup(platform) {
+  const platKey =
+    platform && COMMENT_SPLIT_PLATFORMS[String(platform).toLowerCase()]
+      ? String(platform).toLowerCase()
+      : activeCommentSplitPlatform;
+  const cfg = COMMENT_SPLIT_PLATFORMS[platKey] || COMMENT_SPLIT_PLATFORMS.facebook;
+  const { features } = computeRightDockedPopupFeatures();
+  const win = window.open(cfg.actualPostUrl, cfg.dockedWindowName, features);
+  if (win) {
+    activeDockedSocialPopupRef = win;
+    win.focus();
+  }
+  return win;
+}
+window.openDockedSocialPostPopup = openDockedSocialPostPopup;
+
+function updateCommentSplitWorkspaceDOM(platform, reloadIframe = true) {
+  const platKey =
+    platform && COMMENT_SPLIT_PLATFORMS[String(platform).toLowerCase()]
+      ? String(platform).toLowerCase()
+      : "facebook";
+  activeCommentSplitPlatform = platKey;
+  const cfg = COMMENT_SPLIT_PLATFORMS[platKey];
+  const ts = Date.now();
+
+  const fbBtn = document.getElementById("gb-split-toggle-facebook");
+  const igBtn = document.getElementById("gb-split-toggle-instagram");
+  if (fbBtn) fbBtn.classList.toggle("is-active", platKey === "facebook");
+  if (igBtn) igBtn.classList.toggle("is-active", platKey === "instagram");
+
+  const iframe = document.getElementById("gb-comment-split-iframe");
+  if (iframe && reloadIframe) {
+    iframe.setAttribute("data-upstream-url", `${cfg.upstreamDashboardUrl}&_ts=${ts}`);
+    iframe.setAttribute("data-platform", platKey);
+    iframe.src = `${cfg.proxyDashboardUrl}&_ts=${ts}`;
+  }
+
+  const badgeEl = document.getElementById("gb-split-platform-badge");
+  const badgeIconEl = document.getElementById("gb-split-platform-badge-icon");
+  const badgeTextEl = document.getElementById("gb-split-platform-badge-text");
+  if (badgeEl) {
+    badgeEl.classList.remove("is-facebook", "is-instagram");
+    badgeEl.classList.add(cfg.badgeClass);
+  }
+  if (badgeIconEl) badgeIconEl.className = cfg.iconClass;
+  if (badgeTextEl) badgeTextEl.textContent = cfg.badgeText;
+
+  const postTypeTag = document.getElementById("gb-split-post-type-tag");
+  if (postTypeTag) postTypeTag.textContent = cfg.postTypeLabel;
+
+  const captionTextEl = document.getElementById("gb-split-caption-text");
+  if (captionTextEl) captionTextEl.textContent = `"${cfg.caption}"`;
+
+  const actualLinkEl = document.getElementById("gb-split-actual-post-link");
+  if (actualLinkEl) {
+    actualLinkEl.href = cfg.actualPostUrl;
+    actualLinkEl.textContent = cfg.actualPostUrl;
+  }
+
+  const stepPlatNameEl = document.getElementById("gb-split-step-platform-name");
+  if (stepPlatNameEl) stepPlatNameEl.textContent = cfg.platformLabel;
+
+  const primaryBtnIcon = document.getElementById("gb-split-primary-btn-icon");
+  const primaryBtnText = document.getElementById("gb-split-primary-btn-text");
+  if (primaryBtnIcon) primaryBtnIcon.className = cfg.iconClass;
+  if (primaryBtnText) primaryBtnText.textContent = cfg.primaryBtnText;
+}
+
+function openCommentSplitWorkspace(platform = "facebook", autoOpenDocked = true) {
+  const platKey =
+    platform && COMMENT_SPLIT_PLATFORMS[String(platform).toLowerCase()]
+      ? String(platform).toLowerCase()
+      : "facebook";
+  closeCommentPlatformChooser();
+
+  // Open the right-docked actual social post window immediately on the user's click gesture
+  if (autoOpenDocked) {
+    openDockedSocialPostPopup(platKey);
+  }
+
+  const modal = document.getElementById("gb-comment-split-workspace-modal");
+  if (!modal) {
+    const cfg = COMMENT_SPLIT_PLATFORMS[platKey] || COMMENT_SPLIT_PLATFORMS.facebook;
+    return openGlennBotCustomPopup(cfg.proxyDashboardUrl, cfg.dashboardWindowName, 1100, 860);
+  }
+
+  updateCommentSplitWorkspaceDOM(platKey, true);
+  modal.hidden = false;
+  document.body.style.overflow = "hidden";
+
+  if (!modal.dataset.boundSplitListeners) {
+    modal.dataset.boundSplitListeners = "true";
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeCommentSplitWorkspace();
+    });
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !modal.hidden) {
+        e.stopPropagation();
+        closeCommentSplitWorkspace();
+      }
+    });
+  }
+}
+window.openCommentSplitWorkspace = openCommentSplitWorkspace;
+
+function switchCommentSplitPlatform(platform = "facebook", autoOpenDocked = true) {
+  const platKey =
+    platform && COMMENT_SPLIT_PLATFORMS[String(platform).toLowerCase()]
+      ? String(platform).toLowerCase()
+      : "facebook";
+  if (autoOpenDocked) {
+    openDockedSocialPostPopup(platKey);
+  }
+  updateCommentSplitWorkspaceDOM(platKey, true);
+}
+window.switchCommentSplitPlatform = switchCommentSplitPlatform;
+
+function refreshCommentSplitIframe() {
+  const cfg =
+    COMMENT_SPLIT_PLATFORMS[activeCommentSplitPlatform] ||
+    COMMENT_SPLIT_PLATFORMS.facebook;
+  const iframe = document.getElementById("gb-comment-split-iframe");
+  const icon = document.getElementById("gb-split-refresh-icon");
+  const ts = Date.now();
+  if (icon) {
+    icon.classList.add("fa-spin");
+    window.setTimeout(() => icon.classList.remove("fa-spin"), 700);
+  }
+  if (iframe) {
+    iframe.setAttribute("data-upstream-url", `${cfg.upstreamDashboardUrl}&_ts=${ts}`);
+    iframe.src = `${cfg.proxyDashboardUrl}&_ts=${ts}`;
+  }
+}
+window.refreshCommentSplitIframe = refreshCommentSplitIframe;
+
+function openLeftDashboardInSeparateWindow() {
+  const cfg =
+    COMMENT_SPLIT_PLATFORMS[activeCommentSplitPlatform] ||
+    COMMENT_SPLIT_PLATFORMS.facebook;
+  return openGlennBotCustomPopup(cfg.proxyDashboardUrl, cfg.dashboardWindowName, 1100, 860);
+}
+window.openLeftDashboardInSeparateWindow = openLeftDashboardInSeparateWindow;
+
+function closeCommentSplitWorkspace() {
+  const modal = document.getElementById("gb-comment-split-workspace-modal");
+  if (modal) {
+    modal.hidden = true;
+    const inspectorModal = document.getElementById("project-inspector-modal");
+    if (!inspectorModal || inspectorModal.hidden) {
+      document.body.style.overflow = "";
+    }
+  }
+}
+window.closeCommentSplitWorkspace = closeCommentSplitWorkspace;
+
 function openCommentPlatformChooser() {
   const chooser = document.getElementById("gb-comment-platform-chooser-modal");
   if (!chooser) {
-    return openGlennBotCustomPopup(
-      "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023",
-      "GlennBotCommentThread_FB",
-      1100,
-      860
-    );
+    return openCommentSplitWorkspace("facebook", true);
   }
   chooser.hidden = false;
   if (!chooser.dataset.boundListeners) {

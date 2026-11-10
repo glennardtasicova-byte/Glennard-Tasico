@@ -1111,9 +1111,9 @@ def _build_calendar_lock_body_script() -> str:
         "post_type:'text',"
         "post_type_label:'Text Post',"
         "post_type_icon:'fas fa-align-left',"
-        "external_post_id:'1340688402467466_122118104811500702',"
+        "external_post_id:'61595021080265_122118104811500702',"
         "short_post_id:'122118104811500702',"
-        "permalink_url:'https://www.facebook.com/1340688402467466/posts/122118104811500702',"
+        "permalink_url:'https://www.facebook.com/61595021080265/posts/122118104811500702/',"
         "cta_label:'Comment on Actual Facebook Post \\u2197',"
         "cta_short_label:'Comment on Actual Facebook Post',"
         "cta_icon:'fab fa-facebook text-gb-cyan',"
@@ -1155,6 +1155,21 @@ def _build_calendar_lock_body_script() -> str:
         "'button[onclick*=\"deleteSingleCommentNotification(\"]',"
         "'button[onclick*=\"toggleHideComment(\"]'"
         "].join(',');"
+        "function _openDockedRightSocialWindow(url,plat){"
+        "var availW=window.screen&&window.screen.availWidth?window.screen.availWidth:(window.innerWidth||1440);"
+        "var availH=window.screen&&window.screen.availHeight?window.screen.availHeight:(window.innerHeight||900);"
+        "var screenLeft=window.screenLeft!==undefined?window.screenLeft:(window.screenX||0);"
+        "var screenTop=window.screenTop!==undefined?window.screenTop:(window.screenY||0);"
+        "var popupWidth=Math.max(480,Math.round(availW*0.42));"
+        "var popupHeight=Math.max(680,Math.round(availH*0.86));"
+        "var popupLeft=Math.round(screenLeft+availW-popupWidth-20);"
+        "var popupTop=Math.round(screenTop+(availH-popupHeight)/2);"
+        "var feat='width='+popupWidth+',height='+popupHeight+',left='+popupLeft+',top='+popupTop+',menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes';"
+        "var w=window.open(url,'GlennBotDockedSocialPost_'+(plat||'fb'),feat);"
+        "if(w)w.focus();"
+        "return w;"
+        "}"
+        "window._openDockedRightSocialWindow=_openDockedRightSocialWindow;"
         "function _getActiveShowcaseConfig(explicitRecId){"
         "if(explicitRecId&&SHOWCASE_POSTS[explicitRecId])return SHOWCASE_POSTS[explicitRecId];"
         "if(window.gbActivePopoutParams&&window.gbActivePopoutParams.record_id&&SHOWCASE_POSTS[window.gbActivePopoutParams.record_id]){"
@@ -1185,7 +1200,7 @@ def _build_calendar_lock_body_script() -> str:
         "var rec=String(c.record_id||'').trim();"
         "if(rec&&SHOWCASE_POSTS[rec])return SHOWCASE_POSTS[rec];"
         "var blob=[c.comment_id,c.external_post_id,c.zernio_post_id,c.post_permalink,c.comment_permalink].map(function(v){return String(v||'');}).join(' ');"
-        "if(blob.indexOf('122118104811500702')!==-1||blob.indexOf('1340688402467466_122118104811500702')!==-1){"
+        "if(blob.indexOf('122118104811500702')!==-1||blob.indexOf('61595021080265')!==-1||blob.indexOf('1340688402467466_122118104811500702')!==-1){"
         "return SHOWCASE_POSTS['post_ext_dc6a96869a'];"
         "}"
         "if(blob.indexOf('17956773894039696')!==-1||blob.indexOf('DfkfvyEvx3b')!==-1||blob.indexOf('18198560143393683')!==-1){"
@@ -2172,9 +2187,9 @@ SHOWCASE_POST_CONFIGS: dict[str, dict[str, str]] = {
         "platform": "facebook",
         "account_name": "GlennBot Automations",
         "post_type": "text",
-        "external_post_id": "1340688402467466_122118104811500702",
+        "external_post_id": "61595021080265_122118104811500702",
         "short_post_id": "122118104811500702",
-        "permalink_url": "https://www.facebook.com/1340688402467466/posts/122118104811500702",
+        "permalink_url": "https://www.facebook.com/61595021080265/posts/122118104811500702/",
         "caption": SHARED_SHOWCASE_CAPTION,
     },
     "post_ext_b10078462e": {
@@ -2191,12 +2206,12 @@ SHOWCASE_POST_CONFIGS: dict[str, dict[str, str]] = {
 
 SAVVY_FINDS_FB_POST_ID = "122118104811500702"
 SAVVY_FINDS_CANONICAL_RECORD_ID = "post_ext_dc6a96869a"
-SAVVY_FINDS_PERMALINK = "https://www.facebook.com/1340688402467466/posts/122118104811500702"
+SAVVY_FINDS_PERMALINK = "https://www.facebook.com/61595021080265/posts/122118104811500702/"
 SYNTHETIC_BLOCKED_COMMENT_IDS = {"1175872974773981_1794243091445"}
 SYNTHETIC_BLOCKED_COMMENT_TEXTS = {"may gusto ako itanong pwede ba?"}
 
 _SAVVY_FINDS_RECORD_ID = SAVVY_FINDS_CANONICAL_RECORD_ID
-_SAVVY_FINDS_ZERNIO_POST_ID = "1340688402467466_122118104811500702"
+_SAVVY_FINDS_ZERNIO_POST_ID = "61595021080265_122118104811500702"
 _SAVVY_FINDS_ACCOUNT_ID = "6af0b109818eb5c88d1e87a6"
 _SAVVY_FINDS_UPSTREAM_RECORD_ID_State: dict[str, str | float] = {
     "record_id": "post_ext_dc6a96869a",
@@ -2230,7 +2245,7 @@ def _match_showcase_post_config_for_comment(item: dict) -> dict[str, str] | None
         str(item.get("comment_permalink") or ""),
     )
     if any(
-        ("122118104811500702" in f or "1340688402467466_122118104811500702" in f)
+        ("122118104811500702" in f or "61595021080265" in f or "1340688402467466_122118104811500702" in f)
         for f in id_fields
     ):
         return SHOWCASE_POST_CONFIGS["post_ext_dc6a96869a"]
