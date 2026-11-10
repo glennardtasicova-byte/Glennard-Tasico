@@ -813,7 +813,7 @@ def _build_session_injector_snippet(
     if clean_mode == "comment_thread":
         meta = {
             "title": "Post Thread — Expanded View",
-            "subtitle": "Comment as GlennBot Automations on Savvy Finds's Post • Live AI Auto-Reply",
+            "subtitle": "Savvy Finds Facebook Post • Live Gemini AI Auto-Responder Monitor",
             "icon": "fa-comments",
         }
     else:
@@ -941,25 +941,6 @@ def _build_session_injector_snippet(
     params_dict.setdefault("tab", clean_tab)
     params_dict.setdefault("popout_mode", clean_mode)
 
-    savvy_seed_cache_js = "null"
-    if clean_mode == "comment_thread" and params_dict.get("record_id") == "post_acc452fff96b":
-        seed_items = (
-            [ _merge_recent_visitor_replies_into_savvy_item(it) for it in _SAVVY_FINDS_LATEST_ITEMS_CACHE ]
-            if _SAVVY_FINDS_LATEST_ITEMS_CACHE
-            else [
-                _merge_recent_visitor_replies_into_savvy_item(
-                    _SAVVY_FINDS_LATEST_ITEM_CACHE or _get_fallback_savvy_finds_comment_item()
-                )
-            ]
-        )
-        savvy_seed_cache_js = json.dumps(
-            {
-                "record_id": "post_acc452fff96b",
-                "comment_id": params_dict.get("comment_id") or "1175872974773981_1646688186953267",
-                "items": seed_items,
-            }
-        )
-
     safe_token_js = json.dumps(session_token)
     safe_user_js = json.dumps(user_obj)
     safe_mode_js = json.dumps(clean_mode)
@@ -976,14 +957,10 @@ def _build_session_injector_snippet(
         f"var targetTab={safe_tab_js};"
         f"var meta={safe_meta_js};"
         f"var popParams={safe_params_js};"
-        f"var savvySeed={savvy_seed_cache_js};"
         "window.gbCurrentAuthUser=usr;"
         "window.gbActivePopoutMode=popMode;"
         "window.gbActivePopoutParams=popParams;"
-        "if(savvySeed&&savvySeed.items&&savvySeed.items.length){"
-        "window.__gbSavvyInitialItem=savvySeed.items[0];"
-        "try{localStorage.setItem('gb_popout_comment_thread_cache',JSON.stringify(savvySeed));}catch(_){}"
-        "}"
+        "try{localStorage.removeItem('gb_popout_comment_thread_cache');}catch(_){}"
         "if(meta&&meta.title){document.title=meta.title+' \\u2022 GlennBot Automations';}"
         "try{localStorage.setItem('gb_auth_session_token',tok);}catch(_){}"
         "try{document.cookie='gb_auth_session='+encodeURIComponent(tok)+'; path=/; SameSite=Lax';}catch(_){}"
@@ -1107,7 +1084,9 @@ def _build_calendar_lock_body_script() -> str:
     2. Hide the Connect Accounts box inside #view-scheduler and disable Composio modals.
     3. Customize the comment_thread popup UI for Savvy Finds (post_acc452fff96b):
        - Inject the Live Facebook Comment Test CTA banner and 5-second Real-Time Auto-Sync Monitor.
-       - Normalize target Facebook post (1175872974773981) records and filter synthetic comments.
+       - Render a clean 'COMMENTS ON THIS POST (0)' Savvy Finds Post Preview card when all comments
+         on post 1175872974773981 have been deleted in GlennBot Dashboard.
+       - Remove the bottom reply composer container from the DOM so it never flashes or appears.
     """
     return (
         "<script id=\"gb-calendar-lock-script\">"
@@ -1118,6 +1097,7 @@ def _build_calendar_lock_body_script() -> str:
         "var SAVVY_RECORD_ID='post_acc452fff96b';"
         "var SAVVY_FB_POST_ID='1175872974773981';"
         "var SAVVY_PERMALINK='https://www.facebook.com/211715025549935/posts/1175872974773981';"
+        "var SAVVY_CAPTION='Hello future clients! Feel free to leave a comment on this sample post, and this AI-powered chatbot (powered by Gemini) will instantly answer any questions you have about my background, skills, and services. Everything you need to know about me is already loaded into its knowledge base. Go ahead and test it out\\u2014drop a comment below!';"
         "var BLOCKED_SYNTHETIC_CIDS={'1175872974773981_1794243091445':true};"
         "var BLOCKED_SYNTHETIC_TEXT='may gusto ako itanong pwede ba?';"
         "var HIDDEN_COMPOSER_SELECTORS=["
@@ -1154,28 +1134,19 @@ def _build_calendar_lock_body_script() -> str:
         "if(String(c.account_name||'').trim().toLowerCase()==='savvy finds'&&blob.trim()==='')return true;"
         "return false;"
         "}"
-        "function _injectSavvyLiveFbTestCta(){"
-        "var panel=document.getElementById('comment-detail-panel');"
-        "if(!panel)return;"
-        "panel.querySelectorAll('a[href*=\"1175872974773981\"]').forEach(function(a){"
-        "a.setAttribute('href',SAVVY_PERMALINK);"
-        "a.setAttribute('target','_blank');"
-        "a.setAttribute('rel','noopener noreferrer');"
+        "function _getSavvyCommentsGroup(){"
+        "if(typeof commentsList==='undefined'||!Array.isArray(commentsList))return[];"
+        "return commentsList.filter(function(c){return _isSavvyPostCommentObj(c)&&!_isBlockedSyntheticEntry(c);});"
+        "}"
+        "function _removeBottomComposerDom(){"
+        "try{"
+        "document.querySelectorAll(HIDDEN_COMPOSER_SELECTORS).forEach(function(el){"
+        "el.remove();"
         "});"
-        "var existingCta=document.getElementById('gb-savvy-live-fb-test-cta');"
-        "if(existingCta)return;"
-        "var countLabel=document.getElementById('post-comments-count-label');"
-        "var commentsSection=(countLabel&&countLabel.parentElement)?countLabel.parentElement.parentElement:null;"
-        "if(!commentsSection)return;"
-        "panel.querySelectorAll('.fa-align-left').forEach(function(ic){"
-        "var box=ic.parentElement;"
-        "if(box&&box.textContent.indexOf('Text-only post')!==-1){box.style.display='none';}"
-        "});"
-        "var cta=document.createElement('div');"
-        "cta.id='gb-savvy-live-fb-test-cta';"
-        "cta.className='p-3 rounded-xl border border-emerald-400/50 bg-gradient-to-r from-emerald-950/80 via-slate-900/90 to-cyan-950/80 shadow-[0_0_20px_rgba(16,185,129,0.18)] flex flex-col sm:flex-row sm:items-center justify-between gap-3';"
-        "cta.innerHTML="
-        "'<div class=\"space-y-1\">'"
+        "}catch(_){}"
+        "}"
+        "function _buildSavvyCtaHtml(){"
+        "return '<div class=\"space-y-1\">'"
         "+'<div class=\"flex items-center gap-2 flex-wrap\">'"
         "+'<span class=\"inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/50\">'"
         "+'<span class=\"w-2 h-2 rounded-full bg-emerald-400 animate-ping\"></span>'"
@@ -1195,12 +1166,85 @@ def _build_calendar_lock_body_script() -> str:
         "+'<i id=\"gb-manual-sync-icon\" class=\"fas fa-sync-alt text-gb-cyan\"></i> <span>Sync Now</span>'"
         "+'</button>'"
         "+'</div>';"
-        "if(commentsSection.parentElement){"
-        "commentsSection.parentElement.insertBefore(cta,commentsSection);"
+        "}"
+        "function _bindSavvySyncNowBtn(){"
         "var syncNowBtn=document.getElementById('gb-btn-manual-sync-now');"
-        "if(syncNowBtn){"
+        "if(syncNowBtn&&!syncNowBtn._gbBound){"
+        "syncNowBtn._gbBound=true;"
         "syncNowBtn.addEventListener('click',function(){_runSavvyLiveAutoSync(true);});"
         "}"
+        "}"
+        "function _renderSavvyZeroCommentsCard(){"
+        "var panel=document.getElementById('comment-detail-panel');"
+        "if(!panel)return;"
+        "panel.dataset.recordId=SAVVY_RECORD_ID;"
+        "panel.dataset.savvyEmptyState='1';"
+        "if(!document.getElementById('gb-savvy-zero-comments-box')){"
+        "panel.innerHTML="
+        "'<div class=\"flex flex-col h-full justify-between gap-3\">'"
+        "+'<div class=\"space-y-3 overflow-y-auto pr-1 max-h-[760px] custom-scrollbar\">'"
+        "+'<div class=\"flex items-center justify-between gap-2 pb-2.5 border-b border-slate-700/70 flex-wrap\">'"
+        "+'<div class=\"flex items-center gap-2 flex-wrap\">'"
+        "+'<span class=\"inline-flex items-center gap-1.5 text-xs font-bold text-blue-400\"><i class=\"fab fa-facebook\"></i> <span>Facebook</span></span>'"
+        "+'<span class=\"text-slate-600\">&bull;</span>'"
+        "+'<span class=\"text-xs font-bold text-white\">Savvy Finds</span>'"
+        "+'<span class=\"px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700\"><i class=\"fas fa-align-left mr-1 text-gb-cyan\"></i>Text Post</span>'"
+        "+'<span class=\"px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/40\"><i class=\"fas fa-bolt mr-1\"></i>External API Reply</span>'"
+        "+'</div>'"
+        "+'<div class=\"flex items-center gap-1.5\">'"
+        "+'<a href=\"'+SAVVY_PERMALINK+'\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-gb-cyan/15 hover:bg-gb-cyan/25 text-gb-cyan border border-gb-cyan/40 flex items-center gap-1.5 transition-all\">'"
+        "+'<i class=\"fas fa-external-link-alt text-[10px]\"></i> <span>Open Actual Post</span>'"
+        "+'</a>'"
+        "+'</div>'"
+        "+'</div>'"
+        "+'<div class=\"p-3 rounded-xl bg-slate-900/70 border border-slate-800/90\">'"
+        "+'<div class=\"text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-1\">Original Post Caption</div>'"
+        "+'<p class=\"text-xs text-slate-200 whitespace-pre-wrap leading-relaxed\">'+SAVVY_CAPTION+'</p>'"
+        "+'</div>'"
+        "+'<div id=\"gb-savvy-live-fb-test-cta\" class=\"p-3 rounded-xl border border-emerald-400/50 bg-gradient-to-r from-emerald-950/80 via-slate-900/90 to-cyan-950/80 shadow-[0_0_20px_rgba(16,185,129,0.18)] flex flex-col sm:flex-row sm:items-center justify-between gap-3\">'"
+        "+_buildSavvyCtaHtml()"
+        "+'</div>'"
+        "+'<div class=\"space-y-2\">'"
+        "+'<div class=\"flex items-center justify-between\">'"
+        "+'<span id=\"post-comments-count-label\" class=\"text-[11px] font-bold uppercase tracking-wider text-gb-cyan flex items-center gap-1.5\"><i class=\"fas fa-comments\"></i> Comments on This Post (0)</span>'"
+        "+'</div>'"
+        "+'<div id=\"post-comments-thread-list\" class=\"space-y-2.5\">'"
+        "+'<div id=\"gb-savvy-zero-comments-box\" class=\"p-6 rounded-xl bg-slate-900/60 border border-slate-800/90 text-center space-y-2\">'"
+        "+'<div class=\"w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-400/30 flex items-center justify-center mx-auto text-emerald-300\"><i class=\"fas fa-comment-slash\"></i></div>'"
+        "+'<p class=\"text-xs font-semibold text-slate-200\">No comments on this post yet.</p>'"
+        "+'<p class=\"text-[11px] text-slate-400 max-w-xl mx-auto leading-relaxed\">Click <span class=\"text-emerald-300 font-semibold\">Comment on Actual Facebook Post &#8599;</span> above to drop a comment on Facebook and watch Savvy Finds\\x27 Gemini AI reply appear here automatically!</p>'"
+        "+'</div>'"
+        "+'</div>'"
+        "+'</div>'"
+        "+'</div>'"
+        "+'</div>';"
+        "}"
+        "_bindSavvySyncNowBtn();"
+        "}"
+        "function _injectSavvyLiveFbTestCta(){"
+        "var panel=document.getElementById('comment-detail-panel');"
+        "if(!panel)return;"
+        "panel.querySelectorAll('a[href*=\"1175872974773981\"]').forEach(function(a){"
+        "a.setAttribute('href',SAVVY_PERMALINK);"
+        "a.setAttribute('target','_blank');"
+        "a.setAttribute('rel','noopener noreferrer');"
+        "});"
+        "var existingCta=document.getElementById('gb-savvy-live-fb-test-cta');"
+        "if(existingCta){_bindSavvySyncNowBtn();return;}"
+        "var countLabel=document.getElementById('post-comments-count-label');"
+        "var commentsSection=(countLabel&&countLabel.parentElement)?countLabel.parentElement.parentElement:null;"
+        "if(!commentsSection)return;"
+        "panel.querySelectorAll('.fa-align-left').forEach(function(ic){"
+        "var box=ic.parentElement;"
+        "if(box&&box.textContent.indexOf('Text-only post')!==-1){box.style.display='none';}"
+        "});"
+        "var cta=document.createElement('div');"
+        "cta.id='gb-savvy-live-fb-test-cta';"
+        "cta.className='p-3 rounded-xl border border-emerald-400/50 bg-gradient-to-r from-emerald-950/80 via-slate-900/90 to-cyan-950/80 shadow-[0_0_20px_rgba(16,185,129,0.18)] flex flex-col sm:flex-row sm:items-center justify-between gap-3';"
+        "cta.innerHTML=_buildSavvyCtaHtml();"
+        "if(commentsSection.parentElement){"
+        "commentsSection.parentElement.insertBefore(cta,commentsSection);"
+        "_bindSavvySyncNowBtn();"
         "}"
         "}"
         "function _customizeSavvyFindsComposer(){"
@@ -1208,20 +1252,20 @@ def _build_calendar_lock_body_script() -> str:
         "if(typeof livePostDetailsCache!=='undefined'&&livePostDetailsCache&&!livePostDetailsCache[SAVVY_RECORD_ID]){"
         "livePostDetailsCache[SAVVY_RECORD_ID]={"
         "record_id:SAVVY_RECORD_ID,platform:'facebook',account_name:'Savvy Finds',post_type:'text',"
-        "caption:'Hello future clients! Feel free to leave a comment on this sample post, and this AI-powered chatbot (powered by Gemini) will instantly answer any questions you have about my background, skills, and services. Everything you need to know about me is already loaded into its knowledge base. Go ahead and test it out\\u2014drop a comment below!',"
+        "caption:SAVVY_CAPTION,"
         "external_post_id:'211715025549935_1175872974773981',"
         "permalink_url:SAVVY_PERMALINK,"
         "video_url:'',thumbnail_url:'',images:[],fallback_preview_url:''"
         "};"
         "}"
+        "_removeBottomComposerDom();"
+        "var grp=_getSavvyCommentsGroup();"
+        "if(grp.length===0){"
+        "_renderSavvyZeroCommentsCard();"
+        "}else{"
         "_injectSavvyLiveFbTestCta();"
-        "try{"
-        "document.querySelectorAll(HIDDEN_COMPOSER_SELECTORS).forEach(function(el){"
-        "el.style.setProperty('display','none','important');"
-        "el.style.setProperty('visibility','hidden','important');"
-        "el.style.setProperty('opacity','0','important');"
-        "});"
-        "}catch(_){}"
+        "}"
+        "_removeBottomComposerDom();"
         "_ensureSavvyFiveSecMonitor();"
         "}"
         "function _normalizeVisitorRepliesOnClient(){"
@@ -1239,15 +1283,6 @@ def _build_calendar_lock_body_script() -> str:
         "if(Array.isArray(c.replies)){"
         "c.replies=c.replies.filter(function(r){return !_isBlockedSyntheticEntry(r);});"
         "}"
-        "(c.replies||[]).forEach(function(r){"
-        "if(!r)return;"
-        "if(r.pending||String(r.id||'').indexOf('opt_')===0||r._gbVisitorReply||r.author_name==='GlennBot Automations'||r.author_id==='1340688402467466'){"
-        "r._gbVisitorReply=true;"
-        "r.author_name='GlennBot Automations';"
-        "r.author_id='1340688402467466';"
-        "r.is_own=false;"
-        "}"
-        "});"
         "});"
         "}"
         "async function _runSavvyLiveAutoSync(isManual){"
@@ -1262,7 +1297,14 @@ def _build_calendar_lock_body_script() -> str:
         "await window.fetchComments(Boolean(isManual));"
         "}"
         "_normalizeVisitorRepliesOnClient();"
-        "if(typeof window.syncOpenPostThreadLive==='function'){"
+        "var grp=_getSavvyCommentsGroup();"
+        "var panel=document.getElementById('comment-detail-panel');"
+        "if(grp.length===0){"
+        "_renderSavvyZeroCommentsCard();"
+        "}else if(panel&&panel.dataset&&panel.dataset.savvyEmptyState==='1'&&typeof window.renderSelectedCommentDetail==='function'){"
+        "panel.dataset.savvyEmptyState='0';"
+        "await window.renderSelectedCommentDetail(SAVVY_RECORD_ID,false);"
+        "}else if(typeof window.syncOpenPostThreadLive==='function'){"
         "window.syncOpenPostThreadLive(SAVVY_RECORD_ID);"
         "}"
         "_customizeSavvyFindsComposer();"
@@ -1324,6 +1366,13 @@ def _build_calendar_lock_body_script() -> str:
         "var origRenderDetail=curRenderDetail;"
         "var wrappedRenderDetail=async function(recId,fetchFresh){"
         "_normalizeVisitorRepliesOnClient();"
+        "if((recId===SAVVY_RECORD_ID||_isSavvyFindsActive())&&_getSavvyCommentsGroup().length===0){"
+        "_renderSavvyZeroCommentsCard();"
+        "_ensureSavvyFiveSecMonitor();"
+        "return;"
+        "}"
+        "var panel=document.getElementById('comment-detail-panel');"
+        "if(panel&&panel.dataset)panel.dataset.savvyEmptyState='0';"
         "var useFresh=fetchFresh;"
         "if(recId===SAVVY_RECORD_ID&&typeof livePostDetailsCache!=='undefined'&&livePostDetailsCache&&livePostDetailsCache[SAVVY_RECORD_ID]){"
         "useFresh=false;"
@@ -1340,6 +1389,16 @@ def _build_calendar_lock_body_script() -> str:
         "var origSyncLive=curSyncLive;"
         "var wrappedSyncLive=function(recId){"
         "_normalizeVisitorRepliesOnClient();"
+        "if((recId===SAVVY_RECORD_ID||_isSavvyFindsActive())&&_getSavvyCommentsGroup().length===0){"
+        "_renderSavvyZeroCommentsCard();"
+        "return;"
+        "}"
+        "var panel=document.getElementById('comment-detail-panel');"
+        "if(panel&&panel.dataset&&panel.dataset.savvyEmptyState==='1'&&typeof window.renderSelectedCommentDetail==='function'){"
+        "panel.dataset.savvyEmptyState='0';"
+        "window.renderSelectedCommentDetail(SAVVY_RECORD_ID,false);"
+        "return;"
+        "}"
         "var r=origSyncLive.apply(this,arguments);"
         "_customizeSavvyFindsComposer();"
         "return r;"
@@ -1351,15 +1410,22 @@ def _build_calendar_lock_body_script() -> str:
         "if(typeof curFetchComments==='function'&&!curFetchComments._gbSavvyWrapped){"
         "var origFetchComments=curFetchComments;"
         "var wrappedFetchComments=async function(showFeedback){"
-        "if(_isSavvyFindsActive()&&typeof selectedRecordId!=='undefined'&&!selectedRecordId){"
+        "if(_isSavvyFindsActive()&&typeof selectedRecordId!=='undefined'){"
         "selectedRecordId=SAVVY_RECORD_ID;"
         "}"
         "var r=await origFetchComments.apply(this,arguments);"
         "if(_isSavvyFindsActive()){"
         "_normalizeVisitorRepliesOnClient();"
         "if(typeof selectedRecordId!=='undefined')selectedRecordId=SAVVY_RECORD_ID;"
-        "if(!document.getElementById('post-comments-thread-list')&&typeof window.renderSelectedCommentDetail==='function'){"
+        "var grp=_getSavvyCommentsGroup();"
+        "var panel=document.getElementById('comment-detail-panel');"
+        "if(grp.length===0){"
+        "_renderSavvyZeroCommentsCard();"
+        "}else if((panel&&panel.dataset&&panel.dataset.savvyEmptyState==='1')||!document.getElementById('post-comments-thread-list')){"
+        "if(panel&&panel.dataset)panel.dataset.savvyEmptyState='0';"
+        "if(typeof window.renderSelectedCommentDetail==='function'){"
         "await window.renderSelectedCommentDetail(SAVVY_RECORD_ID,false);"
+        "}"
         "}else if(typeof window.syncOpenPostThreadLive==='function'){"
         "window.syncOpenPostThreadLive(SAVVY_RECORD_ID);"
         "}"
@@ -1371,14 +1437,12 @@ def _build_calendar_lock_body_script() -> str:
         "window.fetchComments=wrappedFetchComments;"
         "}"
         "if(_isSavvyFindsActive()){"
-        "if(typeof selectedRecordId!=='undefined'&&!selectedRecordId)selectedRecordId=SAVVY_RECORD_ID;"
-        "if(typeof selectedCommentId!=='undefined'&&!selectedCommentId)selectedCommentId='1175872974773981_1646688186953267';"
-        "if(typeof commentsList!=='undefined'&&Array.isArray(commentsList)&&window.__gbSavvyInitialItem){"
-        "var hasSavvy=commentsList.some(function(c){return _isSavvyPostCommentObj(c);});"
-        "if(!hasSavvy)commentsList.unshift(window.__gbSavvyInitialItem);"
+        "if(typeof selectedRecordId!=='undefined')selectedRecordId=SAVVY_RECORD_ID;"
         "_normalizeVisitorRepliesOnClient();"
-        "}"
-        "if(!document.getElementById('post-comments-thread-list')&&typeof window.renderSelectedCommentDetail==='function'&&typeof commentsList!=='undefined'&&Array.isArray(commentsList)&&commentsList.length>0){"
+        "var grpInit=_getSavvyCommentsGroup();"
+        "if(grpInit.length===0){"
+        "_renderSavvyZeroCommentsCard();"
+        "}else if(!document.getElementById('post-comments-thread-list')&&typeof window.renderSelectedCommentDetail==='function'){"
         "window.renderSelectedCommentDetail(SAVVY_RECORD_ID,false);"
         "}"
         "_ensureSavvyFiveSecMonitor();"
@@ -1394,7 +1458,7 @@ def _build_calendar_lock_body_script() -> str:
         "try{"
         "var obsTarget=document.getElementById('comment-detail-panel')||document.body;"
         "if(obsTarget&&typeof MutationObserver!=='undefined'){"
-        "var mo=new MutationObserver(function(){_customizeSavvyFindsComposer();});"
+        "var mo=new MutationObserver(function(){_removeBottomComposerDom();});"
         "mo.observe(obsTarget,{childList:true,subtree:true});"
         "}"
         "}catch(_){}"
@@ -1962,22 +2026,8 @@ SYNTHETIC_BLOCKED_COMMENT_IDS = {"1175872974773981_1794243091445"}
 SYNTHETIC_BLOCKED_COMMENT_TEXTS = {"may gusto ako itanong pwede ba?"}
 
 _SAVVY_FINDS_RECORD_ID = SAVVY_FINDS_CANONICAL_RECORD_ID
-_SAVVY_FINDS_PARENT_COMMENT_ID = "1175872974773981_1646688186953267"
 _SAVVY_FINDS_ZERNIO_POST_ID = "211715025549935_1175872974773981"
 _SAVVY_FINDS_ACCOUNT_ID = "6ada535d4c608095288e2104"
-_GLENNBOT_COMMENTER_AUTHOR_ID = "1340688402467466"
-_GLENNBOT_COMMENTER_AVATAR = (
-    "https://scontent-lhr6-1.xx.fbcdn.net/v/t39.30808-1/"
-    "833846537_122108844543495916_5687749572249038870_n.jpg?stp=cp0_dst-jpg_s50x50_tt6"
-    "&_nc_cat=102&ccb=1-7&_nc_sid=f907e8&_nc_eui2=AeGBO9ClZx4ot5NUZiI2zuLCne-DxygZyLid74PHKBnIuA3U5alaakoDkB7NuuS_X-DxRBA6hZUZqoPT3N8HQ21M"
-    "&_nc_ohc=VqFmMpG5BgIQ7kNvwFhCvE5&_nc_oc=AdqRgKfR3O8DXU7hHeG3iinZDYbuy4VBjG83QtRWUII4Jp9Nqp_8m8N5HZEqyqLO9jQ"
-    "&_nc_zt=24&_nc_ht=scontent-lhr6-1.xx&edm=AOerShkEAAAA&_nc_gid=lVqnvyXYdQtXgg27xrNSVA"
-    "&_nc_tpa=Q5bMBQJbHEjfKgE2vhGiR_kwxGIJHBjNzTGU7rDXt78qL58pbAc-vyXbkx2N9EO-9wFrtvjTPZdb0zwR"
-    "&oh=00_AQRphVIZFO1olc9Y9pBtBGL404pU9DqlpUNT2Glbfds1kA&oe=6AF79E1D"
-)
-_SAVVY_FINDS_RECENT_VISITOR_REPLIES: list[tuple[float, dict]] = []
-_SAVVY_FINDS_LATEST_ITEM_CACHE: dict = {}
-_SAVVY_FINDS_LATEST_ITEMS_CACHE: list[dict] = []
 _SAVVY_FINDS_UPSTREAM_RECORD_ID_State: dict[str, str | float] = {
     "record_id": "post_ext_b158973506",
     "last_bg_sync_ts": 0.0,
@@ -2017,61 +2067,7 @@ def _is_savvy_finds_target_post_comment(item: dict) -> bool:
     return False
 
 
-def _get_fallback_savvy_finds_comment_item() -> dict:
-    return {
-        "comment_id": _SAVVY_FINDS_PARENT_COMMENT_ID,
-        "zernio_post_id": _SAVVY_FINDS_ZERNIO_POST_ID,
-        "zernio_account_id": _SAVVY_FINDS_ACCOUNT_ID,
-        "auth_source": "external_api",
-        "record_id": SAVVY_FINDS_CANONICAL_RECORD_ID,
-        "external_post_id": _SAVVY_FINDS_ZERNIO_POST_ID,
-        "platform": "facebook",
-        "page_id": _SAVVY_FINDS_ACCOUNT_ID,
-        "account_name": "Savvy Finds",
-        "post_type": "text",
-        "post_caption": (
-            "Hello future clients! Feel free to leave a comment on this sample post, and this AI-powered chatbot "
-            "(powered by Gemini) will instantly answer any questions you have about my background, skills, and services. "
-            "Everything you need to know about me is already loaded into its knowledge base. Go ahead and test it out—drop a comment below!"
-        ),
-        "post_permalink": SAVVY_FINDS_PERMALINK,
-        "comment_permalink": SAVVY_FINDS_PERMALINK,
-        "author_name": "GlennBot Automations",
-        "author_handle": "",
-        "author_id": _GLENNBOT_COMMENTER_AUTHOR_ID,
-        "author_avatar": _GLENNBOT_COMMENTER_AVATAR,
-        "is_own_comment": False,
-        "can_reply": True,
-        "is_liked": False,
-        "is_hidden": False,
-        "message": "hello mic test!",
-        "like_count": 0,
-        "created_iso": "2026-11-09T23:08:03+08:00",
-        "display_time": "Nov 09, 2026 • 11:08 PM",
-        "is_read": True,
-        "replies": [
-            {
-                "id": "1175872974773981_1024646813991583",
-                "parent_comment_id": _SAVVY_FINDS_PARENT_COMMENT_ID,
-                "replied_to_id": _SAVVY_FINDS_PARENT_COMMENT_ID,
-                "author_name": "Savvy Finds",
-                "author_avatar": "",
-                "is_own": True,
-                "is_read": True,
-                "can_reply": True,
-                "message": "Loud and clear! The mic is working perfectly. Feel free to ask me anything about skills, background, or services!",
-                "created_iso": "2026-11-09T23:08:32+08:00",
-                "display_time": "Nov 09, 2026 • 11:08 PM",
-            }
-        ],
-        "parent_is_read": True,
-        "unread_reply_ids": [],
-        "unread_replies_count": 0,
-        "has_unread_reply": False,
-    }
-
-
-def _merge_recent_visitor_replies_into_savvy_item(item: dict) -> dict:
+def _normalize_savvy_finds_comment_item(item: dict) -> dict:
     norm_item = dict(item)
     upstream_rec = str(norm_item.get("record_id") or "").strip()
     if upstream_rec and upstream_rec != SAVVY_FINDS_CANONICAL_RECORD_ID:
@@ -2086,31 +2082,9 @@ def _merge_recent_visitor_replies_into_savvy_item(item: dict) -> dict:
     norm_item["can_reply"] = True
 
     raw_replies = list(norm_item.get("replies") or [])
-    replies = [dict(r) for r in raw_replies if isinstance(r, dict) and not _is_synthetic_blocked_comment(r)]
-    existing_ids = {str(r.get("id") or "").strip() for r in replies}
-    now = time.time()
-    cutoff = now - 600.0
-    active_recent = [(ts, r) for (ts, r) in _SAVVY_FINDS_RECENT_VISITOR_REPLIES if ts >= cutoff]
-    _SAVVY_FINDS_RECENT_VISITOR_REPLIES[:] = active_recent
-    parent_cid = str(norm_item.get("comment_id") or _SAVVY_FINDS_PARENT_COMMENT_ID).strip()
-    for _, rep in active_recent:
-        rep_parent = str(rep.get("parent_comment_id") or _SAVVY_FINDS_PARENT_COMMENT_ID).strip()
-        if rep_parent != parent_cid and parent_cid != _SAVVY_FINDS_PARENT_COMMENT_ID:
-            continue
-        rep_id = str(rep.get("id") or "").strip()
-        if rep_id and rep_id not in existing_ids:
-            replies.append(dict(rep))
-            existing_ids.add(rep_id)
-    for r in replies:
-        if isinstance(r, dict) and (
-            str(r.get("author_id") or "") == _GLENNBOT_COMMENTER_AUTHOR_ID
-            or str(r.get("author_name") or "").strip().lower() == "glennbot automations"
-        ):
-            r["author_name"] = "GlennBot Automations"
-            r["author_id"] = _GLENNBOT_COMMENTER_AUTHOR_ID
-            r["is_own"] = False
-            r["can_reply"] = True
-    norm_item["replies"] = replies
+    norm_item["replies"] = [
+        dict(r) for r in raw_replies if isinstance(r, dict) and not _is_synthetic_blocked_comment(r)
+    ]
     return norm_item
 
 
@@ -2119,7 +2093,7 @@ def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> di
     Ensures Queue (/api/scheduled), Calendar, Comments (/api/comments),
     Messages (/api/messages/conversations), Analytics (/api/analytics), and
     OAuth Discover endpoints only surface the 4 whitelisted social accounts
-    (plus the whitelisted Savvy Finds live demo comment thread post_acc452fff96b).
+    (plus any currently existing real comments on Savvy Finds post 1175872974773981).
     """
     if not isinstance(data, dict):
         return data
@@ -2145,16 +2119,13 @@ def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> di
 
     if clean_path == "comments" and isinstance(data.get("comments"), list):
         kept = []
-        savvy_items_collected = []
         for item in data["comments"]:
             if not isinstance(item, dict):
                 continue
             if _is_synthetic_blocked_comment(item):
                 continue
             if _is_savvy_finds_target_post_comment(item):
-                merged_savvy = _merge_recent_visitor_replies_into_savvy_item(item)
-                savvy_items_collected.append(merged_savvy)
-                kept.append(merged_savvy)
+                kept.append(_normalize_savvy_finds_comment_item(item))
                 continue
             plat = str(item.get("platform") or "").strip().lower()
             if _matches_whitelisted_portfolio_account(plat, item):
@@ -2167,16 +2138,6 @@ def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> di
                         if isinstance(r, dict) and not _is_synthetic_blocked_comment(r)
                     ]
                 kept.append(norm_item)
-        if savvy_items_collected:
-            _SAVVY_FINDS_LATEST_ITEM_CACHE.clear()
-            _SAVVY_FINDS_LATEST_ITEM_CACHE.update(savvy_items_collected[0])
-            _SAVVY_FINDS_LATEST_ITEMS_CACHE[:] = savvy_items_collected
-        else:
-            fallback_savvy = _merge_recent_visitor_replies_into_savvy_item(_get_fallback_savvy_finds_comment_item())
-            _SAVVY_FINDS_LATEST_ITEM_CACHE.clear()
-            _SAVVY_FINDS_LATEST_ITEM_CACHE.update(fallback_savvy)
-            _SAVVY_FINDS_LATEST_ITEMS_CACHE[:] = [fallback_savvy]
-            kept.insert(0, fallback_savvy)
         data["comments"] = kept
         return data
 
@@ -2242,8 +2203,6 @@ def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> di
 
 
 import asyncio
-from datetime import datetime as _dt, timedelta as _td, timezone as _tz
-import urllib.parse as _urlparse
 
 
 @app.api_route(
@@ -2255,8 +2214,7 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
     Transparently proxies all GlennBot /api/... calls from the popout/iframe to
     {GLENNBOT_BASE_URL}/api/{path}, forwarding query params, request body, and
     attaching Cookie: gb_auth_session={session_token} and X-GlennBot-Session.
-    Enforces the 4-account portfolio whitelist, blocks visitor account deletion,
-    and performs the Savvy Finds role-reversal webhook trigger on POST /api/comments/reply.
+    Enforces the 4-account portfolio whitelist and blocks visitor account deletion.
     """
     clean_path = path.strip("/").lower()
     method_upper = request.method.upper()
@@ -2327,7 +2285,7 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
                         "Everything you need to know about me is already loaded into its knowledge base. Go ahead and test it out—drop a comment below!"
                     ),
                     "external_post_id": _SAVVY_FINDS_ZERNIO_POST_ID,
-                    "permalink_url": "https://www.facebook.com/211715025549935/posts/1175872974773981",
+                    "permalink_url": SAVVY_FINDS_PERMALINK,
                     "video_url": "",
                     "thumbnail_url": "",
                     "images": [],
@@ -2352,146 +2310,28 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
     session_token = await get_glennbot_auto_session_token()
     body_bytes = await request.body()
 
-    # Role-Reversal Proxy for POST /api/comments/reply on post_acc452fff96b (Savvy Finds)
-    if method_upper == "POST" and clean_path == "comments/reply":
-        parsed_body: dict = {}
-        if body_bytes:
-            try:
-                parsed_body = json.loads(body_bytes.decode("utf-8", errors="replace"))
-            except Exception:
-                try:
-                    qs = _urlparse.parse_qs(body_bytes.decode("utf-8", errors="replace"))
-                    parsed_body = {k: (v[0] if v else "") for k, v in qs.items()}
-                except Exception:
-                    parsed_body = {}
-
-        req_record_id = str(
-            parsed_body.get("record_id")
-            or parsed_body.get("id")
-            or request.query_params.get("record_id")
-            or ""
-        ).strip()
-        req_comment_id = str(
-            parsed_body.get("comment_id")
-            or parsed_body.get("parent_comment_id")
-            or ""
-        ).strip()
-
-        if req_record_id == _SAVVY_FINDS_RECORD_ID or req_comment_id.startswith("1175872974773981"):
-            user_message = str(
-                parsed_body.get("message")
-                or parsed_body.get("reply")
-                or parsed_body.get("text")
-                or ""
-            ).strip()
-            if not user_message:
-                return JSONResponse(
-                    content={"status": "error", "message": "Comment message cannot be empty."},
-                    status_code=400,
-                )
-
-            sim_cid = f"1175872974773981_{int(time.time() * 1000)}"
-            manila_tz = _tz(_td(hours=8))
-            now_manila = _dt.now(manila_tz)
-            now_iso = now_manila.isoformat(timespec="seconds")
-            display_time = now_manila.strftime("%b %d, %Y • %I:%M %p")
-
-            webhook_payload = {
-                "event": "comment.received",
-                "data": {
-                    "comment": {
-                        "id": sim_cid,
-                        "commentId": sim_cid,
-                        "parentId": _SAVVY_FINDS_PARENT_COMMENT_ID,
-                        "parentCommentId": _SAVVY_FINDS_PARENT_COMMENT_ID,
-                        "isReply": True,
-                        "text": user_message,
-                        "message": user_message,
-                        "platformPostId": _SAVVY_FINDS_ZERNIO_POST_ID,
-                        "platform": "facebook",
-                        "createdAt": now_iso,
-                        "isOwnAccount": False,
-                        "isOwner": False,
-                        "author": {
-                            "id": _GLENNBOT_COMMENTER_AUTHOR_ID,
-                            "name": "GlennBot Automations",
-                            "avatar": _GLENNBOT_COMMENTER_AVATAR,
-                            "isOwnAccount": False,
-                            "isOwner": False,
-                        },
-                    },
-                    "post": {
-                        "id": _SAVVY_FINDS_ZERNIO_POST_ID,
-                        "platformPostId": _SAVVY_FINDS_ZERNIO_POST_ID,
-                        "platform": "facebook",
-                        "accountId": _SAVVY_FINDS_ACCOUNT_ID,
-                        "accountName": "Savvy Finds",
-                    },
-                    "account": {
-                        "id": _SAVVY_FINDS_ACCOUNT_ID,
-                        "displayName": "Savvy Finds",
-                        "platform": "facebook",
-                    },
-                },
-            }
-
-            reply_obj = {
-                "id": sim_cid,
-                "parent_comment_id": _SAVVY_FINDS_PARENT_COMMENT_ID,
-                "replied_to_id": _SAVVY_FINDS_PARENT_COMMENT_ID,
-                "author_id": _GLENNBOT_COMMENTER_AUTHOR_ID,
-                "author_name": "GlennBot Automations",
-                "is_own": False,
-                "is_read": True,
-                "can_reply": True,
-                "message": user_message,
-                "created_iso": now_iso,
-                "display_time": display_time,
-            }
-            _SAVVY_FINDS_RECENT_VISITOR_REPLIES.append((time.time(), reply_obj))
-
-            webhook_url = f"{GLENNBOT_BASE_URL}/api/webhooks/zernio"
-            try:
-                async with httpx.AsyncClient(
-                    timeout=GLENNBOT_TIMEOUT_SECONDS,
-                    follow_redirects=True,
-                ) as client:
-                    await client.post(
-                        webhook_url,
-                        headers=get_glennbot_headers(session_token),
-                        cookies={"gb_auth_session": session_token},
-                        json=webhook_payload,
-                    )
-            except Exception:
-                pass
-
-            return JSONResponse(
-                content={
-                    "status": "success",
-                    "reply_id": sim_cid,
-                    "parent_comment_id": _SAVVY_FINDS_PARENT_COMMENT_ID,
-                    "replied_to_id": _SAVVY_FINDS_PARENT_COMMENT_ID,
-                    "reply": reply_obj,
-                },
-                status_code=200,
-            )
-
     target_url = f"{GLENNBOT_BASE_URL}/api/{path.lstrip('/')}"
     if clean_path == "comments" and method_upper == "GET":
         # Strip slow force=true from synchronous request so 5s polling always completes in ~2s,
-        # and trigger a non-blocking background Zernio sync on the upstream Savvy Finds record_id
+        # pass a cache-busting _ts parameter so upstream never returns stale deleted comments,
+        # and trigger a non-blocking background Zernio sync on the upstream Savvy Finds record_id.
         upstream_rec_id = str(_SAVVY_FINDS_UPSTREAM_RECORD_ID_State.get("record_id") or "post_ext_b158973506")
         last_bg_ts = float(_SAVVY_FINDS_UPSTREAM_RECORD_ID_State.get("last_bg_sync_ts") or 0.0)
+        ts_ms = int(time.time() * 1000)
         if (request.query_params.get("force") == "true") and (time.time() - last_bg_ts >= 8.0):
             _SAVVY_FINDS_UPSTREAM_RECORD_ID_State["last_bg_sync_ts"] = time.time()
 
             async def _bg_force_sync_savvy() -> None:
                 try:
-                    bg_url = f"{GLENNBOT_BASE_URL}/api/comments?force=true&active_record_id={upstream_rec_id}"
+                    bg_url = f"{GLENNBOT_BASE_URL}/api/comments?force=true&active_record_id={upstream_rec_id}&_ts={ts_ms}"
                     async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as bg_client:
                         await bg_client.get(
                             bg_url,
-                            headers=get_glennbot_headers(session_token),
+                            headers={
+                                **get_glennbot_headers(session_token),
+                                "Cache-Control": "no-cache, no-store",
+                                "Pragma": "no-cache",
+                            },
                             cookies={"gb_auth_session": session_token},
                         )
                 except Exception:
@@ -2499,13 +2339,15 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
 
             asyncio.create_task(_bg_force_sync_savvy())
 
-        target_url = f"{GLENNBOT_BASE_URL}/api/comments?active_record_id={upstream_rec_id}"
+        target_url = f"{GLENNBOT_BASE_URL}/api/comments?active_record_id={upstream_rec_id}&_ts={ts_ms}"
     elif request.url.query:
         target_url = f"{target_url}?{request.url.query}"
 
     forward_headers = {
         "X-GlennBot-Session": session_token,
         "Cookie": f"gb_auth_session={session_token}",
+        "Cache-Control": "no-cache, no-store",
+        "Pragma": "no-cache",
     }
     if GLENNBOT_INTERNAL_API_KEY:
         forward_headers["X-API-Key"] = GLENNBOT_INTERNAL_API_KEY
@@ -2555,7 +2397,16 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
                     parsed_json = json.loads(content_bytes.decode("utf-8", errors="replace"))
                     if isinstance(parsed_json, dict):
                         filtered_json = _filter_whitelisted_records_in_proxy_json(clean_path, parsed_json)
-                        return JSONResponse(content=filtered_json, status_code=resp.status_code)
+                        resp_headers = (
+                            {"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"}
+                            if clean_path == "comments"
+                            else None
+                        )
+                        return JSONResponse(
+                            content=filtered_json,
+                            status_code=resp.status_code,
+                            headers=resp_headers,
+                        )
                 except Exception:
                     pass
 
@@ -2571,11 +2422,9 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
             return JSONResponse(content=_filter_connected_accounts_payload({}), status_code=200)
         if method_upper == "GET" and clean_path == "comments":
             return JSONResponse(
-                content={
-                    "status": "success",
-                    "comments": [_merge_recent_visitor_replies_into_savvy_item(_get_fallback_savvy_finds_comment_item())],
-                },
+                content={"status": "success", "comments": []},
                 status_code=200,
+                headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"},
             )
         return JSONResponse(
             content={

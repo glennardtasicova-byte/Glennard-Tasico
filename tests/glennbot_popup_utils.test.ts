@@ -235,6 +235,17 @@ test("SYS-02 Savvy Finds comment thread whitelisting, canonical post ID resoluti
   assert.equal(filtered[0].replies.length, 1);
   assert.equal(filtered[0].replies[0].id, "1175872974773981_1024646813991583");
 
+  const emptyWhenAllSavvyDeleted = filterPortfolioCommentsList([
+    { record_id: "post_other", account_name: "Unlisted Page", can_reply: false },
+    {
+      record_id: "post_ext_b158973506",
+      comment_id: "1175872974773981_1794243091445",
+      account_name: "Savvy Finds",
+      message: "may gusto ako itanong pwede ba?",
+    },
+  ]);
+  assert.deepEqual(emptyWhenAllSavvyDeleted, []);
+
   const payload = buildSavvyFindsRoleReversalWebhookPayload("What are Glennard's AI automation skills?", 1710000000123);
   assert.equal(payload.event, "comment.received");
   assert.equal(payload.accountId, "6ada535d4c608095288e2104");
