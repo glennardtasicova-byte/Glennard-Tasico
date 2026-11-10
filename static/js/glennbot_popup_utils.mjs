@@ -305,16 +305,27 @@ export function computeRightDockedPopupFeatures(
   availW = 1440,
   availH = 900,
   screenLeft = 0,
-  screenTop = 0
+  screenTop = 0,
+  platform = "facebook"
 ) {
   const safeAvailW = Number(availW) > 0 ? Number(availW) : 1440;
   const safeAvailH = Number(availH) > 0 ? Number(availH) : 900;
   const safeScreenLeft = Number.isFinite(Number(screenLeft)) ? Number(screenLeft) : 0;
   const safeScreenTop = Number.isFinite(Number(screenTop)) ? Number(screenTop) : 0;
-  const popupWidth = Math.max(480, Math.round(safeAvailW * 0.42));
-  const popupHeight = Math.max(680, Math.round(safeAvailH * 0.86));
-  const popupLeft = Math.round(safeScreenLeft + safeAvailW - popupWidth - 20);
-  const popupTop = Math.round(safeScreenTop + (safeAvailH - popupHeight) / 2);
+  const isInstagram = String(platform || "").trim().toLowerCase() === "instagram";
+
+  // Instagram Web switches from giant single-column photo to compact 2-column side-by-side
+  // (360px photo on left + 356px comment thread & "Add a comment..." box on right) at >= 736px width
+  // (and >= 780px-840px when logged in with the 72px left icon rail).
+  const minW = isInstagram ? (safeAvailW < 1400 ? 780 : 840) : 500;
+  const widthRatio = isInstagram ? (safeAvailW < 1400 ? 0.58 : 0.56) : 0.42;
+  const heightRatio = isInstagram ? 0.94 : 0.86;
+  const rightMargin = isInstagram ? 12 : 20;
+
+  const popupWidth = Math.min(safeAvailW - 24, Math.max(minW, Math.round(safeAvailW * widthRatio)));
+  const popupHeight = Math.min(safeAvailH - 16, Math.max(680, Math.round(safeAvailH * heightRatio)));
+  const popupLeft = Math.max(safeScreenLeft, Math.round(safeScreenLeft + safeAvailW - popupWidth - rightMargin));
+  const popupTop = Math.max(safeScreenTop, Math.round(safeScreenTop + (safeAvailH - popupHeight) / 2));
   const features = `width=${popupWidth},height=${popupHeight},left=${popupLeft},top=${popupTop},menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes`;
   return {
     popupWidth,

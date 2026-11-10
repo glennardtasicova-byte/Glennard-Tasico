@@ -257,12 +257,27 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
   assert.equal(igSplit.badge_label, "GlennBot Automations — Instagram");
   assert.equal(igSplit.primary_btn_label, "Open / Focus Actual Instagram Post Window");
 
-  const docked = computeRightDockedPopupFeatures(1920, 1080, 0, 0);
-  assert.equal(docked.popupWidth, 806);
-  assert.equal(docked.popupHeight, 929);
-  assert.equal(docked.popupLeft, 1920 - 806 - 20);
-  assert.equal(docked.popupTop, Math.round((1080 - 929) / 2));
-  assert.ok(docked.features.includes("width=806,height=929,left=1094,top=76"));
+  const dockedFb = computeRightDockedPopupFeatures(1920, 1080, 0, 0, "facebook");
+  assert.equal(dockedFb.popupWidth, 806);
+  assert.equal(dockedFb.popupHeight, 929);
+  assert.equal(dockedFb.popupLeft, 1920 - 806 - 20);
+  assert.equal(dockedFb.popupTop, Math.round((1080 - 929) / 2));
+  assert.ok(dockedFb.features.includes("width=806,height=929,left=1094,top=76"));
+
+  // Instagram requires >= 736px viewport width (780px-840px+ outer window) so Instagram Web renders its 2-column side-by-side comment box instead of a 100%-width photo
+  const dockedIg1920 = computeRightDockedPopupFeatures(1920, 1080, 0, 0, "instagram");
+  assert.equal(dockedIg1920.popupWidth, 1075);
+  assert.equal(dockedIg1920.popupHeight, 1015);
+  assert.equal(dockedIg1920.popupLeft, 1920 - 1075 - 12);
+  assert.ok(dockedIg1920.popupWidth >= 840);
+
+  for (const availW of [1280, 1366, 1440, 1536]) {
+    const igLaptop = computeRightDockedPopupFeatures(availW, 860, 0, 0, "instagram");
+    assert.ok(
+      igLaptop.popupWidth >= 780,
+      `Expected Instagram popupWidth >= 780 on ${availW}px screen, got ${igLaptop.popupWidth}`
+    );
+  }
 
   const filtered = filterPortfolioCommentsList([
     { record_id: "post_other", account_name: "Unlisted Page", can_reply: false },

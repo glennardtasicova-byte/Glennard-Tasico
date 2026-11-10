@@ -84,15 +84,28 @@ window.COMMENT_SPLIT_PLATFORMS = COMMENT_SPLIT_PLATFORMS;
 let activeCommentSplitPlatform = "facebook";
 let activeDockedSocialPopupRef = null;
 
-function computeRightDockedPopupFeatures() {
+function computeRightDockedPopupFeatures(platform) {
   const availW = window.screen?.availWidth || window.innerWidth || 1440;
   const availH = window.screen?.availHeight || window.innerHeight || 900;
   const screenLeft = window.screenLeft !== undefined ? window.screenLeft : window.screenX || 0;
   const screenTop = window.screenTop !== undefined ? window.screenTop : window.screenY || 0;
-  const popupWidth = Math.max(480, Math.round(availW * 0.42));
-  const popupHeight = Math.max(680, Math.round(availH * 0.86));
-  const popupLeft = Math.round(screenLeft + availW - popupWidth - 20);
-  const popupTop = Math.round(screenTop + (availH - popupHeight) / 2);
+  const platKey = String(platform || activeCommentSplitPlatform || "facebook")
+    .trim()
+    .toLowerCase();
+  const isInstagram = platKey === "instagram";
+
+  // Instagram Web switches from giant single-column photo to compact 2-column side-by-side
+  // (360px photo on left + 356px comment thread & "Add a comment..." box on right) at >= 736px width
+  // (and >= 780px-840px when logged in with the 72px left icon rail).
+  const minW = isInstagram ? (availW < 1400 ? 780 : 840) : 500;
+  const widthRatio = isInstagram ? (availW < 1400 ? 0.58 : 0.56) : 0.42;
+  const heightRatio = isInstagram ? 0.94 : 0.86;
+  const rightMargin = isInstagram ? 12 : 20;
+
+  const popupWidth = Math.min(availW - 24, Math.max(minW, Math.round(availW * widthRatio)));
+  const popupHeight = Math.min(availH - 16, Math.max(680, Math.round(availH * heightRatio)));
+  const popupLeft = Math.max(screenLeft, Math.round(screenLeft + availW - popupWidth - rightMargin));
+  const popupTop = Math.max(screenTop, Math.round(screenTop + (availH - popupHeight) / 2));
   const features = `width=${popupWidth},height=${popupHeight},left=${popupLeft},top=${popupTop},menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes`;
   return {
     popupWidth,
@@ -110,10 +123,17 @@ function openDockedSocialPostPopup(platform) {
       ? String(platform).toLowerCase()
       : activeCommentSplitPlatform;
   const cfg = COMMENT_SPLIT_PLATFORMS[platKey] || COMMENT_SPLIT_PLATFORMS.facebook;
-  const { features } = computeRightDockedPopupFeatures();
+  const { popupWidth, popupHeight, popupLeft, popupTop, features } =
+    computeRightDockedPopupFeatures(platKey);
   const win = window.open(cfg.actualPostUrl, cfg.dockedWindowName, features);
   if (win) {
     activeDockedSocialPopupRef = win;
+    try {
+      win.resizeTo(popupWidth, popupHeight);
+      win.moveTo(popupLeft, popupTop);
+    } catch (_) {
+      // Cross-origin windows ignore resizeTo after navigation; initial features apply on creation
+    }
     win.focus();
   }
   return win;
@@ -133,6 +153,11 @@ function updateCommentSplitWorkspaceDOM(platform, reloadIframe = true) {
   const igBtn = document.getElementById("gb-split-toggle-instagram");
   if (fbBtn) fbBtn.classList.toggle("is-active", platKey === "facebook");
   if (igBtn) igBtn.classList.toggle("is-active", platKey === "instagram");
+
+  const splitGrid = document.querySelector(".gb-split-workspace-grid");
+  if (splitGrid) {
+    splitGrid.classList.toggle("is-instagram-layout", platKey === "instagram");
+  }
 
   const iframe = document.getElementById("gb-comment-split-iframe");
   if (iframe && reloadIframe) {
