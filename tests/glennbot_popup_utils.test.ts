@@ -195,10 +195,14 @@ test("SYS01_PROJECT_SPEC and formatInlineMarkdown match production GlennBot Auto
   );
 });
 
-test("SYS-02 Savvy Finds comment thread whitelisting, canonical post ID resolution, synthetic filtering, and role-reversal webhook payload", () => {
+test("SYS-02 GlennBot Automations comment thread whitelisting, canonical post ID resolution, synthetic filtering, and role-reversal webhook payload", () => {
   assert.equal(
     SYS02_SAVVY_FINDS_COMMENT_DEMO.popupUrl,
-    "/glennbot-popout?popout_mode=comment_thread&record_id=post_acc452fff96b&comment_id=1175872974773981_1646688186953267"
+    "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023"
+  );
+  assert.equal(
+    SYS02_SAVVY_FINDS_COMMENT_DEMO.popupWindowName,
+    "GlennBotCommentThread_GlennBotAutomations"
   );
   assert.deepEqual(SYS02_SAVVY_FINDS_COMMENT_DEMO.footerButtons, [
     "💬 Post a Comment",
@@ -215,27 +219,27 @@ test("SYS-02 Savvy Finds comment thread whitelisting, canonical post ID resoluti
       message: "may gusto ako itanong pwede ba?",
     },
     {
-      record_id: "post_ext_b158973506",
-      comment_id: "1175872974773981_9999999999",
-      external_post_id: "211715025549935_1175872974773981",
-      post_permalink: "https://www.facebook.com/1157964799898132/posts/1175872974773981",
-      account_name: "Savvy Finds",
+      record_id: "post_ext_legacy",
+      comment_id: "122118104811500702_1150007564513023",
+      external_post_id: "1340688402467466_122118104811500702",
+      post_permalink: "https://www.facebook.com/1340688402467466/posts/122118104811500702",
+      account_name: "GlennBot Automations",
       can_reply: false,
       replies: [
         { id: "1175872974773981_1794243091445", message: "may gusto ako itanong pwede ba?" },
-        { id: "1175872974773981_1024646813991583", message: "Loud and clear!" },
+        { id: "122118104811500702_1024646813991583", message: "Loud and clear!" },
       ],
     },
-    { record_id: "post_gb", account_name: "GlennBot Automations", can_reply: true },
+    { record_id: "post_gb_other", account_name: "GlennBot Automations", can_reply: true },
   ]);
   assert.equal(filtered.length, 2);
-  assert.equal(filtered[0].record_id, "post_acc452fff96b");
-  assert.equal(filtered[0].post_permalink, "https://www.facebook.com/211715025549935/posts/1175872974773981");
+  assert.equal(filtered[0].record_id, "post_ext_dc6a96869a");
+  assert.equal(filtered[0].post_permalink, "https://www.facebook.com/1340688402467466/posts/122118104811500702");
   assert.equal(filtered[0].can_reply, true);
   assert.equal(filtered[0].replies.length, 1);
-  assert.equal(filtered[0].replies[0].id, "1175872974773981_1024646813991583");
+  assert.equal(filtered[0].replies[0].id, "122118104811500702_1024646813991583");
 
-  const emptyWhenAllSavvyDeleted = filterPortfolioCommentsList([
+  const emptyWhenAllTargetDeleted = filterPortfolioCommentsList([
     { record_id: "post_other", account_name: "Unlisted Page", can_reply: false },
     {
       record_id: "post_ext_b158973506",
@@ -244,13 +248,13 @@ test("SYS-02 Savvy Finds comment thread whitelisting, canonical post ID resoluti
       message: "may gusto ako itanong pwede ba?",
     },
   ]);
-  assert.deepEqual(emptyWhenAllSavvyDeleted, []);
+  assert.deepEqual(emptyWhenAllTargetDeleted, []);
 
   const payload = buildSavvyFindsRoleReversalWebhookPayload("What are Glennard's AI automation skills?", 1710000000123);
   assert.equal(payload.event, "comment.received");
   assert.equal(payload.accountId, "6ada535d4c608095288e2104");
-  assert.equal(payload.comment.id, "1175872974773981_1710000000123");
-  assert.equal(payload.comment.parentId, "1175872974773981_1646688186953267");
+  assert.equal(payload.comment.id, "122118104811500702_1710000000123");
+  assert.equal(payload.comment.parentId, "122118104811500702_1150007564513023");
   assert.equal(payload.comment.author.name, "GlennBot Automations");
   assert.equal(payload.comment.author.id, "1340688402467466");
   assert.equal(payload.comment.isOwnAccount, false);

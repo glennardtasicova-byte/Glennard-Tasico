@@ -254,30 +254,30 @@ export function formatInlineMarkdown(str = "") {
 }
 
 export const SYS02_SAVVY_FINDS_COMMENT_DEMO = {
-  recordId: "post_acc452fff96b",
-  fbPostId: "1175872974773981",
-  permalink: "https://www.facebook.com/211715025549935/posts/1175872974773981",
+  recordId: "post_ext_dc6a96869a",
+  fbPostId: "122118104811500702",
+  permalink: "https://www.facebook.com/1340688402467466/posts/122118104811500702",
   blockedSyntheticCommentIds: ["1175872974773981_1794243091445"],
   blockedSyntheticCommentTexts: ["may gusto ako itanong pwede ba?"],
-  commentId: "1175872974773981_1646688186953267",
-  postPlatformId: "211715025549935_1175872974773981",
+  commentId: "122118104811500702_1150007564513023",
+  postPlatformId: "1340688402467466_122118104811500702",
   savvyFindsAccountId: "6ada535d4c608095288e2104",
   glennBotAuthorId: "1340688402467466",
   glennBotAuthorName: "GlennBot Automations",
   popupUrl:
-    "/glennbot-popout?popout_mode=comment_thread&record_id=post_acc452fff96b&comment_id=1175872974773981_1646688186953267",
-  popupWindowName: "GlennBotCommentThread_SavvyFinds",
+    "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023",
+  popupWindowName: "GlennBotCommentThread_GlennBotAutomations",
   footerButtons: ["💬 Post a Comment", "✉️ Send a DM", "📧 Send an Email"],
 };
 
 export function buildSavvyFindsRoleReversalWebhookPayload(text = "", timestampMs = Date.now()) {
   const cleanText = String(text || "").trim();
-  const simCid = `1175872974773981_${Math.trunc(Number(timestampMs) || Date.now())}`;
+  const simCid = `122118104811500702_${Math.trunc(Number(timestampMs) || Date.now())}`;
   return {
     event: "comment.received",
     platform: "facebook",
     accountId: SYS02_SAVVY_FINDS_COMMENT_DEMO.savvyFindsAccountId,
-    accountName: "Savvy Finds",
+    accountName: "GlennBot Automations",
     comment: {
       id: simCid,
       postId: SYS02_SAVVY_FINDS_COMMENT_DEMO.recordId,
@@ -332,13 +332,19 @@ export function filterPortfolioCommentsList(comments = []) {
       String(item.post_permalink || ""),
       String(item.comment_permalink || ""),
     ];
-    const hasTargetPostId = idFields.some((f) => f.includes(SYS02_SAVVY_FINDS_COMMENT_DEMO.fbPostId));
+    const hasTargetPostId = idFields.some(
+      (f) =>
+        f.includes(SYS02_SAVVY_FINDS_COMMENT_DEMO.fbPostId) ||
+        f.includes(SYS02_SAVVY_FINDS_COMMENT_DEMO.postPlatformId)
+    );
     const acctLower = String(item.account_name || item.username || "")
       .trim()
       .replace(/^@+/, "")
       .toLowerCase();
     const isSavvyNoConflict =
-      acctLower === "savvy finds" && !idFields.slice(0, 3).some((f) => f.trim().length > 0);
+      acctLower === "glennbot automations" &&
+      !recId &&
+      !idFields.slice(0, 3).some((f) => f.trim().length > 0);
 
     const cleanedReplies = Array.isArray(item.replies)
       ? item.replies.filter((r) => !isSyntheticBlockedEntry(r))

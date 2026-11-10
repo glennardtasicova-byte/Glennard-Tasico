@@ -813,7 +813,7 @@ def _build_session_injector_snippet(
     if clean_mode == "comment_thread":
         meta = {
             "title": "Post Thread — Expanded View",
-            "subtitle": "Savvy Finds Facebook Post • Live Gemini AI Auto-Responder Monitor",
+            "subtitle": "GlennBot Automations Facebook Post • Live Gemini AI Auto-Responder Monitor",
             "icon": "fa-comments",
         }
     else:
@@ -1082,10 +1082,10 @@ def _build_calendar_lock_body_script() -> str:
     Builds the script injected at the end of <body> in /glennbot-popout to:
     1. Lock the Calendar view strictly to Social Media Content Calendar ('posts' mode).
     2. Hide the Connect Accounts box inside #view-scheduler and disable Composio modals.
-    3. Customize the comment_thread popup UI for Savvy Finds (post_acc452fff96b):
+    3. Customize the comment_thread popup UI for GlennBot Automations (post_ext_dc6a96869a):
        - Inject the Live Facebook Comment Test CTA banner and 5-second Real-Time Auto-Sync Monitor.
-       - Render a clean 'COMMENTS ON THIS POST (0)' Savvy Finds Post Preview card when all comments
-         on post 1175872974773981 have been deleted in GlennBot Dashboard.
+       - Render a clean 'COMMENTS ON THIS POST (0)' GlennBot Automations Post Preview card when all comments
+         on post 122118104811500702 have been deleted in GlennBot Dashboard.
        - Remove the bottom reply composer container from the DOM so it never flashes or appears.
     """
     return (
@@ -1094,9 +1094,9 @@ def _build_calendar_lock_body_script() -> str:
         "var HEADING_TEXT='Social Media Content Calendar';"
         "var SUBHEADING_TEXT='Visual monthly schedule of queued and published omnichannel social media posts';"
         "var POPOUT_CAL_TITLE='Social Media Content Calendar \\u2014 Expanded View';"
-        "var SAVVY_RECORD_ID='post_acc452fff96b';"
-        "var SAVVY_FB_POST_ID='1175872974773981';"
-        "var SAVVY_PERMALINK='https://www.facebook.com/211715025549935/posts/1175872974773981';"
+        "var SAVVY_RECORD_ID='post_ext_dc6a96869a';"
+        "var SAVVY_FB_POST_ID='122118104811500702';"
+        "var SAVVY_PERMALINK='https://www.facebook.com/1340688402467466/posts/122118104811500702';"
         "var SAVVY_CAPTION='Hello future clients! Feel free to leave a comment on this sample post, and this AI-powered chatbot (powered by Gemini) will instantly answer any questions you have about my background, skills, and services. Everything you need to know about me is already loaded into its knowledge base. Go ahead and test it out\\u2014drop a comment below!';"
         "var BLOCKED_SYNTHETIC_CIDS={'1175872974773981_1794243091445':true};"
         "var BLOCKED_SYNTHETIC_TEXT='may gusto ako itanong pwede ba?';"
@@ -1130,8 +1130,7 @@ def _build_calendar_lock_body_script() -> str:
         "if(!c||typeof c!=='object')return false;"
         "if(String(c.record_id||'')===SAVVY_RECORD_ID)return true;"
         "var blob=[c.comment_id,c.external_post_id,c.zernio_post_id,c.post_permalink,c.comment_permalink].map(function(v){return String(v||'');}).join(' ');"
-        "if(blob.indexOf(SAVVY_FB_POST_ID)!==-1)return true;"
-        "if(String(c.account_name||'').trim().toLowerCase()==='savvy finds'&&blob.trim()==='')return true;"
+        "if(blob.indexOf(SAVVY_FB_POST_ID)!==-1||blob.indexOf('1340688402467466_122118104811500702')!==-1)return true;"
         "return false;"
         "}"
         "function _getSavvyCommentsGroup(){"
@@ -1155,7 +1154,7 @@ def _build_calendar_lock_body_script() -> str:
         "+'<span class=\"text-[11px] font-bold text-white\">Test the Live Gemini AI Auto-Responder on Facebook:</span>'"
         "+'</div>'"
         "+'<p class=\"text-[11px] text-slate-300 leading-relaxed\">'"
-        "+'Click <span class=\"text-emerald-300 font-semibold\">Comment on Actual Facebook Post</span> to leave a comment using your own Facebook account and watch your comment + <span class=\"text-gb-cyan font-semibold\">Savvy Finds AI</span> reply sync here automatically every 5 seconds!'"
+        "+'Click <span class=\"text-emerald-300 font-semibold\">Comment on Actual Facebook Post</span> to leave a comment using your own Facebook account and watch your comment + <span class=\"text-gb-cyan font-semibold\">GlennBot Automations AI</span> reply sync here automatically every 5 seconds!'"
         "+'</p>'"
         "+'</div>'"
         "+'<div class=\"flex items-center gap-2 shrink-0\">'"
@@ -1187,7 +1186,7 @@ def _build_calendar_lock_body_script() -> str:
         "+'<div class=\"flex items-center gap-2 flex-wrap\">'"
         "+'<span class=\"inline-flex items-center gap-1.5 text-xs font-bold text-blue-400\"><i class=\"fab fa-facebook\"></i> <span>Facebook</span></span>'"
         "+'<span class=\"text-slate-600\">&bull;</span>'"
-        "+'<span class=\"text-xs font-bold text-white\">Savvy Finds</span>'"
+        "+'<span class=\"text-xs font-bold text-white\">GlennBot Automations</span>'"
         "+'<span class=\"px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700\"><i class=\"fas fa-align-left mr-1 text-gb-cyan\"></i>Text Post</span>'"
         "+'<span class=\"px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/40\"><i class=\"fas fa-bolt mr-1\"></i>External API Reply</span>'"
         "+'</div>'"
@@ -1212,7 +1211,7 @@ def _build_calendar_lock_body_script() -> str:
         "+'<div id=\"gb-savvy-zero-comments-box\" class=\"p-6 rounded-xl bg-slate-900/60 border border-slate-800/90 text-center space-y-2\">'"
         "+'<div class=\"w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-400/30 flex items-center justify-center mx-auto text-emerald-300\"><i class=\"fas fa-comment-slash\"></i></div>'"
         "+'<p class=\"text-xs font-semibold text-slate-200\">No comments on this post yet.</p>'"
-        "+'<p class=\"text-[11px] text-slate-400 max-w-xl mx-auto leading-relaxed\">Click <span class=\"text-emerald-300 font-semibold\">Comment on Actual Facebook Post &#8599;</span> above to drop a comment on Facebook and watch Savvy Finds\\x27 Gemini AI reply appear here automatically!</p>'"
+        "+'<p class=\"text-[11px] text-slate-400 max-w-xl mx-auto leading-relaxed\">Click <span class=\"text-emerald-300 font-semibold\">Comment on Actual Facebook Post &#8599;</span> above to drop a comment on Facebook and watch GlennBot Automations\\x27 Gemini AI reply appear here automatically!</p>'"
         "+'</div>'"
         "+'</div>'"
         "+'</div>'"
@@ -1224,7 +1223,7 @@ def _build_calendar_lock_body_script() -> str:
         "function _injectSavvyLiveFbTestCta(){"
         "var panel=document.getElementById('comment-detail-panel');"
         "if(!panel)return;"
-        "panel.querySelectorAll('a[href*=\"1175872974773981\"]').forEach(function(a){"
+        "panel.querySelectorAll('a[href*=\"122118104811500702\"]').forEach(function(a){"
         "a.setAttribute('href',SAVVY_PERMALINK);"
         "a.setAttribute('target','_blank');"
         "a.setAttribute('rel','noopener noreferrer');"
@@ -1251,9 +1250,9 @@ def _build_calendar_lock_body_script() -> str:
         "if(!_isSavvyFindsActive())return;"
         "if(typeof livePostDetailsCache!=='undefined'&&livePostDetailsCache&&!livePostDetailsCache[SAVVY_RECORD_ID]){"
         "livePostDetailsCache[SAVVY_RECORD_ID]={"
-        "record_id:SAVVY_RECORD_ID,platform:'facebook',account_name:'Savvy Finds',post_type:'text',"
+        "record_id:SAVVY_RECORD_ID,platform:'facebook',account_name:'GlennBot Automations',post_type:'text',"
         "caption:SAVVY_CAPTION,"
-        "external_post_id:'211715025549935_1175872974773981',"
+        "external_post_id:'1340688402467466_122118104811500702',"
         "permalink_url:SAVVY_PERMALINK,"
         "video_url:'',thumbnail_url:'',images:[],fallback_preview_url:''"
         "};"
@@ -2019,17 +2018,17 @@ def _filter_connected_accounts_payload(raw_data: dict | None) -> dict:
     return {"status": "success", "accounts": filtered_accounts}
 
 
-SAVVY_FINDS_FB_POST_ID = "1175872974773981"
-SAVVY_FINDS_CANONICAL_RECORD_ID = "post_acc452fff96b"
-SAVVY_FINDS_PERMALINK = "https://www.facebook.com/211715025549935/posts/1175872974773981"
+SAVVY_FINDS_FB_POST_ID = "122118104811500702"
+SAVVY_FINDS_CANONICAL_RECORD_ID = "post_ext_dc6a96869a"
+SAVVY_FINDS_PERMALINK = "https://www.facebook.com/1340688402467466/posts/122118104811500702"
 SYNTHETIC_BLOCKED_COMMENT_IDS = {"1175872974773981_1794243091445"}
 SYNTHETIC_BLOCKED_COMMENT_TEXTS = {"may gusto ako itanong pwede ba?"}
 
 _SAVVY_FINDS_RECORD_ID = SAVVY_FINDS_CANONICAL_RECORD_ID
-_SAVVY_FINDS_ZERNIO_POST_ID = "211715025549935_1175872974773981"
-_SAVVY_FINDS_ACCOUNT_ID = "6ada535d4c608095288e2104"
+_SAVVY_FINDS_ZERNIO_POST_ID = "1340688402467466_122118104811500702"
+_SAVVY_FINDS_ACCOUNT_ID = "6af0b109818eb5c88d1e87a6"
 _SAVVY_FINDS_UPSTREAM_RECORD_ID_State: dict[str, str | float] = {
-    "record_id": "post_ext_b158973506",
+    "record_id": "post_ext_dc6a96869a",
     "last_bg_sync_ts": 0.0,
 }
 
@@ -2059,10 +2058,10 @@ def _is_savvy_finds_target_post_comment(item: dict) -> bool:
         str(item.get("post_permalink") or ""),
         str(item.get("comment_permalink") or ""),
     )
-    if any(SAVVY_FINDS_FB_POST_ID in f for f in id_fields):
-        return True
-    acct = str(item.get("account_name") or "").strip().lower()
-    if acct == "savvy finds" and not any(f.strip() for f in id_fields[:3]):
+    if any(
+        (SAVVY_FINDS_FB_POST_ID in f or _SAVVY_FINDS_ZERNIO_POST_ID in f)
+        for f in id_fields
+    ):
         return True
     return False
 
@@ -2077,7 +2076,7 @@ def _normalize_savvy_finds_comment_item(item: dict) -> dict:
     norm_item["comment_permalink"] = SAVVY_FINDS_PERMALINK
     norm_item["external_post_id"] = _SAVVY_FINDS_ZERNIO_POST_ID
     norm_item["zernio_post_id"] = _SAVVY_FINDS_ZERNIO_POST_ID
-    norm_item["account_name"] = "Savvy Finds"
+    norm_item["account_name"] = "GlennBot Automations"
     norm_item["post_type"] = "text"
     norm_item["can_reply"] = True
 
@@ -2093,7 +2092,7 @@ def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> di
     Ensures Queue (/api/scheduled), Calendar, Comments (/api/comments),
     Messages (/api/messages/conversations), Analytics (/api/analytics), and
     OAuth Discover endpoints only surface the 4 whitelisted social accounts
-    (plus any currently existing real comments on Savvy Finds post 1175872974773981).
+    (plus any currently existing real comments on GlennBot Automations post 122118104811500702).
     """
     if not isinstance(data, dict):
         return data
@@ -2269,7 +2268,7 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
             status_code=403,
         )
 
-    # Fast cached response for Savvy Finds live_details so polling never flashes a loading spinner
+    # Fast cached response for GlennBot Automations sample post live_details so polling never flashes a loading spinner
     if method_upper == "GET" and clean_path == f"posts/{_SAVVY_FINDS_RECORD_ID}/live_details":
         return JSONResponse(
             content={
@@ -2277,7 +2276,7 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
                 "details": {
                     "record_id": _SAVVY_FINDS_RECORD_ID,
                     "platform": "facebook",
-                    "account_name": "Savvy Finds",
+                    "account_name": "GlennBot Automations",
                     "post_type": "text",
                     "caption": (
                         "Hello future clients! Feel free to leave a comment on this sample post, and this AI-powered chatbot "

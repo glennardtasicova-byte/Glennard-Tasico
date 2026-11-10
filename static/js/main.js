@@ -1302,8 +1302,8 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
           <button
             type="button"
             class="btn-sys01-popout btn-live-launcher"
-            onclick="event.stopPropagation(); openGlennBotCustomPopup('/glennbot-popout?popout_mode=comment_thread&record_id=post_acc452fff96b&comment_id=1175872974773981_1646688186953267', 'GlennBotCommentThread_SavvyFinds', 1100, 860);"
-            title="Comment as GlennBot Automations on Savvy Finds's Post and watch AI auto-reply"
+            onclick="event.stopPropagation(); openGlennBotCustomPopup('/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023', 'GlennBotCommentThread_GlennBotAutomations', 1100, 860);"
+            title="Comment on GlennBot Automations's Facebook Post and watch Gemini AI auto-reply"
           >
             <span>💬 Post a Comment</span>
           </button>
