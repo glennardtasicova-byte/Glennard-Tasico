@@ -36,6 +36,38 @@ function openGlennBotCustomPopup(url, windowName = "GlennBotCustomPopup", width 
 }
 window.openGlennBotCustomPopup = openGlennBotCustomPopup;
 
+function openCommentPlatformChooser() {
+  const chooser = document.getElementById("gb-comment-platform-chooser-modal");
+  if (!chooser) {
+    return openGlennBotCustomPopup(
+      "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023",
+      "GlennBotCommentThread_FB",
+      1100,
+      860
+    );
+  }
+  chooser.hidden = false;
+  if (!chooser.dataset.boundListeners) {
+    chooser.dataset.boundListeners = "true";
+    chooser.addEventListener("click", (e) => {
+      if (e.target === chooser) closeCommentPlatformChooser();
+    });
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !chooser.hidden) {
+        e.stopPropagation();
+        closeCommentPlatformChooser();
+      }
+    });
+  }
+}
+window.openCommentPlatformChooser = openCommentPlatformChooser;
+
+function closeCommentPlatformChooser() {
+  const chooser = document.getElementById("gb-comment-platform-chooser-modal");
+  if (chooser) chooser.hidden = true;
+}
+window.closeCommentPlatformChooser = closeCommentPlatformChooser;
+
 (function () {
   const STORAGE_KEY = "glenn_portfolio_theme";
 
@@ -1302,8 +1334,8 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
           <button
             type="button"
             class="btn-sys01-popout btn-live-launcher"
-            onclick="event.stopPropagation(); openGlennBotCustomPopup('/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023', 'GlennBotCommentThread_GlennBotAutomations', 1100, 860);"
-            title="Comment on GlennBot Automations's Facebook Post and watch Gemini AI auto-reply"
+            onclick="event.stopPropagation(); openCommentPlatformChooser(this);"
+            title="Choose Facebook or Instagram Post on GlennBot Automations and watch Gemini AI auto-reply"
           >
             <span>💬 Post a Comment</span>
           </button>

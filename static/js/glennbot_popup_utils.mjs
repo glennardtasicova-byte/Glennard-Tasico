@@ -253,20 +253,61 @@ export function formatInlineMarkdown(str = "") {
     .replace(/`([^`]+)`/g, "<code>$1</code>");
 }
 
+export const SHARED_SHOWCASE_CAPTION =
+  "Hello future clients! Feel free to leave a comment on this sample post, and this AI-powered chatbot (powered by Gemini) will instantly answer any questions you have about my background, skills, and services. Everything you need to know about me is already loaded into its knowledge base. Go ahead and test it out—drop a comment below!";
+
+export const SYS02_SHOWCASE_POSTS = {
+  post_ext_dc6a96869a: {
+    record_id: "post_ext_dc6a96869a",
+    platform: "facebook",
+    account_name: "GlennBot Automations",
+    post_type: "text",
+    external_post_id: "1340688402467466_122118104811500702",
+    short_post_id: "122118104811500702",
+    permalink_url: "https://www.facebook.com/1340688402467466/posts/122118104811500702",
+    cta_label: "Comment on Actual Facebook Post ↗",
+    popup_url:
+      "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023",
+    popup_window_name: "GlennBotCommentThread_FB",
+    caption: SHARED_SHOWCASE_CAPTION,
+  },
+  post_ext_b10078462e: {
+    record_id: "post_ext_b10078462e",
+    platform: "instagram",
+    account_name: "GlennBot Automations",
+    post_type: "image",
+    external_post_id: "17956773894039696",
+    short_post_id: "17956773894039696",
+    permalink_url: "https://www.instagram.com/p/DfkfvyEvx3b/",
+    cta_label: "Comment on Actual Instagram Post ↗",
+    popup_url:
+      "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683",
+    popup_window_name: "GlennBotCommentThread_IG",
+    caption: SHARED_SHOWCASE_CAPTION,
+  },
+};
+
 export const SYS02_SAVVY_FINDS_COMMENT_DEMO = {
   recordId: "post_ext_dc6a96869a",
   fbPostId: "122118104811500702",
   permalink: "https://www.facebook.com/1340688402467466/posts/122118104811500702",
+  igRecordId: "post_ext_b10078462e",
+  igPostId: "17956773894039696",
+  igPermalink: "https://www.instagram.com/p/DfkfvyEvx3b/",
   blockedSyntheticCommentIds: ["1175872974773981_1794243091445"],
   blockedSyntheticCommentTexts: ["may gusto ako itanong pwede ba?"],
   commentId: "122118104811500702_1150007564513023",
+  igCommentId: "18198560143393683",
   postPlatformId: "1340688402467466_122118104811500702",
   savvyFindsAccountId: "6ada535d4c608095288e2104",
   glennBotAuthorId: "1340688402467466",
   glennBotAuthorName: "GlennBot Automations",
   popupUrl:
     "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023",
-  popupWindowName: "GlennBotCommentThread_GlennBotAutomations",
+  popupWindowName: "GlennBotCommentThread_FB",
+  igPopupUrl:
+    "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683",
+  igPopupWindowName: "GlennBotCommentThread_IG",
   footerButtons: ["💬 Post a Comment", "✉️ Send a DM", "📧 Send an Email"],
 };
 
@@ -312,6 +353,34 @@ function isSyntheticBlockedEntry(obj) {
   return false;
 }
 
+function matchShowcaseConfigForComment(item) {
+  if (!item || typeof item !== "object") return null;
+  const recId = String(item.record_id || item.post_id || "").trim();
+  if (SYS02_SHOWCASE_POSTS[recId]) return SYS02_SHOWCASE_POSTS[recId];
+  const idFields = [
+    String(item.comment_id || item.id || ""),
+    String(item.external_post_id || ""),
+    String(item.zernio_post_id || ""),
+    String(item.post_permalink || ""),
+    String(item.comment_permalink || ""),
+  ];
+  if (
+    idFields.some(
+      (f) => f.includes("122118104811500702") || f.includes("1340688402467466_122118104811500702")
+    )
+  ) {
+    return SYS02_SHOWCASE_POSTS.post_ext_dc6a96869a;
+  }
+  if (
+    idFields.some(
+      (f) => f.includes("17956773894039696") || f.includes("DfkfvyEvx3b") || f.includes("18198560143393683")
+    )
+  ) {
+    return SYS02_SHOWCASE_POSTS.post_ext_b10078462e;
+  }
+  return null;
+}
+
 export function filterPortfolioCommentsList(comments = []) {
   if (!Array.isArray(comments)) return [];
   const whitelistedTokens = new Set([
@@ -324,42 +393,23 @@ export function filterPortfolioCommentsList(comments = []) {
   for (const item of comments) {
     if (!item || typeof item !== "object") continue;
     if (isSyntheticBlockedEntry(item)) continue;
-    const recId = String(item.record_id || item.post_id || "").trim();
-    const idFields = [
-      String(item.comment_id || item.id || ""),
-      String(item.external_post_id || ""),
-      String(item.zernio_post_id || ""),
-      String(item.post_permalink || ""),
-      String(item.comment_permalink || ""),
-    ];
-    const hasTargetPostId = idFields.some(
-      (f) =>
-        f.includes(SYS02_SAVVY_FINDS_COMMENT_DEMO.fbPostId) ||
-        f.includes(SYS02_SAVVY_FINDS_COMMENT_DEMO.postPlatformId)
-    );
-    const acctLower = String(item.account_name || item.username || "")
-      .trim()
-      .replace(/^@+/, "")
-      .toLowerCase();
-    const isSavvyNoConflict =
-      acctLower === "glennbot automations" &&
-      !recId &&
-      !idFields.slice(0, 3).some((f) => f.trim().length > 0);
-
     const cleanedReplies = Array.isArray(item.replies)
       ? item.replies.filter((r) => !isSyntheticBlockedEntry(r))
       : undefined;
 
-    if (
-      recId === SYS02_SAVVY_FINDS_COMMENT_DEMO.recordId ||
-      hasTargetPostId ||
-      isSavvyNoConflict
-    ) {
+    const showcaseCfg = matchShowcaseConfigForComment(item);
+    if (showcaseCfg) {
       const normalized = {
         ...item,
-        record_id: SYS02_SAVVY_FINDS_COMMENT_DEMO.recordId,
-        post_permalink: SYS02_SAVVY_FINDS_COMMENT_DEMO.permalink,
-        comment_permalink: SYS02_SAVVY_FINDS_COMMENT_DEMO.permalink,
+        record_id: showcaseCfg.record_id,
+        platform: showcaseCfg.platform,
+        account_name: showcaseCfg.account_name,
+        post_type: showcaseCfg.post_type,
+        external_post_id: showcaseCfg.external_post_id,
+        post_permalink: showcaseCfg.permalink_url,
+        comment_permalink: showcaseCfg.permalink_url,
+        post_caption: showcaseCfg.caption,
+        caption: showcaseCfg.caption,
         can_reply: true,
       };
       if (cleanedReplies !== undefined) normalized.replies = cleanedReplies;
@@ -367,6 +417,10 @@ export function filterPortfolioCommentsList(comments = []) {
       continue;
     }
 
+    const acctLower = String(item.account_name || item.username || "")
+      .trim()
+      .replace(/^@+/, "")
+      .toLowerCase();
     if (whitelistedTokens.has(acctLower)) {
       const copy = { ...item };
       if (cleanedReplies !== undefined) copy.replies = cleanedReplies;

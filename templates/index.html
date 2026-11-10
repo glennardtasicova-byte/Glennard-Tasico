@@ -14,7 +14,7 @@
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <!-- Custom Stylesheet -->
-  <link rel="stylesheet" href="/static/css/style.css?v=38" />
+  <link rel="stylesheet" href="/static/css/style.css?v=45" />
   <script>
     (function () {
       try {
@@ -648,8 +648,8 @@
                 <button
                   type="button"
                   class="btn-sys01-popout btn-live-launcher"
-                  onclick="event.stopPropagation(); openGlennBotCustomPopup('/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023', 'GlennBotCommentThread_GlennBotAutomations', 1100, 860);"
-                  title="Comment on GlennBot Automations's Facebook Post and watch Gemini AI auto-reply"
+                  onclick="event.stopPropagation(); openCommentPlatformChooser(this);"
+                  title="Choose Facebook or Instagram Post on GlennBot Automations and watch Gemini AI auto-reply"
                 >
                   <span>💬 Post a Comment</span>
                 </button>
@@ -910,6 +910,61 @@
     </div>
   </div>
 
+  <!-- Live Comment Platform Chooser Modal Popover (Facebook vs Instagram) -->
+  <div id="gb-comment-platform-chooser-modal" class="gb-comment-chooser-backdrop" role="dialog" aria-modal="true" aria-labelledby="gb-comment-chooser-title" hidden>
+    <div class="gb-comment-chooser-dialog" onclick="event.stopPropagation();">
+      <div class="gb-comment-chooser-header">
+        <div>
+          <span class="gb-comment-chooser-eyebrow">SYS-02 &bull; Live Gemini AI Auto-Responder</span>
+          <h3 id="gb-comment-chooser-title" class="gb-comment-chooser-title">💬 Choose a Live Post to Comment On</h3>
+          <p class="gb-comment-chooser-subtitle">Select which official <strong>GlennBot Automations</strong> social post you want to test with a live comment and watch Gemini AI auto-reply in real time:</p>
+        </div>
+        <button type="button" class="gb-comment-chooser-close" onclick="closeCommentPlatformChooser();" aria-label="Close platform chooser">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="gb-comment-chooser-options">
+        <button
+          type="button"
+          id="gb-choose-fb-comment-btn"
+          class="gb-comment-choice-card gb-comment-choice-fb"
+          onclick="event.stopPropagation(); closeCommentPlatformChooser(); openGlennBotCustomPopup('/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023', 'GlennBotCommentThread_FB', 1100, 860);"
+        >
+          <div class="gb-comment-choice-icon gb-comment-choice-icon-fb">
+            <i class="fab fa-facebook"></i>
+          </div>
+          <div class="gb-comment-choice-body">
+            <div class="gb-comment-choice-top">
+              <strong class="gb-comment-choice-name">Facebook &mdash; GlennBot Automations</strong>
+              <span class="gb-comment-choice-badge">Text Post</span>
+            </div>
+            <p class="gb-comment-choice-desc">Comment on the official Facebook Page sample post (<code>122118104811500702</code>) and watch Gemini AI auto-reply with 5s live sync.</p>
+          </div>
+          <span class="gb-comment-choice-arrow" aria-hidden="true">&rarr;</span>
+        </button>
+
+        <button
+          type="button"
+          id="gb-choose-ig-comment-btn"
+          class="gb-comment-choice-card gb-comment-choice-ig"
+          onclick="event.stopPropagation(); closeCommentPlatformChooser(); openGlennBotCustomPopup('/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683', 'GlennBotCommentThread_IG', 1100, 860);"
+        >
+          <div class="gb-comment-choice-icon gb-comment-choice-icon-ig">
+            <i class="fab fa-instagram"></i>
+          </div>
+          <div class="gb-comment-choice-body">
+            <div class="gb-comment-choice-top">
+              <strong class="gb-comment-choice-name">Instagram &mdash; GlennBot Automations (<code>@glennard.tasico.va</code>)</strong>
+              <span class="gb-comment-choice-badge gb-comment-choice-badge-ig">Image Post</span>
+            </div>
+            <p class="gb-comment-choice-desc">Comment on the official Instagram sample post (<code>17956773894039696</code>) and watch Gemini AI auto-reply with 5s live sync.</p>
+          </div>
+          <span class="gb-comment-choice-arrow" aria-hidden="true">&rarr;</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Minimal Footer -->
   <footer class="site-footer">
     <div class="container footer-inner scroll-reveal" data-reveal-delay="60">
@@ -920,6 +975,6 @@
   </footer>
 
   <!-- Custom Script -->
-  <script src="/static/js/main.js?v=44"></script>
+  <script src="/static/js/main.js?v=45"></script>
 </body>
 </html>

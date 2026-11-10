@@ -811,9 +811,12 @@ def _build_session_injector_snippet(
     clean_mode = (popout_mode or "workspace_view").strip() or "workspace_view"
     clean_tab = _sanitize_popout_tab(target_tab)
     if clean_mode == "comment_thread":
+        rec_param = str((popout_params or {}).get("record_id") or "").strip()
+        is_ig_post = rec_param == "post_ext_b10078462e"
+        plat_label = "Instagram" if is_ig_post else "Facebook"
         meta = {
             "title": "Post Thread — Expanded View",
-            "subtitle": "GlennBot Automations Facebook Post • Live Gemini AI Auto-Responder Monitor",
+            "subtitle": f"GlennBot Automations {plat_label} Post • Live Gemini AI Auto-Responder Monitor",
             "icon": "fa-comments",
         }
     else:
@@ -1082,10 +1085,12 @@ def _build_calendar_lock_body_script() -> str:
     Builds the script injected at the end of <body> in /glennbot-popout to:
     1. Lock the Calendar view strictly to Social Media Content Calendar ('posts' mode).
     2. Hide the Connect Accounts box inside #view-scheduler and disable Composio modals.
-    3. Customize the comment_thread popup UI for GlennBot Automations (post_ext_dc6a96869a):
-       - Inject the Live Facebook Comment Test CTA banner and 5-second Real-Time Auto-Sync Monitor.
-       - Render a clean 'COMMENTS ON THIS POST (0)' GlennBot Automations Post Preview card when all comments
-         on post 122118104811500702 have been deleted in GlennBot Dashboard.
+    3. Customize the comment_thread popup UI for BOTH GlennBot Automations showcase posts:
+       - Facebook: post_ext_dc6a96869a (122118104811500702)
+       - Instagram: post_ext_b10078462e (17956773894039696 / DfkfvyEvx3b)
+       - Inject the Live Comment Test CTA banner and 5-second Real-Time Auto-Sync Monitor.
+       - Replace any placeholder 'Previous Post' caption with the actual sample post caption.
+       - Render a clean 'COMMENTS ON THIS POST (0)' empty-state preview card when 0 comments exist.
        - Remove the bottom reply composer container from the DOM so it never flashes or appears.
     """
     return (
@@ -1094,10 +1099,49 @@ def _build_calendar_lock_body_script() -> str:
         "var HEADING_TEXT='Social Media Content Calendar';"
         "var SUBHEADING_TEXT='Visual monthly schedule of queued and published omnichannel social media posts';"
         "var POPOUT_CAL_TITLE='Social Media Content Calendar \\u2014 Expanded View';"
+        "var SHARED_SHOWCASE_CAPTION='Hello future clients! Feel free to leave a comment on this sample post, and this AI-powered chatbot (powered by Gemini) will instantly answer any questions you have about my background, skills, and services. Everything you need to know about me is already loaded into its knowledge base. Go ahead and test it out\\u2014drop a comment below!';"
+        "var SHOWCASE_POSTS={"
+        "'post_ext_dc6a96869a':{"
+        "record_id:'post_ext_dc6a96869a',"
+        "platform:'facebook',"
+        "platform_label:'Facebook',"
+        "platform_icon:'fab fa-facebook',"
+        "platform_badge_cls:'text-blue-400',"
+        "account_name:'GlennBot Automations',"
+        "post_type:'text',"
+        "post_type_label:'Text Post',"
+        "post_type_icon:'fas fa-align-left',"
+        "external_post_id:'1340688402467466_122118104811500702',"
+        "short_post_id:'122118104811500702',"
+        "permalink_url:'https://www.facebook.com/1340688402467466/posts/122118104811500702',"
+        "cta_label:'Comment on Actual Facebook Post \\u2197',"
+        "cta_short_label:'Comment on Actual Facebook Post',"
+        "cta_icon:'fab fa-facebook text-gb-cyan',"
+        "caption:SHARED_SHOWCASE_CAPTION"
+        "},"
+        "'post_ext_b10078462e':{"
+        "record_id:'post_ext_b10078462e',"
+        "platform:'instagram',"
+        "platform_label:'Instagram',"
+        "platform_icon:'fab fa-instagram',"
+        "platform_badge_cls:'text-pink-400',"
+        "account_name:'GlennBot Automations',"
+        "post_type:'image',"
+        "post_type_label:'Image Post',"
+        "post_type_icon:'fas fa-image',"
+        "external_post_id:'17956773894039696',"
+        "short_post_id:'17956773894039696',"
+        "permalink_url:'https://www.instagram.com/p/DfkfvyEvx3b/',"
+        "cta_label:'Comment on Actual Instagram Post \\u2197',"
+        "cta_short_label:'Comment on Actual Instagram Post',"
+        "cta_icon:'fab fa-instagram text-pink-400',"
+        "caption:SHARED_SHOWCASE_CAPTION"
+        "}"
+        "};"
         "var SAVVY_RECORD_ID='post_ext_dc6a96869a';"
         "var SAVVY_FB_POST_ID='122118104811500702';"
-        "var SAVVY_PERMALINK='https://www.facebook.com/1340688402467466/posts/122118104811500702';"
-        "var SAVVY_CAPTION='Hello future clients! Feel free to leave a comment on this sample post, and this AI-powered chatbot (powered by Gemini) will instantly answer any questions you have about my background, skills, and services. Everything you need to know about me is already loaded into its knowledge base. Go ahead and test it out\\u2014drop a comment below!';"
+        "var SAVVY_PERMALINK=SHOWCASE_POSTS['post_ext_dc6a96869a'].permalink_url;"
+        "var SAVVY_CAPTION=SHARED_SHOWCASE_CAPTION;"
         "var BLOCKED_SYNTHETIC_CIDS={'1175872974773981_1794243091445':true};"
         "var BLOCKED_SYNTHETIC_TEXT='may gusto ako itanong pwede ba?';"
         "var HIDDEN_COMPOSER_SELECTORS=["
@@ -1111,12 +1155,22 @@ def _build_calendar_lock_body_script() -> str:
         "'button[onclick*=\"deleteSingleCommentNotification(\"]',"
         "'button[onclick*=\"toggleHideComment(\"]'"
         "].join(',');"
-        "function _isSavvyFindsActive(){"
+        "function _getActiveShowcaseConfig(explicitRecId){"
+        "if(explicitRecId&&SHOWCASE_POSTS[explicitRecId])return SHOWCASE_POSTS[explicitRecId];"
+        "if(window.gbActivePopoutParams&&window.gbActivePopoutParams.record_id&&SHOWCASE_POSTS[window.gbActivePopoutParams.record_id]){"
+        "return SHOWCASE_POSTS[window.gbActivePopoutParams.record_id];"
+        "}"
+        "var searchStr=String((window.location&&window.location.search)||'');"
+        "if(searchStr.indexOf('post_ext_b10078462e')!==-1)return SHOWCASE_POSTS['post_ext_b10078462e'];"
+        "if(searchStr.indexOf('post_ext_dc6a96869a')!==-1)return SHOWCASE_POSTS['post_ext_dc6a96869a'];"
         "var panel=document.getElementById('comment-detail-panel');"
-        "if(panel&&panel.dataset&&panel.dataset.recordId===SAVVY_RECORD_ID)return true;"
-        "if(window.gbActivePopoutParams&&window.gbActivePopoutParams.record_id===SAVVY_RECORD_ID)return true;"
-        "if(window.location&&String(window.location.search||'').indexOf(SAVVY_RECORD_ID)!==-1)return true;"
-        "return false;"
+        "if(panel&&panel.dataset&&panel.dataset.recordId&&SHOWCASE_POSTS[panel.dataset.recordId]){"
+        "return SHOWCASE_POSTS[panel.dataset.recordId];"
+        "}"
+        "return null;"
+        "}"
+        "function _isSavvyFindsActive(){"
+        "return Boolean(_getActiveShowcaseConfig());"
         "}"
         "function _isBlockedSyntheticEntry(obj){"
         "if(!obj||typeof obj!=='object')return false;"
@@ -1126,16 +1180,34 @@ def _build_calendar_lock_body_script() -> str:
         "if(msg===BLOCKED_SYNTHETIC_TEXT)return true;"
         "return false;"
         "}"
-        "function _isSavvyPostCommentObj(c){"
-        "if(!c||typeof c!=='object')return false;"
-        "if(String(c.record_id||'')===SAVVY_RECORD_ID)return true;"
+        "function _matchShowcaseConfigForComment(c){"
+        "if(!c||typeof c!=='object')return null;"
+        "var rec=String(c.record_id||'').trim();"
+        "if(rec&&SHOWCASE_POSTS[rec])return SHOWCASE_POSTS[rec];"
         "var blob=[c.comment_id,c.external_post_id,c.zernio_post_id,c.post_permalink,c.comment_permalink].map(function(v){return String(v||'');}).join(' ');"
-        "if(blob.indexOf(SAVVY_FB_POST_ID)!==-1||blob.indexOf('1340688402467466_122118104811500702')!==-1)return true;"
-        "return false;"
+        "if(blob.indexOf('122118104811500702')!==-1||blob.indexOf('1340688402467466_122118104811500702')!==-1){"
+        "return SHOWCASE_POSTS['post_ext_dc6a96869a'];"
         "}"
-        "function _getSavvyCommentsGroup(){"
+        "if(blob.indexOf('17956773894039696')!==-1||blob.indexOf('DfkfvyEvx3b')!==-1||blob.indexOf('18198560143393683')!==-1){"
+        "return SHOWCASE_POSTS['post_ext_b10078462e'];"
+        "}"
+        "return null;"
+        "}"
+        "function _isSavvyPostCommentObj(c,targetRecId){"
+        "var matched=_matchShowcaseConfigForComment(c);"
+        "if(!matched)return false;"
+        "var activeCfg=_getActiveShowcaseConfig(targetRecId);"
+        "if(activeCfg)return matched.record_id===activeCfg.record_id;"
+        "return true;"
+        "}"
+        "function _getSavvyCommentsGroup(targetRecId){"
         "if(typeof commentsList==='undefined'||!Array.isArray(commentsList))return[];"
-        "return commentsList.filter(function(c){return _isSavvyPostCommentObj(c)&&!_isBlockedSyntheticEntry(c);});"
+        "var activeCfg=_getActiveShowcaseConfig(targetRecId);"
+        "if(!activeCfg)return[];"
+        "return commentsList.filter(function(c){"
+        "var m=_matchShowcaseConfigForComment(c);"
+        "return m&&m.record_id===activeCfg.record_id&&!_isBlockedSyntheticEntry(c);"
+        "});"
         "}"
         "function _removeBottomComposerDom(){"
         "try{"
@@ -1144,22 +1216,23 @@ def _build_calendar_lock_body_script() -> str:
         "});"
         "}catch(_){}"
         "}"
-        "function _buildSavvyCtaHtml(){"
+        "function _buildSavvyCtaHtml(cfg){"
+        "var c=cfg||_getActiveShowcaseConfig()||SHOWCASE_POSTS['post_ext_dc6a96869a'];"
         "return '<div class=\"space-y-1\">'"
         "+'<div class=\"flex items-center gap-2 flex-wrap\">'"
         "+'<span class=\"inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/50\">'"
         "+'<span class=\"w-2 h-2 rounded-full bg-emerald-400 animate-ping\"></span>'"
         "+'<span id=\"gb-savvy-autosync-badge\">LIVE 5s AUTO-SYNC MONITOR ACTIVE</span>'"
         "+'</span>'"
-        "+'<span class=\"text-[11px] font-bold text-white\">Test the Live Gemini AI Auto-Responder on Facebook:</span>'"
+        "+'<span class=\"text-[11px] font-bold text-white\">Test the Live Gemini AI Auto-Responder on '+c.platform_label+':</span>'"
         "+'</div>'"
         "+'<p class=\"text-[11px] text-slate-300 leading-relaxed\">'"
-        "+'Click <span class=\"text-emerald-300 font-semibold\">Comment on Actual Facebook Post</span> to leave a comment using your own Facebook account and watch your comment + <span class=\"text-gb-cyan font-semibold\">GlennBot Automations AI</span> reply sync here automatically every 5 seconds!'"
+        "+'Click <span class=\"text-emerald-300 font-semibold\">'+c.cta_short_label+'</span> to leave a comment using your own '+c.platform_label+' account and watch your comment + <span class=\"text-gb-cyan font-semibold\">GlennBot Automations AI</span> reply sync here automatically every 5 seconds!'"
         "+'</p>'"
         "+'</div>'"
         "+'<div class=\"flex items-center gap-2 shrink-0\">'"
-        "+'<a id=\"gb-btn-open-actual-fb-post\" href=\"'+SAVVY_PERMALINK+'\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"px-3 py-2 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-emerald-500/35 to-cyan-500/35 hover:from-emerald-500/55 hover:to-cyan-500/55 border border-emerald-400/70 shadow-[0_0_15px_rgba(16,185,129,0.28)] flex items-center gap-1.5 transition-all whitespace-nowrap\">'"
-        "+'<i class=\"fab fa-facebook text-gb-cyan\"></i> <span>Comment on Actual Facebook Post &#8599;</span>'"
+        "+'<a id=\"gb-btn-open-actual-fb-post\" href=\"'+c.permalink_url+'\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"px-3 py-2 rounded-lg text-xs font-bold text-white bg-gradient-to-r from-emerald-500/35 to-cyan-500/35 hover:from-emerald-500/55 hover:to-cyan-500/55 border border-emerald-400/70 shadow-[0_0_15px_rgba(16,185,129,0.28)] flex items-center gap-1.5 transition-all whitespace-nowrap\">'"
+        "+'<i class=\"'+c.cta_icon+'\"></i> <span>'+c.cta_label+'</span>'"
         "+'</a>'"
         "+'<button type=\"button\" id=\"gb-btn-manual-sync-now\" class=\"px-2.5 py-2 rounded-lg text-[11px] font-semibold text-slate-200 bg-slate-800/90 hover:bg-slate-700 border border-slate-600 flex items-center gap-1 transition-all whitespace-nowrap\" title=\"Force immediate comment sync\">'"
         "+'<i id=\"gb-manual-sync-icon\" class=\"fas fa-sync-alt text-gb-cyan\"></i> <span>Sync Now</span>'"
@@ -1173,45 +1246,47 @@ def _build_calendar_lock_body_script() -> str:
         "syncNowBtn.addEventListener('click',function(){_runSavvyLiveAutoSync(true);});"
         "}"
         "}"
-        "function _renderSavvyZeroCommentsCard(){"
+        "function _renderSavvyZeroCommentsCard(explicitRecId){"
         "var panel=document.getElementById('comment-detail-panel');"
         "if(!panel)return;"
-        "panel.dataset.recordId=SAVVY_RECORD_ID;"
+        "var cfg=_getActiveShowcaseConfig(explicitRecId)||SHOWCASE_POSTS['post_ext_dc6a96869a'];"
+        "panel.dataset.recordId=cfg.record_id;"
         "panel.dataset.savvyEmptyState='1';"
-        "if(!document.getElementById('gb-savvy-zero-comments-box')){"
+        "var existingZeroBox=document.getElementById('gb-savvy-zero-comments-box');"
+        "if(!existingZeroBox||existingZeroBox.dataset.recordId!==cfg.record_id){"
         "panel.innerHTML="
         "'<div class=\"flex flex-col h-full justify-between gap-3\">'"
         "+'<div class=\"space-y-3 overflow-y-auto pr-1 max-h-[760px] custom-scrollbar\">'"
         "+'<div class=\"flex items-center justify-between gap-2 pb-2.5 border-b border-slate-700/70 flex-wrap\">'"
         "+'<div class=\"flex items-center gap-2 flex-wrap\">'"
-        "+'<span class=\"inline-flex items-center gap-1.5 text-xs font-bold text-blue-400\"><i class=\"fab fa-facebook\"></i> <span>Facebook</span></span>'"
+        "+'<span class=\"inline-flex items-center gap-1.5 text-xs font-bold '+cfg.platform_badge_cls+'\"><i class=\"'+cfg.platform_icon+'\"></i> <span>'+cfg.platform_label+'</span></span>'"
         "+'<span class=\"text-slate-600\">&bull;</span>'"
-        "+'<span class=\"text-xs font-bold text-white\">GlennBot Automations</span>'"
-        "+'<span class=\"px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700\"><i class=\"fas fa-align-left mr-1 text-gb-cyan\"></i>Text Post</span>'"
+        "+'<span class=\"text-xs font-bold text-white\">'+cfg.account_name+'</span>'"
+        "+'<span class=\"px-2 py-0.5 rounded-md text-[10px] font-semibold bg-slate-800 text-slate-300 border border-slate-700\"><i class=\"'+cfg.post_type_icon+' mr-1 text-gb-cyan\"></i>'+cfg.post_type_label+'</span>'"
         "+'<span class=\"px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/15 text-purple-300 border border-purple-500/40\"><i class=\"fas fa-bolt mr-1\"></i>External API Reply</span>'"
         "+'</div>'"
         "+'<div class=\"flex items-center gap-1.5\">'"
-        "+'<a href=\"'+SAVVY_PERMALINK+'\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-gb-cyan/15 hover:bg-gb-cyan/25 text-gb-cyan border border-gb-cyan/40 flex items-center gap-1.5 transition-all\">'"
+        "+'<a href=\"'+cfg.permalink_url+'\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-gb-cyan/15 hover:bg-gb-cyan/25 text-gb-cyan border border-gb-cyan/40 flex items-center gap-1.5 transition-all\">'"
         "+'<i class=\"fas fa-external-link-alt text-[10px]\"></i> <span>Open Actual Post</span>'"
         "+'</a>'"
         "+'</div>'"
         "+'</div>'"
         "+'<div class=\"p-3 rounded-xl bg-slate-900/70 border border-slate-800/90\">'"
         "+'<div class=\"text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-1\">Original Post Caption</div>'"
-        "+'<p class=\"text-xs text-slate-200 whitespace-pre-wrap leading-relaxed\">'+SAVVY_CAPTION+'</p>'"
+        "+'<p class=\"text-xs text-slate-200 whitespace-pre-wrap leading-relaxed\">'+cfg.caption+'</p>'"
         "+'</div>'"
         "+'<div id=\"gb-savvy-live-fb-test-cta\" class=\"p-3 rounded-xl border border-emerald-400/50 bg-gradient-to-r from-emerald-950/80 via-slate-900/90 to-cyan-950/80 shadow-[0_0_20px_rgba(16,185,129,0.18)] flex flex-col sm:flex-row sm:items-center justify-between gap-3\">'"
-        "+_buildSavvyCtaHtml()"
+        "+_buildSavvyCtaHtml(cfg)"
         "+'</div>'"
         "+'<div class=\"space-y-2\">'"
         "+'<div class=\"flex items-center justify-between\">'"
         "+'<span id=\"post-comments-count-label\" class=\"text-[11px] font-bold uppercase tracking-wider text-gb-cyan flex items-center gap-1.5\"><i class=\"fas fa-comments\"></i> Comments on This Post (0)</span>'"
         "+'</div>'"
         "+'<div id=\"post-comments-thread-list\" class=\"space-y-2.5\">'"
-        "+'<div id=\"gb-savvy-zero-comments-box\" class=\"p-6 rounded-xl bg-slate-900/60 border border-slate-800/90 text-center space-y-2\">'"
+        "+'<div id=\"gb-savvy-zero-comments-box\" data-record-id=\"'+cfg.record_id+'\" class=\"p-6 rounded-xl bg-slate-900/60 border border-slate-800/90 text-center space-y-2\">'"
         "+'<div class=\"w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-400/30 flex items-center justify-center mx-auto text-emerald-300\"><i class=\"fas fa-comment-slash\"></i></div>'"
         "+'<p class=\"text-xs font-semibold text-slate-200\">No comments on this post yet.</p>'"
-        "+'<p class=\"text-[11px] text-slate-400 max-w-xl mx-auto leading-relaxed\">Click <span class=\"text-emerald-300 font-semibold\">Comment on Actual Facebook Post &#8599;</span> above to drop a comment on Facebook and watch GlennBot Automations\\x27 Gemini AI reply appear here automatically!</p>'"
+        "+'<p class=\"text-[11px] text-slate-400 max-w-xl mx-auto leading-relaxed\">Click <span class=\"text-emerald-300 font-semibold\">'+cfg.cta_label+'</span> above to drop a comment on '+cfg.platform_label+' and watch GlennBot Automations\\x27 Gemini AI reply appear here automatically!</p>'"
         "+'</div>'"
         "+'</div>'"
         "+'</div>'"
@@ -1220,16 +1295,39 @@ def _build_calendar_lock_body_script() -> str:
         "}"
         "_bindSavvySyncNowBtn();"
         "}"
-        "function _injectSavvyLiveFbTestCta(){"
+        "function _replacePreviousPostCaptionInDom(panel,cfg){"
+        "if(!panel||!cfg)return;"
+        "panel.querySelectorAll('p, div, span').forEach(function(el){"
+        "if(el.children&&el.children.length>0)return;"
+        "var txt=String(el.textContent||'').trim();"
+        "if(txt.toLowerCase()==='previous post'||txt.toLowerCase()==='no caption available'||txt.toLowerCase()==='(no caption)'){"
+        "el.textContent=cfg.caption;"
+        "}"
+        "});"
+        "}"
+        "function _injectSavvyLiveFbTestCta(explicitRecId){"
         "var panel=document.getElementById('comment-detail-panel');"
         "if(!panel)return;"
-        "panel.querySelectorAll('a[href*=\"122118104811500702\"]').forEach(function(a){"
-        "a.setAttribute('href',SAVVY_PERMALINK);"
+        "var cfg=_getActiveShowcaseConfig(explicitRecId)||SHOWCASE_POSTS['post_ext_dc6a96869a'];"
+        "_replacePreviousPostCaptionInDom(panel,cfg);"
+        "panel.querySelectorAll('a').forEach(function(a){"
+        "var hr=String(a.getAttribute('href')||'');"
+        "var txt=String(a.textContent||'');"
+        "if(hr.indexOf(cfg.short_post_id)!==-1||hr.indexOf(cfg.external_post_id)!==-1||hr.indexOf('DfkfvyEvx3b')!==-1||txt.indexOf('Open Actual Post')!==-1){"
+        "a.setAttribute('href',cfg.permalink_url);"
         "a.setAttribute('target','_blank');"
         "a.setAttribute('rel','noopener noreferrer');"
+        "}"
         "});"
         "var existingCta=document.getElementById('gb-savvy-live-fb-test-cta');"
-        "if(existingCta){_bindSavvySyncNowBtn();return;}"
+        "if(existingCta){"
+        "if(existingCta.dataset.recordId!==cfg.record_id){"
+        "existingCta.dataset.recordId=cfg.record_id;"
+        "existingCta.innerHTML=_buildSavvyCtaHtml(cfg);"
+        "}"
+        "_bindSavvySyncNowBtn();"
+        "return;"
+        "}"
         "var countLabel=document.getElementById('post-comments-count-label');"
         "var commentsSection=(countLabel&&countLabel.parentElement)?countLabel.parentElement.parentElement:null;"
         "if(!commentsSection)return;"
@@ -1239,45 +1337,77 @@ def _build_calendar_lock_body_script() -> str:
         "});"
         "var cta=document.createElement('div');"
         "cta.id='gb-savvy-live-fb-test-cta';"
+        "cta.dataset.recordId=cfg.record_id;"
         "cta.className='p-3 rounded-xl border border-emerald-400/50 bg-gradient-to-r from-emerald-950/80 via-slate-900/90 to-cyan-950/80 shadow-[0_0_20px_rgba(16,185,129,0.18)] flex flex-col sm:flex-row sm:items-center justify-between gap-3';"
-        "cta.innerHTML=_buildSavvyCtaHtml();"
+        "cta.innerHTML=_buildSavvyCtaHtml(cfg);"
         "if(commentsSection.parentElement){"
         "commentsSection.parentElement.insertBefore(cta,commentsSection);"
         "_bindSavvySyncNowBtn();"
         "}"
         "}"
-        "function _customizeSavvyFindsComposer(){"
-        "if(!_isSavvyFindsActive())return;"
-        "if(typeof livePostDetailsCache!=='undefined'&&livePostDetailsCache&&!livePostDetailsCache[SAVVY_RECORD_ID]){"
-        "livePostDetailsCache[SAVVY_RECORD_ID]={"
-        "record_id:SAVVY_RECORD_ID,platform:'facebook',account_name:'GlennBot Automations',post_type:'text',"
-        "caption:SAVVY_CAPTION,"
-        "external_post_id:'1340688402467466_122118104811500702',"
-        "permalink_url:SAVVY_PERMALINK,"
-        "video_url:'',thumbnail_url:'',images:[],fallback_preview_url:''"
-        "};"
+        "function _ensureShowcaseLivePostDetailsCache(){"
+        "if(typeof livePostDetailsCache==='undefined'||!livePostDetailsCache)return;"
+        "Object.keys(SHOWCASE_POSTS).forEach(function(recKey){"
+        "var cfg=SHOWCASE_POSTS[recKey];"
+        "var existing=livePostDetailsCache[recKey]||{};"
+        "var curCap=String(existing.caption||existing.post_caption||'').trim();"
+        "var useCap=(!curCap||curCap.toLowerCase()==='previous post'||curCap.indexOf('Previous Post')!==-1)?cfg.caption:curCap;"
+        "livePostDetailsCache[recKey]=Object.assign({},existing,{"
+        "record_id:cfg.record_id,"
+        "platform:cfg.platform,"
+        "account_name:cfg.account_name,"
+        "post_type:cfg.post_type,"
+        "caption:useCap,"
+        "post_caption:useCap,"
+        "caption_text:useCap,"
+        "external_post_id:cfg.external_post_id,"
+        "permalink_url:cfg.permalink_url,"
+        "post_permalink:cfg.permalink_url,"
+        "video_url:existing.video_url||'',"
+        "thumbnail_url:existing.thumbnail_url||'',"
+        "images:Array.isArray(existing.images)?existing.images:[],"
+        "fallback_preview_url:existing.fallback_preview_url||''"
+        "});"
+        "});"
         "}"
+        "function _customizeSavvyFindsComposer(explicitRecId){"
+        "var cfg=_getActiveShowcaseConfig(explicitRecId);"
+        "if(!cfg)return;"
+        "_ensureShowcaseLivePostDetailsCache();"
         "_removeBottomComposerDom();"
-        "var grp=_getSavvyCommentsGroup();"
+        "var grp=_getSavvyCommentsGroup(cfg.record_id);"
         "if(grp.length===0){"
-        "_renderSavvyZeroCommentsCard();"
+        "_renderSavvyZeroCommentsCard(cfg.record_id);"
         "}else{"
-        "_injectSavvyLiveFbTestCta();"
+        "_injectSavvyLiveFbTestCta(cfg.record_id);"
         "}"
         "_removeBottomComposerDom();"
         "_ensureSavvyFiveSecMonitor();"
         "}"
         "function _normalizeVisitorRepliesOnClient(){"
+        "_ensureShowcaseLivePostDetailsCache();"
         "if(typeof commentsList==='undefined'||!Array.isArray(commentsList))return;"
         "for(var i=commentsList.length-1;i>=0;i--){"
         "if(_isBlockedSyntheticEntry(commentsList[i])){commentsList.splice(i,1);}"
         "}"
         "commentsList.forEach(function(c){"
-        "if(!_isSavvyPostCommentObj(c))return;"
-        "c.record_id=SAVVY_RECORD_ID;"
-        "c.post_permalink=SAVVY_PERMALINK;"
-        "c.comment_permalink=SAVVY_PERMALINK;"
-        "c.post_type='text';"
+        "var cfg=_matchShowcaseConfigForComment(c);"
+        "if(!cfg)return;"
+        "c.record_id=cfg.record_id;"
+        "c.platform=cfg.platform;"
+        "c.account_name=cfg.account_name;"
+        "c.post_permalink=cfg.permalink_url;"
+        "c.comment_permalink=cfg.permalink_url;"
+        "c.external_post_id=cfg.external_post_id;"
+        "c.post_type=cfg.post_type;"
+        "var rawCap=String(c.post_caption||c.caption||'').trim();"
+        "if(!rawCap||rawCap.toLowerCase()==='previous post'||rawCap.indexOf('Previous Post')!==-1){"
+        "c.post_caption=cfg.caption;"
+        "c.caption=cfg.caption;"
+        "}else{"
+        "c.post_caption=cfg.caption;"
+        "c.caption=cfg.caption;"
+        "}"
         "c.can_reply=true;"
         "if(Array.isArray(c.replies)){"
         "c.replies=c.replies.filter(function(r){return !_isBlockedSyntheticEntry(r);});"
@@ -1285,7 +1415,8 @@ def _build_calendar_lock_body_script() -> str:
         "});"
         "}"
         "async function _runSavvyLiveAutoSync(isManual){"
-        "if(!_isSavvyFindsActive())return;"
+        "var cfg=_getActiveShowcaseConfig();"
+        "if(!cfg)return;"
         "if(window.__gbSavvySyncInFlight&&!isManual)return;"
         "window.__gbSavvySyncInFlight=true;"
         "var syncIcon=document.getElementById('gb-manual-sync-icon');"
@@ -1296,17 +1427,17 @@ def _build_calendar_lock_body_script() -> str:
         "await window.fetchComments(Boolean(isManual));"
         "}"
         "_normalizeVisitorRepliesOnClient();"
-        "var grp=_getSavvyCommentsGroup();"
+        "var grp=_getSavvyCommentsGroup(cfg.record_id);"
         "var panel=document.getElementById('comment-detail-panel');"
         "if(grp.length===0){"
-        "_renderSavvyZeroCommentsCard();"
+        "_renderSavvyZeroCommentsCard(cfg.record_id);"
         "}else if(panel&&panel.dataset&&panel.dataset.savvyEmptyState==='1'&&typeof window.renderSelectedCommentDetail==='function'){"
         "panel.dataset.savvyEmptyState='0';"
-        "await window.renderSelectedCommentDetail(SAVVY_RECORD_ID,false);"
+        "await window.renderSelectedCommentDetail(cfg.record_id,false);"
         "}else if(typeof window.syncOpenPostThreadLive==='function'){"
-        "window.syncOpenPostThreadLive(SAVVY_RECORD_ID);"
+        "window.syncOpenPostThreadLive(cfg.record_id);"
         "}"
-        "_customizeSavvyFindsComposer();"
+        "_customizeSavvyFindsComposer(cfg.record_id);"
         "var badgeEl=document.getElementById('gb-savvy-autosync-badge');"
         "if(badgeEl){"
         "var nowStr=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit',second:'2-digit'});"
@@ -1326,6 +1457,7 @@ def _build_calendar_lock_body_script() -> str:
         "},5000);"
         "}"
         "function _lockCalendarDomAndFns(){"
+        "_ensureShowcaseLivePostDetailsCache();"
         "var hEl=document.getElementById('calendar-main-heading');"
         "if(hEl&&hEl.textContent!==HEADING_TEXT){hEl.textContent=HEADING_TEXT;}"
         "var sEl=document.getElementById('calendar-main-subheading');"
@@ -1365,19 +1497,20 @@ def _build_calendar_lock_body_script() -> str:
         "var origRenderDetail=curRenderDetail;"
         "var wrappedRenderDetail=async function(recId,fetchFresh){"
         "_normalizeVisitorRepliesOnClient();"
-        "if((recId===SAVVY_RECORD_ID||_isSavvyFindsActive())&&_getSavvyCommentsGroup().length===0){"
-        "_renderSavvyZeroCommentsCard();"
+        "var targetCfg=_getActiveShowcaseConfig(recId);"
+        "if(targetCfg&&_getSavvyCommentsGroup(targetCfg.record_id).length===0){"
+        "_renderSavvyZeroCommentsCard(targetCfg.record_id);"
         "_ensureSavvyFiveSecMonitor();"
         "return;"
         "}"
         "var panel=document.getElementById('comment-detail-panel');"
         "if(panel&&panel.dataset)panel.dataset.savvyEmptyState='0';"
         "var useFresh=fetchFresh;"
-        "if(recId===SAVVY_RECORD_ID&&typeof livePostDetailsCache!=='undefined'&&livePostDetailsCache&&livePostDetailsCache[SAVVY_RECORD_ID]){"
+        "if(targetCfg&&typeof livePostDetailsCache!=='undefined'&&livePostDetailsCache&&livePostDetailsCache[targetCfg.record_id]){"
         "useFresh=false;"
         "}"
         "var res=await origRenderDetail.call(this,recId,useFresh);"
-        "_customizeSavvyFindsComposer();"
+        "if(targetCfg)_customizeSavvyFindsComposer(targetCfg.record_id);"
         "return res;"
         "};"
         "wrappedRenderDetail._gbSavvyWrapped=true;"
@@ -1388,18 +1521,19 @@ def _build_calendar_lock_body_script() -> str:
         "var origSyncLive=curSyncLive;"
         "var wrappedSyncLive=function(recId){"
         "_normalizeVisitorRepliesOnClient();"
-        "if((recId===SAVVY_RECORD_ID||_isSavvyFindsActive())&&_getSavvyCommentsGroup().length===0){"
-        "_renderSavvyZeroCommentsCard();"
+        "var targetCfg=_getActiveShowcaseConfig(recId);"
+        "if(targetCfg&&_getSavvyCommentsGroup(targetCfg.record_id).length===0){"
+        "_renderSavvyZeroCommentsCard(targetCfg.record_id);"
         "return;"
         "}"
         "var panel=document.getElementById('comment-detail-panel');"
-        "if(panel&&panel.dataset&&panel.dataset.savvyEmptyState==='1'&&typeof window.renderSelectedCommentDetail==='function'){"
+        "if(targetCfg&&panel&&panel.dataset&&panel.dataset.savvyEmptyState==='1'&&typeof window.renderSelectedCommentDetail==='function'){"
         "panel.dataset.savvyEmptyState='0';"
-        "window.renderSelectedCommentDetail(SAVVY_RECORD_ID,false);"
+        "window.renderSelectedCommentDetail(targetCfg.record_id,false);"
         "return;"
         "}"
         "var r=origSyncLive.apply(this,arguments);"
-        "_customizeSavvyFindsComposer();"
+        "if(targetCfg)_customizeSavvyFindsComposer(targetCfg.record_id);"
         "return r;"
         "};"
         "wrappedSyncLive._gbSavvyWrapped=true;"
@@ -1409,40 +1543,43 @@ def _build_calendar_lock_body_script() -> str:
         "if(typeof curFetchComments==='function'&&!curFetchComments._gbSavvyWrapped){"
         "var origFetchComments=curFetchComments;"
         "var wrappedFetchComments=async function(showFeedback){"
-        "if(_isSavvyFindsActive()&&typeof selectedRecordId!=='undefined'){"
-        "selectedRecordId=SAVVY_RECORD_ID;"
+        "var activeCfg=_getActiveShowcaseConfig();"
+        "if(activeCfg&&typeof selectedRecordId!=='undefined'){"
+        "selectedRecordId=activeCfg.record_id;"
         "}"
         "var r=await origFetchComments.apply(this,arguments);"
-        "if(_isSavvyFindsActive()){"
+        "var postFetchCfg=_getActiveShowcaseConfig();"
+        "if(postFetchCfg){"
         "_normalizeVisitorRepliesOnClient();"
-        "if(typeof selectedRecordId!=='undefined')selectedRecordId=SAVVY_RECORD_ID;"
-        "var grp=_getSavvyCommentsGroup();"
+        "if(typeof selectedRecordId!=='undefined')selectedRecordId=postFetchCfg.record_id;"
+        "var grp=_getSavvyCommentsGroup(postFetchCfg.record_id);"
         "var panel=document.getElementById('comment-detail-panel');"
         "if(grp.length===0){"
-        "_renderSavvyZeroCommentsCard();"
+        "_renderSavvyZeroCommentsCard(postFetchCfg.record_id);"
         "}else if((panel&&panel.dataset&&panel.dataset.savvyEmptyState==='1')||!document.getElementById('post-comments-thread-list')){"
         "if(panel&&panel.dataset)panel.dataset.savvyEmptyState='0';"
         "if(typeof window.renderSelectedCommentDetail==='function'){"
-        "await window.renderSelectedCommentDetail(SAVVY_RECORD_ID,false);"
+        "await window.renderSelectedCommentDetail(postFetchCfg.record_id,false);"
         "}"
         "}else if(typeof window.syncOpenPostThreadLive==='function'){"
-        "window.syncOpenPostThreadLive(SAVVY_RECORD_ID);"
+        "window.syncOpenPostThreadLive(postFetchCfg.record_id);"
         "}"
-        "_customizeSavvyFindsComposer();"
+        "_customizeSavvyFindsComposer(postFetchCfg.record_id);"
         "}"
         "return r;"
         "};"
         "wrappedFetchComments._gbSavvyWrapped=true;"
         "window.fetchComments=wrappedFetchComments;"
         "}"
-        "if(_isSavvyFindsActive()){"
-        "if(typeof selectedRecordId!=='undefined')selectedRecordId=SAVVY_RECORD_ID;"
+        "var initCfg=_getActiveShowcaseConfig();"
+        "if(initCfg){"
+        "if(typeof selectedRecordId!=='undefined')selectedRecordId=initCfg.record_id;"
         "_normalizeVisitorRepliesOnClient();"
-        "var grpInit=_getSavvyCommentsGroup();"
+        "var grpInit=_getSavvyCommentsGroup(initCfg.record_id);"
         "if(grpInit.length===0){"
-        "_renderSavvyZeroCommentsCard();"
+        "_renderSavvyZeroCommentsCard(initCfg.record_id);"
         "}else if(!document.getElementById('post-comments-thread-list')&&typeof window.renderSelectedCommentDetail==='function'){"
-        "window.renderSelectedCommentDetail(SAVVY_RECORD_ID,false);"
+        "window.renderSelectedCommentDetail(initCfg.record_id,false);"
         "}"
         "_ensureSavvyFiveSecMonitor();"
         "}"
@@ -1457,7 +1594,12 @@ def _build_calendar_lock_body_script() -> str:
         "try{"
         "var obsTarget=document.getElementById('comment-detail-panel')||document.body;"
         "if(obsTarget&&typeof MutationObserver!=='undefined'){"
-        "var mo=new MutationObserver(function(){_removeBottomComposerDom();});"
+        "var mo=new MutationObserver(function(){"
+        "_removeBottomComposerDom();"
+        "var activeCfg=_getActiveShowcaseConfig();"
+        "var panel=document.getElementById('comment-detail-panel');"
+        "if(activeCfg&&panel)_replacePreviousPostCaptionInDom(panel,activeCfg);"
+        "});"
         "mo.observe(obsTarget,{childList:true,subtree:true});"
         "}"
         "}catch(_){}"
@@ -2018,6 +2160,35 @@ def _filter_connected_accounts_payload(raw_data: dict | None) -> dict:
     return {"status": "success", "accounts": filtered_accounts}
 
 
+SHARED_SHOWCASE_CAPTION = (
+    "Hello future clients! Feel free to leave a comment on this sample post, and this AI-powered chatbot "
+    "(powered by Gemini) will instantly answer any questions you have about my background, skills, and services. "
+    "Everything you need to know about me is already loaded into its knowledge base. Go ahead and test it out—drop a comment below!"
+)
+
+SHOWCASE_POST_CONFIGS: dict[str, dict[str, str]] = {
+    "post_ext_dc6a96869a": {
+        "record_id": "post_ext_dc6a96869a",
+        "platform": "facebook",
+        "account_name": "GlennBot Automations",
+        "post_type": "text",
+        "external_post_id": "1340688402467466_122118104811500702",
+        "short_post_id": "122118104811500702",
+        "permalink_url": "https://www.facebook.com/1340688402467466/posts/122118104811500702",
+        "caption": SHARED_SHOWCASE_CAPTION,
+    },
+    "post_ext_b10078462e": {
+        "record_id": "post_ext_b10078462e",
+        "platform": "instagram",
+        "account_name": "GlennBot Automations",
+        "post_type": "image",
+        "external_post_id": "17956773894039696",
+        "short_post_id": "17956773894039696",
+        "permalink_url": "https://www.instagram.com/p/DfkfvyEvx3b/",
+        "caption": SHARED_SHOWCASE_CAPTION,
+    },
+}
+
 SAVVY_FINDS_FB_POST_ID = "122118104811500702"
 SAVVY_FINDS_CANONICAL_RECORD_ID = "post_ext_dc6a96869a"
 SAVVY_FINDS_PERMALINK = "https://www.facebook.com/1340688402467466/posts/122118104811500702"
@@ -2045,12 +2216,12 @@ def _is_synthetic_blocked_comment(obj: dict) -> bool:
     return False
 
 
-def _is_savvy_finds_target_post_comment(item: dict) -> bool:
+def _match_showcase_post_config_for_comment(item: dict) -> dict[str, str] | None:
     if not isinstance(item, dict):
-        return False
+        return None
     rec_id = str(item.get("record_id") or "").strip()
-    if rec_id == SAVVY_FINDS_CANONICAL_RECORD_ID:
-        return True
+    if rec_id in SHOWCASE_POST_CONFIGS:
+        return SHOWCASE_POST_CONFIGS[rec_id]
     id_fields = (
         str(item.get("comment_id") or ""),
         str(item.get("external_post_id") or ""),
@@ -2059,25 +2230,30 @@ def _is_savvy_finds_target_post_comment(item: dict) -> bool:
         str(item.get("comment_permalink") or ""),
     )
     if any(
-        (SAVVY_FINDS_FB_POST_ID in f or _SAVVY_FINDS_ZERNIO_POST_ID in f)
+        ("122118104811500702" in f or "1340688402467466_122118104811500702" in f)
         for f in id_fields
     ):
-        return True
-    return False
+        return SHOWCASE_POST_CONFIGS["post_ext_dc6a96869a"]
+    if any(
+        ("17956773894039696" in f or "DfkfvyEvx3b" in f or "18198560143393683" in f)
+        for f in id_fields
+    ):
+        return SHOWCASE_POST_CONFIGS["post_ext_b10078462e"]
+    return None
 
 
-def _normalize_savvy_finds_comment_item(item: dict) -> dict:
+def _normalize_showcase_comment_item(item: dict, cfg: dict[str, str]) -> dict:
     norm_item = dict(item)
-    upstream_rec = str(norm_item.get("record_id") or "").strip()
-    if upstream_rec and upstream_rec != SAVVY_FINDS_CANONICAL_RECORD_ID:
-        _SAVVY_FINDS_UPSTREAM_RECORD_ID_State["record_id"] = upstream_rec
-    norm_item["record_id"] = SAVVY_FINDS_CANONICAL_RECORD_ID
-    norm_item["post_permalink"] = SAVVY_FINDS_PERMALINK
-    norm_item["comment_permalink"] = SAVVY_FINDS_PERMALINK
-    norm_item["external_post_id"] = _SAVVY_FINDS_ZERNIO_POST_ID
-    norm_item["zernio_post_id"] = _SAVVY_FINDS_ZERNIO_POST_ID
-    norm_item["account_name"] = "GlennBot Automations"
-    norm_item["post_type"] = "text"
+    norm_item["record_id"] = cfg["record_id"]
+    norm_item["platform"] = cfg["platform"]
+    norm_item["post_permalink"] = cfg["permalink_url"]
+    norm_item["comment_permalink"] = cfg["permalink_url"]
+    norm_item["external_post_id"] = cfg["external_post_id"]
+    norm_item["zernio_post_id"] = cfg["external_post_id"]
+    norm_item["account_name"] = cfg["account_name"]
+    norm_item["post_type"] = cfg["post_type"]
+    norm_item["post_caption"] = cfg["caption"]
+    norm_item["caption"] = cfg["caption"]
     norm_item["can_reply"] = True
 
     raw_replies = list(norm_item.get("replies") or [])
@@ -2092,7 +2268,7 @@ def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> di
     Ensures Queue (/api/scheduled), Calendar, Comments (/api/comments),
     Messages (/api/messages/conversations), Analytics (/api/analytics), and
     OAuth Discover endpoints only surface the 4 whitelisted social accounts
-    (plus any currently existing real comments on GlennBot Automations post 122118104811500702).
+    (plus any currently existing real comments on the Facebook and Instagram showcase posts).
     """
     if not isinstance(data, dict):
         return data
@@ -2123,8 +2299,9 @@ def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> di
                 continue
             if _is_synthetic_blocked_comment(item):
                 continue
-            if _is_savvy_finds_target_post_comment(item):
-                kept.append(_normalize_savvy_finds_comment_item(item))
+            matched_cfg = _match_showcase_post_config_for_comment(item)
+            if matched_cfg is not None:
+                kept.append(_normalize_showcase_comment_item(item, matched_cfg))
                 continue
             plat = str(item.get("platform") or "").strip().lower()
             if _matches_whitelisted_portfolio_account(plat, item):
@@ -2268,31 +2445,32 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
             status_code=403,
         )
 
-    # Fast cached response for GlennBot Automations sample post live_details so polling never flashes a loading spinner
-    if method_upper == "GET" and clean_path == f"posts/{_SAVVY_FINDS_RECORD_ID}/live_details":
-        return JSONResponse(
-            content={
-                "status": "success",
-                "details": {
-                    "record_id": _SAVVY_FINDS_RECORD_ID,
-                    "platform": "facebook",
-                    "account_name": "GlennBot Automations",
-                    "post_type": "text",
-                    "caption": (
-                        "Hello future clients! Feel free to leave a comment on this sample post, and this AI-powered chatbot "
-                        "(powered by Gemini) will instantly answer any questions you have about my background, skills, and services. "
-                        "Everything you need to know about me is already loaded into its knowledge base. Go ahead and test it out—drop a comment below!"
-                    ),
-                    "external_post_id": _SAVVY_FINDS_ZERNIO_POST_ID,
-                    "permalink_url": SAVVY_FINDS_PERMALINK,
-                    "video_url": "",
-                    "thumbnail_url": "",
-                    "images": [],
-                    "fallback_preview_url": "",
+    # Fast cached response for GlennBot Automations Facebook & Instagram sample posts live_details
+    if method_upper == "GET" and clean_path.startswith("posts/") and clean_path.endswith("/live_details"):
+        parts = clean_path.split("/")
+        req_rec_id = parts[1] if len(parts) >= 3 else ""
+        if req_rec_id in SHOWCASE_POST_CONFIGS:
+            cfg = SHOWCASE_POST_CONFIGS[req_rec_id]
+            return JSONResponse(
+                content={
+                    "status": "success",
+                    "details": {
+                        "record_id": cfg["record_id"],
+                        "platform": cfg["platform"],
+                        "account_name": cfg["account_name"],
+                        "post_type": cfg["post_type"],
+                        "caption": cfg["caption"],
+                        "post_caption": cfg["caption"],
+                        "external_post_id": cfg["external_post_id"],
+                        "permalink_url": cfg["permalink_url"],
+                        "video_url": "",
+                        "thumbnail_url": "",
+                        "images": [],
+                        "fallback_preview_url": "",
+                    },
                 },
-            },
-            status_code=200,
-        )
+                status_code=200,
+            )
 
     # Fast cached path for GET /api/social/accounts & GET /api/connected_accounts
     # if we already populated _PORTFOLIO_ACCOUNTS_RUNTIME_CACHE recently
@@ -2311,32 +2489,35 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
 
     target_url = f"{GLENNBOT_BASE_URL}/api/{path.lstrip('/')}"
     if clean_path == "comments" and method_upper == "GET":
-        # Strip slow force=true from synchronous request so 5s polling always completes in ~2s,
-        # pass a cache-busting _ts parameter so upstream never returns stale deleted comments,
-        # and trigger a non-blocking background Zernio sync on the upstream Savvy Finds record_id.
-        upstream_rec_id = str(_SAVVY_FINDS_UPSTREAM_RECORD_ID_State.get("record_id") or "post_ext_b158973506")
+        req_active_rec = (request.query_params.get("active_record_id") or "").strip()
+        upstream_rec_id = (
+            req_active_rec
+            if req_active_rec in SHOWCASE_POST_CONFIGS
+            else str(_SAVVY_FINDS_UPSTREAM_RECORD_ID_State.get("record_id") or "post_ext_dc6a96869a")
+        )
         last_bg_ts = float(_SAVVY_FINDS_UPSTREAM_RECORD_ID_State.get("last_bg_sync_ts") or 0.0)
         ts_ms = int(time.time() * 1000)
         if (request.query_params.get("force") == "true") and (time.time() - last_bg_ts >= 8.0):
             _SAVVY_FINDS_UPSTREAM_RECORD_ID_State["last_bg_sync_ts"] = time.time()
 
-            async def _bg_force_sync_savvy() -> None:
+            async def _bg_force_sync_showcase() -> None:
                 try:
-                    bg_url = f"{GLENNBOT_BASE_URL}/api/comments?force=true&active_record_id={upstream_rec_id}&_ts={ts_ms}"
                     async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as bg_client:
-                        await bg_client.get(
-                            bg_url,
-                            headers={
-                                **get_glennbot_headers(session_token),
-                                "Cache-Control": "no-cache, no-store",
-                                "Pragma": "no-cache",
-                            },
-                            cookies={"gb_auth_session": session_token},
-                        )
+                        for showcase_rec in ("post_ext_dc6a96869a", "post_ext_b10078462e"):
+                            bg_url = f"{GLENNBOT_BASE_URL}/api/comments?force=true&active_record_id={showcase_rec}&_ts={ts_ms}"
+                            await bg_client.get(
+                                bg_url,
+                                headers={
+                                    **get_glennbot_headers(session_token),
+                                    "Cache-Control": "no-cache, no-store",
+                                    "Pragma": "no-cache",
+                                },
+                                cookies={"gb_auth_session": session_token},
+                            )
                 except Exception:
                     pass
 
-            asyncio.create_task(_bg_force_sync_savvy())
+            asyncio.create_task(_bg_force_sync_showcase())
 
         target_url = f"{GLENNBOT_BASE_URL}/api/comments?active_record_id={upstream_rec_id}&_ts={ts_ms}"
     elif request.url.query:

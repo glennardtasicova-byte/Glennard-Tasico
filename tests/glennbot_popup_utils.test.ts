@@ -195,14 +195,22 @@ test("SYS01_PROJECT_SPEC and formatInlineMarkdown match production GlennBot Auto
   );
 });
 
-test("SYS-02 GlennBot Automations comment thread whitelisting, canonical post ID resolution, synthetic filtering, and role-reversal webhook payload", () => {
+test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous Post caption replacement, and role-reversal webhook payload", () => {
   assert.equal(
     SYS02_SAVVY_FINDS_COMMENT_DEMO.popupUrl,
     "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023"
   );
   assert.equal(
     SYS02_SAVVY_FINDS_COMMENT_DEMO.popupWindowName,
-    "GlennBotCommentThread_GlennBotAutomations"
+    "GlennBotCommentThread_FB"
+  );
+  assert.equal(
+    SYS02_SAVVY_FINDS_COMMENT_DEMO.igPopupUrl,
+    "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683"
+  );
+  assert.equal(
+    SYS02_SAVVY_FINDS_COMMENT_DEMO.igPopupWindowName,
+    "GlennBotCommentThread_IG"
   );
   assert.deepEqual(SYS02_SAVVY_FINDS_COMMENT_DEMO.footerButtons, [
     "💬 Post a Comment",
@@ -223,6 +231,7 @@ test("SYS-02 GlennBot Automations comment thread whitelisting, canonical post ID
       comment_id: "122118104811500702_1150007564513023",
       external_post_id: "1340688402467466_122118104811500702",
       post_permalink: "https://www.facebook.com/1340688402467466/posts/122118104811500702",
+      post_caption: "Previous Post",
       account_name: "GlennBot Automations",
       can_reply: false,
       replies: [
@@ -230,14 +239,32 @@ test("SYS-02 GlennBot Automations comment thread whitelisting, canonical post ID
         { id: "122118104811500702_1024646813991583", message: "Loud and clear!" },
       ],
     },
+    {
+      record_id: "post_ext_b10078462e",
+      comment_id: "18198560143393683",
+      external_post_id: "17956773894039696",
+      post_caption: "Previous Post",
+      account_name: "@glennard.tasico.va",
+      can_reply: false,
+    },
     { record_id: "post_gb_other", account_name: "GlennBot Automations", can_reply: true },
   ]);
-  assert.equal(filtered.length, 2);
+  assert.equal(filtered.length, 3);
   assert.equal(filtered[0].record_id, "post_ext_dc6a96869a");
+  assert.equal(filtered[0].platform, "facebook");
+  assert.equal(filtered[0].post_type, "text");
   assert.equal(filtered[0].post_permalink, "https://www.facebook.com/1340688402467466/posts/122118104811500702");
+  assert.ok(filtered[0].post_caption.startsWith("Hello future clients!"));
   assert.equal(filtered[0].can_reply, true);
   assert.equal(filtered[0].replies.length, 1);
   assert.equal(filtered[0].replies[0].id, "122118104811500702_1024646813991583");
+
+  assert.equal(filtered[1].record_id, "post_ext_b10078462e");
+  assert.equal(filtered[1].platform, "instagram");
+  assert.equal(filtered[1].account_name, "GlennBot Automations");
+  assert.equal(filtered[1].post_type, "image");
+  assert.equal(filtered[1].post_permalink, "https://www.instagram.com/p/DfkfvyEvx3b/");
+  assert.ok(filtered[1].post_caption.startsWith("Hello future clients!"));
 
   const emptyWhenAllTargetDeleted = filterPortfolioCommentsList([
     { record_id: "post_other", account_name: "Unlisted Page", can_reply: false },
