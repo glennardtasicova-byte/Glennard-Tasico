@@ -4498,7 +4498,7 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
 
 .gb-comment-chooser-dialog {
   width: 100%;
-  max-width: 560px;
+  max-width: 620px;
   border-radius: 18px;
   background: linear-gradient(155deg, #0f172a 0%, #091020 100%);
   border: 1px solid rgba(45, 212, 191, 0.45);
@@ -4709,9 +4709,24 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
 
 .gb-comment-choice-desc {
   font-size: 0.78rem;
-  line-height: 1.45;
+  line-height: 1.5;
   color: #94a3b8;
   margin: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.gb-comment-choice-desc code {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 1px 6px;
+  border-radius: 5px;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+  white-space: normal;
+  max-width: 100%;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 
 [data-theme="light"] .gb-comment-choice-desc {
