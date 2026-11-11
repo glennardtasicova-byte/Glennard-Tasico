@@ -373,10 +373,28 @@ const DM_SPLIT_PLATFORMS = {
 };
 window.DM_SPLIT_PLATFORMS = DM_SPLIT_PLATFORMS;
 
-let directFbMessengerWinRef = null;
+const DIRECT_SOCIAL_DM_URLS = {
+  facebook: "https://www.facebook.com/messages/t/1340688402467466",
+  instagram: "https://www.instagram.com/direct/t/18131808028702166/",
+};
+window.DIRECT_SOCIAL_DM_URLS = DIRECT_SOCIAL_DM_URLS;
 
-function openMaximizedFacebookMessengerDirect() {
-  const targetUrl = "https://www.facebook.com/messages/t/1340688402467466";
+let directSocialDmWinRefs = {
+  facebook: null,
+  instagram: null,
+};
+
+function openMaximizedDirectSocialDm(platform = "facebook") {
+  const platKey =
+    String(platform || "facebook").toLowerCase() === "instagram"
+      ? "instagram"
+      : "facebook";
+  const targetUrl = DIRECT_SOCIAL_DM_URLS[platKey];
+  const winName =
+    platKey === "instagram"
+      ? "GlennBotDirectInstagramDmFullView"
+      : "GlennBotDirectFacebookMessengerFullView";
+
   const availW =
     window.screen && window.screen.availWidth
       ? window.screen.availWidth
@@ -400,34 +418,36 @@ function openMaximizedFacebookMessengerDirect() {
     "location=yes",
   ].join(",");
 
-  if (directFbMessengerWinRef && !directFbMessengerWinRef.closed) {
+  const existingWin = directSocialDmWinRefs[platKey];
+  if (existingWin && !existingWin.closed) {
     try {
-      directFbMessengerWinRef.location.href = targetUrl;
-      directFbMessengerWinRef.moveTo(0, 0);
-      directFbMessengerWinRef.resizeTo(availW, availH);
-      directFbMessengerWinRef.focus();
-      return directFbMessengerWinRef;
+      existingWin.location.href = targetUrl;
+      existingWin.moveTo(0, 0);
+      existingWin.resizeTo(availW, availH);
+      existingWin.focus();
+      return existingWin;
     } catch (_) {}
   }
 
-  directFbMessengerWinRef = window.open(
-    targetUrl,
-    "GlennBotDirectFacebookMessengerFullView",
-    features
-  );
+  const win = window.open(targetUrl, winName, features);
+  directSocialDmWinRefs[platKey] = win;
 
-  if (directFbMessengerWinRef) {
+  if (win) {
     try {
-      directFbMessengerWinRef.moveTo(0, 0);
-      directFbMessengerWinRef.resizeTo(availW, availH);
-      directFbMessengerWinRef.focus();
+      win.moveTo(0, 0);
+      win.resizeTo(availW, availH);
+      win.focus();
     } catch (_) {}
   } else {
     window.open(targetUrl, "_blank", "noopener,noreferrer");
   }
-  return directFbMessengerWinRef;
+  return win;
 }
-window.openMaximizedFacebookMessengerDirect = openMaximizedFacebookMessengerDirect;
+window.openMaximizedDirectSocialDm = openMaximizedDirectSocialDm;
+window.openMaximizedFacebookMessengerDirect = () =>
+  openMaximizedDirectSocialDm("facebook");
+window.openMaximizedInstagramDirect = () =>
+  openMaximizedDirectSocialDm("instagram");
 
 let activeDmSplitPlatform = "facebook";
 let activeDmSessionConvId = "";

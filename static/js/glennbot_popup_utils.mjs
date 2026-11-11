@@ -480,19 +480,28 @@ export const SYS02_DM_SHOWCASE_CONFIG = {
     account_name: "GlennBot Automations",
     direct_messenger_url: "https://www.facebook.com/messages/t/1340688402467466",
     direct_messenger_window_name: "GlennBotDirectFacebookMessengerFullView",
+    direct_instagram_url: "https://www.instagram.com/direct/t/18131808028702166/",
+    direct_instagram_window_name: "GlennBotDirectInstagramDmFullView",
     chooser_options: [
       {
         id: "gb-choose-fb-dm-btn",
         title: "Facebook (GlennBot Automations)",
         badge: "Direct Facebook Page Messenger",
-        action: "openMaximizedFacebookMessengerDirect",
+        action: "openMaximizedDirectSocialDm('facebook')",
         url: "https://www.facebook.com/messages/t/1340688402467466",
+      },
+      {
+        id: "gb-choose-ig-dm-btn",
+        title: "Instagram (@glennard.tasico.va)",
+        badge: "Direct Instagram DM",
+        action: "openMaximizedDirectSocialDm('instagram')",
+        url: "https://www.instagram.com/direct/t/18131808028702166/",
       },
       {
         id: "gb-choose-mock-chat-dm-btn",
         title: "Mock Chat Test",
         badge: "Interactive Split-Screen Sandbox",
-        action: "openDmSplitWorkspace",
+        action: "openDmSplitWorkspace('facebook')",
       },
     ],
     default_visitor_name: "Portfolio Client",
@@ -522,8 +531,13 @@ export const SYS02_DM_SHOWCASE_CONFIG = {
 
 export function computeMaximizedDirectMessengerFeatures(
   availW = 1920,
-  availH = 1080
+  availH = 1080,
+  platform = "facebook"
 ) {
+  const platKey =
+    String(platform || "facebook").trim().toLowerCase() === "instagram"
+      ? "instagram"
+      : "facebook";
   const safeW = Number(availW) > 0 ? Math.trunc(Number(availW)) : 1920;
   const safeH = Number(availH) > 0 ? Math.trunc(Number(availH)) : 1080;
   const features = [
@@ -541,8 +555,15 @@ export function computeMaximizedDirectMessengerFeatures(
     "location=yes",
   ].join(",");
   return {
-    targetUrl: "https://www.facebook.com/messages/t/1340688402467466",
-    windowName: "GlennBotDirectFacebookMessengerFullView",
+    platform: platKey,
+    targetUrl:
+      platKey === "instagram"
+        ? "https://www.instagram.com/direct/t/18131808028702166/"
+        : "https://www.facebook.com/messages/t/1340688402467466",
+    windowName:
+      platKey === "instagram"
+        ? "GlennBotDirectInstagramDmFullView"
+        : "GlennBotDirectFacebookMessengerFullView",
     availW: safeW,
     availH: safeH,
     features,

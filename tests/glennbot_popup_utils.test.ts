@@ -494,29 +494,51 @@ test("SYS-02 Send a DM Idea B (Interactive In-Portfolio Facebook Messenger Clien
     SYS02_DM_SHOWCASE_CONFIG.facebook.direct_messenger_url,
     "https://www.facebook.com/messages/t/1340688402467466"
   );
-  assert.equal(SYS02_DM_SHOWCASE_CONFIG.facebook.chooser_options.length, 2);
+  assert.equal(
+    SYS02_DM_SHOWCASE_CONFIG.facebook.direct_instagram_url,
+    "https://www.instagram.com/direct/t/18131808028702166/"
+  );
+  assert.equal(SYS02_DM_SHOWCASE_CONFIG.facebook.chooser_options.length, 3);
   assert.deepEqual(SYS02_DM_SHOWCASE_CONFIG.facebook.chooser_options[0], {
     id: "gb-choose-fb-dm-btn",
     title: "Facebook (GlennBot Automations)",
     badge: "Direct Facebook Page Messenger",
-    action: "openMaximizedFacebookMessengerDirect",
+    action: "openMaximizedDirectSocialDm('facebook')",
     url: "https://www.facebook.com/messages/t/1340688402467466",
   });
   assert.deepEqual(SYS02_DM_SHOWCASE_CONFIG.facebook.chooser_options[1], {
+    id: "gb-choose-ig-dm-btn",
+    title: "Instagram (@glennard.tasico.va)",
+    badge: "Direct Instagram DM",
+    action: "openMaximizedDirectSocialDm('instagram')",
+    url: "https://www.instagram.com/direct/t/18131808028702166/",
+  });
+  assert.deepEqual(SYS02_DM_SHOWCASE_CONFIG.facebook.chooser_options[2], {
     id: "gb-choose-mock-chat-dm-btn",
     title: "Mock Chat Test",
     badge: "Interactive Split-Screen Sandbox",
-    action: "openDmSplitWorkspace",
+    action: "openDmSplitWorkspace('facebook')",
   });
 
-  const maxDirect = computeMaximizedDirectMessengerFeatures(1920, 1080);
+  const maxFb = computeMaximizedDirectMessengerFeatures(1920, 1080, "facebook");
   assert.equal(
-    maxDirect.targetUrl,
+    maxFb.targetUrl,
     "https://www.facebook.com/messages/t/1340688402467466"
   );
-  assert.equal(maxDirect.windowName, "GlennBotDirectFacebookMessengerFullView");
+  assert.equal(maxFb.windowName, "GlennBotDirectFacebookMessengerFullView");
   assert.equal(
-    maxDirect.features,
+    maxFb.features,
+    "width=1920,height=1080,left=0,top=0,screenX=0,screenY=0,resizable=yes,scrollbars=yes,status=yes,toolbar=no,menubar=no,location=yes"
+  );
+
+  const maxIg = computeMaximizedDirectMessengerFeatures(1920, 1080, "instagram");
+  assert.equal(
+    maxIg.targetUrl,
+    "https://www.instagram.com/direct/t/18131808028702166/"
+  );
+  assert.equal(maxIg.windowName, "GlennBotDirectInstagramDmFullView");
+  assert.equal(
+    maxIg.features,
     "width=1920,height=1080,left=0,top=0,screenX=0,screenY=0,resizable=yes,scrollbars=yes,status=yes,toolbar=no,menubar=no,location=yes"
   );
 });
