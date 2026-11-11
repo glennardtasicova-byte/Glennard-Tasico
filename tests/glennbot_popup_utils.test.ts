@@ -13,6 +13,7 @@ import {
   buildSavvyFindsRoleReversalWebhookPayload,
   buildShowcaseCommentLoadingCardHtml,
   computeCenteredPopupFeatures,
+  computeMaximizedDirectMessengerFeatures,
   computeRightDockedPopupFeatures,
   filterPortfolioCommentsList,
   filterPortfolioSocialAccounts,
@@ -488,6 +489,36 @@ test("SYS-02 Send a DM Idea B (Interactive In-Portfolio Facebook Messenger Clien
   assert.ok(msgStyleTag.includes("#messages-left-column"));
   assert.ok(msgStyleTag.includes("#message-detail-panel"));
   assert.ok(msgStyleTag.includes("#view-messages"));
+
+  assert.equal(
+    SYS02_DM_SHOWCASE_CONFIG.facebook.direct_messenger_url,
+    "https://www.facebook.com/messages/t/1340688402467466"
+  );
+  assert.equal(SYS02_DM_SHOWCASE_CONFIG.facebook.chooser_options.length, 2);
+  assert.deepEqual(SYS02_DM_SHOWCASE_CONFIG.facebook.chooser_options[0], {
+    id: "gb-choose-fb-dm-btn",
+    title: "Facebook (GlennBot Automations)",
+    badge: "Direct Facebook Page Messenger",
+    action: "openMaximizedFacebookMessengerDirect",
+    url: "https://www.facebook.com/messages/t/1340688402467466",
+  });
+  assert.deepEqual(SYS02_DM_SHOWCASE_CONFIG.facebook.chooser_options[1], {
+    id: "gb-choose-mock-chat-dm-btn",
+    title: "Mock Chat Test",
+    badge: "Interactive Split-Screen Sandbox",
+    action: "openDmSplitWorkspace",
+  });
+
+  const maxDirect = computeMaximizedDirectMessengerFeatures(1920, 1080);
+  assert.equal(
+    maxDirect.targetUrl,
+    "https://www.facebook.com/messages/t/1340688402467466"
+  );
+  assert.equal(maxDirect.windowName, "GlennBotDirectFacebookMessengerFullView");
+  assert.equal(
+    maxDirect.features,
+    "width=1920,height=1080,left=0,top=0,screenX=0,screenY=0,resizable=yes,scrollbars=yes,status=yes,toolbar=no,menubar=no,location=yes"
+  );
 });
 
 

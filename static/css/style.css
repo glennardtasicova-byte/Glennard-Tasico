@@ -4648,6 +4648,12 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   color: #22d3ee;
 }
 
+.gb-comment-choice-icon-mock {
+  background: rgba(16, 185, 129, 0.18);
+  border: 1px solid rgba(52, 211, 153, 0.48);
+  color: #34d399;
+}
+
 .gb-comment-choice-body {
   flex: 1;
   min-width: 0;
@@ -4693,6 +4699,12 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   color: #67e8f9;
 }
 
+.gb-comment-choice-badge-mock {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: rgba(52, 211, 153, 0.48);
+  color: #6ee7b7;
+}
+
 [data-theme="light"] .gb-comment-choice-badge {
   color: #1d4ed8;
 }
@@ -4705,6 +4717,12 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   background: #cffafe;
   border-color: #22d3ee;
   color: #0e7490;
+}
+
+[data-theme="light"] .gb-comment-choice-badge-mock {
+  background: #d1fae5;
+  border-color: #10b981;
+  color: #065f46;
 }
 
 .gb-comment-choice-desc {
@@ -5344,6 +5362,8 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
    ========================================================================== */
 .fa-facebook-messenger::before { content: "💬"; font-size: 0.95em; }
 .fa-paper-plane::before { content: "➤"; font-size: 0.9em; }
+.fa-vial::before { content: "🧪"; font-size: 0.95em; }
+.fa-comments::before { content: "💬"; font-size: 0.95em; }
 
 .gb-dm-col-left {
   grid-column: span 5 / span 5;

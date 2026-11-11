@@ -15,7 +15,7 @@
 
   <!-- Font Awesome Icons & Custom Stylesheet -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <link rel="stylesheet" href="/static/css/style.css?v=54" />
+  <link rel="stylesheet" href="/static/css/style.css?v=55" />
   <script>
     (function () {
       try {
@@ -1175,7 +1175,7 @@
           type="button"
           id="gb-choose-fb-dm-btn"
           class="gb-comment-choice-card gb-comment-choice-fb"
-          onclick="event.stopPropagation(); closeDmPlatformChooser(); openDmSplitWorkspace('facebook');"
+          onclick="event.stopPropagation(); closeDmPlatformChooser(); openMaximizedFacebookMessengerDirect();"
         >
           <div class="gb-comment-choice-icon gb-comment-choice-icon-fb">
             <i class="fab fa-facebook"></i>
@@ -1183,9 +1183,28 @@
           <div class="gb-comment-choice-body">
             <div class="gb-comment-choice-top">
               <strong class="gb-comment-choice-name">Facebook (GlennBot Automations)</strong>
-              <span class="gb-comment-choice-badge">AI Messenger Chatbot Active</span>
+              <span class="gb-comment-choice-badge">Direct Facebook Page Messenger</span>
             </div>
-            <p class="gb-comment-choice-desc">Opens the Split-Screen Interactive Showcase with an In-Portfolio Facebook Messenger Client Window on the left synced in real time with the Live GlennBot Dashboard on the right.</p>
+            <p class="gb-comment-choice-desc">Opens the official GlennBot Automations Facebook Messenger thread (https://www.facebook.com/messages/t/1340688402467466) in a maximized full-view window so you can message the Facebook Page directly.</p>
+          </div>
+          <span class="gb-comment-choice-arrow" aria-hidden="true">&rarr;</span>
+        </button>
+
+        <button
+          type="button"
+          id="gb-choose-mock-chat-dm-btn"
+          class="gb-comment-choice-card gb-comment-choice-mock"
+          onclick="event.stopPropagation(); closeDmPlatformChooser(); openDmSplitWorkspace('facebook');"
+        >
+          <div class="gb-comment-choice-icon gb-comment-choice-icon-mock">
+            <i class="fas fa-vial"></i>
+          </div>
+          <div class="gb-comment-choice-body">
+            <div class="gb-comment-choice-top">
+              <strong class="gb-comment-choice-name">Mock Chat Test</strong>
+              <span class="gb-comment-choice-badge gb-comment-choice-badge-mock">Interactive Split-Screen Sandbox</span>
+            </div>
+            <p class="gb-comment-choice-desc">No Facebook login required. Opens our interactive Split-Screen Mock Chat (Client View on the left + Live GlennBot Dashboard on the right) to test Gemini 3.5 Flash &amp; n8n auto-replies in real time.</p>
           </div>
           <span class="gb-comment-choice-arrow" aria-hidden="true">&rarr;</span>
         </button>
@@ -1433,6 +1452,6 @@
   </footer>
 
   <!-- Custom Script -->
-  <script src="/static/js/main.js?v=54"></script>
+  <script src="/static/js/main.js?v=55"></script>
 </body>
 </html>

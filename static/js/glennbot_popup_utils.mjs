@@ -478,6 +478,23 @@ export const SYS02_DM_SHOWCASE_CONFIG = {
     page_subtitle: "Facebook Messenger • 24h Meta Window + Gemini 3.5 Flash Active",
     account_id: "6af0b109818eb5c88d1e87a6",
     account_name: "GlennBot Automations",
+    direct_messenger_url: "https://www.facebook.com/messages/t/1340688402467466",
+    direct_messenger_window_name: "GlennBotDirectFacebookMessengerFullView",
+    chooser_options: [
+      {
+        id: "gb-choose-fb-dm-btn",
+        title: "Facebook (GlennBot Automations)",
+        badge: "Direct Facebook Page Messenger",
+        action: "openMaximizedFacebookMessengerDirect",
+        url: "https://www.facebook.com/messages/t/1340688402467466",
+      },
+      {
+        id: "gb-choose-mock-chat-dm-btn",
+        title: "Mock Chat Test",
+        badge: "Interactive Split-Screen Sandbox",
+        action: "openDmSplitWorkspace",
+      },
+    ],
     default_visitor_name: "Portfolio Client",
     visitor_name_placeholder: "Your Name (e.g. Alex)",
     new_blank_chat_label: "🔄 New Blank Chat",
@@ -502,6 +519,35 @@ export const SYS02_DM_SHOWCASE_CONFIG = {
     popup_window_name: "GlennBotMessageThread_FB",
   },
 };
+
+export function computeMaximizedDirectMessengerFeatures(
+  availW = 1920,
+  availH = 1080
+) {
+  const safeW = Number(availW) > 0 ? Math.trunc(Number(availW)) : 1920;
+  const safeH = Number(availH) > 0 ? Math.trunc(Number(availH)) : 1080;
+  const features = [
+    `width=${safeW}`,
+    `height=${safeH}`,
+    "left=0",
+    "top=0",
+    "screenX=0",
+    "screenY=0",
+    "resizable=yes",
+    "scrollbars=yes",
+    "status=yes",
+    "toolbar=no",
+    "menubar=no",
+    "location=yes",
+  ].join(",");
+  return {
+    targetUrl: "https://www.facebook.com/messages/t/1340688402467466",
+    windowName: "GlennBotDirectFacebookMessengerFullView",
+    availW: safeW,
+    availH: safeH,
+    features,
+  };
+}
 
 export function buildPortfolioLiveDmPayload(
   sessionConvId,

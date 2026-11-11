@@ -361,6 +361,8 @@ const DM_SPLIT_PLATFORMS = {
       "/glennbot-popout?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations",
     baseUpstreamDashboardUrl:
       "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations",
+    directMessengerUrl: "https://www.facebook.com/messages/t/1340688402467466",
+    directMessengerWindowName: "GlennBotDirectFacebookMessengerFullView",
     dashboardWindowName: "GlennBotMessageThread_FB",
     quickStarterHints: [
       "Hi GlennBot! What automation services do you offer?",
@@ -370,6 +372,62 @@ const DM_SPLIT_PLATFORMS = {
   },
 };
 window.DM_SPLIT_PLATFORMS = DM_SPLIT_PLATFORMS;
+
+let directFbMessengerWinRef = null;
+
+function openMaximizedFacebookMessengerDirect() {
+  const targetUrl = "https://www.facebook.com/messages/t/1340688402467466";
+  const availW =
+    window.screen && window.screen.availWidth
+      ? window.screen.availWidth
+      : window.innerWidth || 1920;
+  const availH =
+    window.screen && window.screen.availHeight
+      ? window.screen.availHeight
+      : window.innerHeight || 1080;
+  const features = [
+    `width=${availW}`,
+    `height=${availH}`,
+    "left=0",
+    "top=0",
+    "screenX=0",
+    "screenY=0",
+    "resizable=yes",
+    "scrollbars=yes",
+    "status=yes",
+    "toolbar=no",
+    "menubar=no",
+    "location=yes",
+  ].join(",");
+
+  if (directFbMessengerWinRef && !directFbMessengerWinRef.closed) {
+    try {
+      directFbMessengerWinRef.location.href = targetUrl;
+      directFbMessengerWinRef.moveTo(0, 0);
+      directFbMessengerWinRef.resizeTo(availW, availH);
+      directFbMessengerWinRef.focus();
+      return directFbMessengerWinRef;
+    } catch (_) {}
+  }
+
+  directFbMessengerWinRef = window.open(
+    targetUrl,
+    "GlennBotDirectFacebookMessengerFullView",
+    features
+  );
+
+  if (directFbMessengerWinRef) {
+    try {
+      directFbMessengerWinRef.moveTo(0, 0);
+      directFbMessengerWinRef.resizeTo(availW, availH);
+      directFbMessengerWinRef.focus();
+    } catch (_) {}
+  } else {
+    window.open(targetUrl, "_blank", "noopener,noreferrer");
+  }
+  return directFbMessengerWinRef;
+}
+window.openMaximizedFacebookMessengerDirect = openMaximizedFacebookMessengerDirect;
 
 let activeDmSplitPlatform = "facebook";
 let activeDmSessionConvId = "";
