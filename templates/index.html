@@ -15,7 +15,7 @@
 
   <!-- Font Awesome Icons & Custom Stylesheet -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <link rel="stylesheet" href="/static/css/style.css?v=52" />
+  <link rel="stylesheet" href="/static/css/style.css?v=53" />
   <script>
     (function () {
       try {
@@ -1185,7 +1185,7 @@
               <strong class="gb-comment-choice-name">Facebook (GlennBot Automations)</strong>
               <span class="gb-comment-choice-badge">AI Messenger Chatbot Active</span>
             </div>
-            <p class="gb-comment-choice-desc">Opens the Split-Screen Interactive Showcase with the 1-Step Facebook Messenger Trigger (<code>m.me/1340688402467466</code>) on the left and the Auto-Focusing Live GlennBot Dashboard on the right.</p>
+            <p class="gb-comment-choice-desc">Opens the Split-Screen Interactive Showcase with the 1-Step Facebook Messenger Trigger (<code>facebook.com/messages/t/61595021080265</code>) on the left and the Blank Standby Live GlennBot Session on the right.</p>
           </div>
           <span class="gb-comment-choice-arrow" aria-hidden="true">&rarr;</span>
         </button>
@@ -1193,7 +1193,7 @@
     </div>
   </div>
 
-  <!-- 2-Column Side-by-Side Live DM Showcase Modal (Option 1: Left Client Messenger Trigger + Right Auto-Focusing GlennBot Dashboard) -->
+  <!-- 2-Column Side-by-Side Live DM Showcase Modal (Idea A: Left Client Messenger Trigger + Right Blank Standby Session) -->
   <div id="gb-dm-split-workspace-modal" class="gb-split-workspace-backdrop" role="dialog" aria-modal="true" aria-labelledby="gb-dm-split-workspace-title" hidden>
     <div class="gb-split-workspace-dialog w-[98.5vw] max-w-[1900px] h-[92vh]" onclick="event.stopPropagation();">
       <!-- Top Header Bar -->
@@ -1262,33 +1262,44 @@
                 type="button"
                 id="gb-dm-open-messenger-btn"
                 class="gb-split-btn-primary gb-dm-btn-messenger"
-                onclick="openFacebookMessengerDmWindow('https://m.me/1340688402467466');"
+                onclick="openFacebookMessengerDmWindow('https://www.facebook.com/messages/t/61595021080265');"
               >
                 <span>💬 Open Facebook Messenger (Send a DM)</span>
               </button>
 
               <div class="gb-dm-urls-grid">
                 <div class="gb-dm-url-row">
-                  <span class="gb-split-url-label">Primary Messenger URL:</span>
+                  <span class="gb-split-url-label">Primary Messenger URL (Desktop &amp; Mobile Deep Link):</span>
                   <a
                     id="gb-dm-primary-messenger-link"
-                    href="https://m.me/1340688402467466"
+                    href="https://www.facebook.com/messages/t/61595021080265"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="gb-split-url-code"
-                    onclick="event.preventDefault(); openFacebookMessengerDmWindow('https://m.me/1340688402467466');"
-                  >https://m.me/1340688402467466</a>
+                    onclick="event.preventDefault(); openFacebookMessengerDmWindow('https://www.facebook.com/messages/t/61595021080265');"
+                  >https://www.facebook.com/messages/t/61595021080265</a>
+                </div>
+                <div class="gb-dm-url-row">
+                  <span class="gb-split-url-label">Secondary / Mobile Shortlink:</span>
+                  <a
+                    id="gb-dm-secondary-messenger-link"
+                    href="https://m.me/61595021080265"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="gb-split-url-code"
+                    onclick="event.preventDefault(); openFacebookMessengerDmWindow('https://m.me/61595021080265');"
+                  >https://m.me/61595021080265</a>
                 </div>
                 <div class="gb-dm-url-row">
                   <span class="gb-split-url-label">Fallback Facebook Page URL:</span>
                   <a
                     id="gb-dm-fallback-page-link"
-                    href="https://www.facebook.com/1340688402467466"
+                    href="https://www.facebook.com/61595021080265"
                     target="_blank"
                     rel="noopener noreferrer"
                     class="gb-split-url-code"
-                    onclick="event.preventDefault(); openFacebookMessengerDmWindow('https://www.facebook.com/1340688402467466');"
-                  >https://www.facebook.com/1340688402467466</a>
+                    onclick="event.preventDefault(); openFacebookMessengerDmWindow('https://www.facebook.com/61595021080265');"
+                  >https://www.facebook.com/61595021080265</a>
                 </div>
               </div>
             </div>
@@ -1359,12 +1370,12 @@
           </div>
         </div>
 
-        <!-- Right Panel (lg:col-span-7, 58% width): Live GlennBot Dashboard — Option 1 Auto-Focus Latest Active DM Thread -->
+        <!-- Right Panel (lg:col-span-7, 58% width): Live GlennBot Dashboard — Idea A Blank Conversation Standby State + Fresh Session Timestamp Filter -->
         <div class="gb-dm-col-right lg:col-span-7">
           <!-- Live Status Bar above the Embedded Dashboard -->
           <div class="gb-dm-status-bar">
             <div class="gb-dm-status-bar-left">
-              <span id="gb-dm-live-status-text" class="gb-dm-live-status-text">🟢 LIVE MESSENGER SYNC &bull; Auto-Focusing Latest Active Chat on GlennBot Automations</span>
+              <span id="gb-dm-live-status-text" class="gb-dm-live-status-text">🟢 LIVE MESSENGER SESSION &bull; Blank Standby Ready (Send a DM on Messenger to begin)</span>
             </div>
             <div class="gb-dm-status-bar-actions">
               <button
@@ -1372,7 +1383,7 @@
                 id="gb-dm-refresh-live-chat-btn"
                 class="gb-split-refresh-btn gb-dm-refresh-btn"
                 onclick="refreshDmSplitIframe();"
-                title="Manually reload the Live GlennBot Message Thread Dashboard"
+                title="Reload the Live GlennBot Message Thread Dashboard without resetting your current session timestamp"
               >
                 <span id="gb-dm-refresh-icon">🔄</span>
                 <span>Refresh Live Chat</span>
@@ -1385,8 +1396,8 @@
             id="gb-dm-split-iframe"
             class="gb-comment-split-iframe gb-dm-split-iframe w-full h-full rounded-xl border border-cyan-500/30"
             src="about:blank"
-            data-upstream-url="https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&conv_key=6af0b109818eb5c88d1e87a6_28783346117962442&conv_id=28783346117962442&auto_latest=1"
-            title="Live GlennBot Dashboard — Auto-Focus Latest Active Messenger Thread"
+            data-upstream-url="https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&auto_latest=1&wait_for_new=1"
+            title="Live GlennBot Dashboard — Blank Standby Session & Real-Time Messenger Sync"
             allow="clipboard-read; clipboard-write"
           ></iframe>
         </div>
@@ -1404,6 +1415,6 @@
   </footer>
 
   <!-- Custom Script -->
-  <script src="/static/js/main.js?v=52"></script>
+  <script src="/static/js/main.js?v=53"></script>
 </body>
 </html>

@@ -6,6 +6,7 @@ import {
   SYS02_SAVVY_FINDS_COMMENT_DEMO,
   SYS02_DM_SHOWCASE_CONFIG,
   buildCommentSplitWorkspaceConfig,
+  buildDmBlankStandbyCardHtml,
   buildDmSplitWorkspaceConfig,
   buildGlennBotExpandedUrl,
   buildInstantPopoutStyleTag,
@@ -415,14 +416,18 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
   }
 });
 
-test("SYS-02 Send a DM Option 1 (Facebook Messenger + Auto-Focus Latest Active Conversation Thread) config and instant CSS", () => {
-  const dmCfg = buildDmSplitWorkspaceConfig("facebook", 1712345678901);
+test("SYS-02 Send a DM Idea A (Blank Conversation Standby State + Fresh Session Timestamp Filter + Correct Facebook Page Messenger Deep Link)", () => {
+  const sessionStartTs = 1712345678901;
+  const dmCfg = buildDmSplitWorkspaceConfig("facebook", sessionStartTs);
   assert.equal(dmCfg.platform, "facebook");
   assert.equal(dmCfg.page_header, "GlennBot Automations");
   assert.equal(dmCfg.page_subtitle, "Facebook Page • AI Messenger Chatbot Active");
   assert.equal(dmCfg.primary_cta_label, "💬 Open Facebook Messenger (Send a DM)");
-  assert.equal(dmCfg.primary_messenger_url, "https://m.me/1340688402467466");
-  assert.equal(dmCfg.fallback_page_url, "https://www.facebook.com/1340688402467466");
+  assert.equal(dmCfg.primary_messenger_url, "https://www.facebook.com/messages/t/61595021080265");
+  assert.equal(dmCfg.secondary_messenger_url, "https://m.me/61595021080265");
+  assert.equal(dmCfg.fallback_page_url, "https://www.facebook.com/61595021080265");
+  assert.ok(!("conv_key" in SYS02_DM_SHOWCASE_CONFIG.facebook));
+  assert.ok(!("conv_id" in SYS02_DM_SHOWCASE_CONFIG.facebook));
   assert.deepEqual(dmCfg.quick_starter_hints, [
     "Hi GlennBot! What automation services do you offer?",
     "How can your Python & AI workflows help my business save time?",
@@ -430,21 +435,48 @@ test("SYS-02 Send a DM Option 1 (Facebook Messenger + Auto-Focus Latest Active C
   ]);
   assert.equal(
     dmCfg.status_bar_text,
-    "🟢 LIVE MESSENGER SYNC • Auto-Focusing Latest Active Chat on GlennBot Automations"
+    "🟢 LIVE MESSENGER SESSION • Blank Standby Ready (Send a DM on Messenger to begin)"
   );
   assert.equal(dmCfg.refresh_btn_label, "🔄 Refresh Live Chat");
   assert.equal(
     dmCfg.upstream_url,
-    "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&conv_key=6af0b109818eb5c88d1e87a6_28783346117962442&conv_id=28783346117962442&auto_latest=1"
+    "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&auto_latest=1&wait_for_new=1"
   );
   assert.equal(
     dmCfg.popup_url,
-    "/glennbot-popout?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&conv_key=6af0b109818eb5c88d1e87a6_28783346117962442&conv_id=28783346117962442&auto_latest=1"
+    "/glennbot-popout?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&auto_latest=1&wait_for_new=1"
+  );
+  assert.equal(
+    dmCfg.upstreamIframeUrl,
+    `https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&auto_latest=1&wait_for_new=1&since_ts=${sessionStartTs}`
   );
   assert.equal(
     dmCfg.iframeUrl,
-    "/glennbot-popout?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&conv_key=6af0b109818eb5c88d1e87a6_28783346117962442&conv_id=28783346117962442&auto_latest=1&_ts=1712345678901"
+    `/glennbot-popout?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&auto_latest=1&wait_for_new=1&since_ts=${sessionStartTs}`
   );
+  assert.ok(!dmCfg.iframeUrl.includes("conv_key="));
+  assert.ok(!dmCfg.iframeUrl.includes("conv_id="));
+  assert.ok(!dmCfg.upstreamIframeUrl.includes("conv_key="));
+  assert.ok(!dmCfg.upstreamIframeUrl.includes("conv_id="));
+
+  // Refreshing preserves sessionStartTs and appends &_refresh=...
+  const refreshedCfg = buildDmSplitWorkspaceConfig("facebook", sessionStartTs, 1712345699999);
+  assert.equal(
+    refreshedCfg.iframeUrl,
+    `/glennbot-popout?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&auto_latest=1&wait_for_new=1&since_ts=${sessionStartTs}&_refresh=1712345699999`
+  );
+  assert.equal(
+    refreshedCfg.upstreamIframeUrl,
+    `https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&auto_latest=1&wait_for_new=1&since_ts=${sessionStartTs}&_refresh=1712345699999`
+  );
+
+  const standbyHtml = buildDmBlankStandbyCardHtml("GlennBot Automations", sessionStartTs);
+  assert.ok(standbyHtml.includes('id="gb-dm-blank-standby-card"'));
+  assert.ok(standbyHtml.includes('data-standby-active="1"'));
+  assert.ok(standbyHtml.includes(`data-since-ts="${sessionStartTs}"`));
+  assert.ok(standbyHtml.includes("Blank Conversation Standby Ready"));
+  assert.ok(standbyHtml.includes("facebook.com/messages/t/61595021080265"));
+  assert.ok(!standbyHtml.includes("Tasico Glennard"));
 
   const msgStyleTag = buildInstantPopoutStyleTag("messages", "message_thread");
   assert.ok(msgStyleTag.includes("#messages-top-filter-bar"));

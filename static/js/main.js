@@ -343,18 +343,18 @@ const DM_SPLIT_PLATFORMS = {
     pageSubtitle: "Facebook Page • AI Messenger Chatbot Active",
     accountId: "6af0b109818eb5c88d1e87a6",
     accountName: "GlennBot Automations",
-    convKey: "6af0b109818eb5c88d1e87a6_28783346117962442",
-    convId: "28783346117962442",
-    primaryMessengerUrl: "https://m.me/1340688402467466",
-    fallbackPageUrl: "https://www.facebook.com/1340688402467466",
+    pageProfileId: "61595021080265",
+    primaryMessengerUrl: "https://www.facebook.com/messages/t/61595021080265",
+    secondaryMessengerUrl: "https://m.me/61595021080265",
+    fallbackPageUrl: "https://www.facebook.com/61595021080265",
     primaryCtaLabel: "💬 Open Facebook Messenger (Send a DM)",
     statusBarText:
-      "🟢 LIVE MESSENGER SYNC • Auto-Focusing Latest Active Chat on GlennBot Automations",
+      "🟢 LIVE MESSENGER SESSION • Blank Standby Ready (Send a DM on Messenger to begin)",
     refreshBtnLabel: "🔄 Refresh Live Chat",
     proxyDashboardUrl:
-      "/glennbot-popout?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&conv_key=6af0b109818eb5c88d1e87a6_28783346117962442&conv_id=28783346117962442&auto_latest=1",
+      "/glennbot-popout?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&auto_latest=1&wait_for_new=1",
     upstreamDashboardUrl:
-      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&conv_key=6af0b109818eb5c88d1e87a6_28783346117962442&conv_id=28783346117962442&auto_latest=1",
+      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&auto_latest=1&wait_for_new=1",
     dashboardWindowName: "GlennBotMessageThread_FB",
     messengerWindowName: "GlennBotDockedMessenger_facebook",
     quickStarterHints: [
@@ -367,6 +367,10 @@ const DM_SPLIT_PLATFORMS = {
 window.DM_SPLIT_PLATFORMS = DM_SPLIT_PLATFORMS;
 
 let activeDmSplitPlatform = "facebook";
+let activeDmSessionStartTs = 0;
+window.getActiveDmSessionStartTs = function () {
+  return activeDmSessionStartTs;
+};
 
 function openFacebookMessengerDmWindow(targetUrl) {
   const cfg = DM_SPLIT_PLATFORMS[activeDmSplitPlatform] || DM_SPLIT_PLATFORMS.facebook;
@@ -411,14 +415,21 @@ function copyStarterHintAndOpenMessenger(hintText, btnEl) {
 }
 window.copyStarterHintAndOpenMessenger = copyStarterHintAndOpenMessenger;
 
-function updateDmSplitWorkspaceDOM(platform = "facebook", reloadIframe = true) {
+function updateDmSplitWorkspaceDOM(
+  platform = "facebook",
+  reloadIframe = true,
+  resetSessionTs = true
+) {
   const platKey =
     platform && DM_SPLIT_PLATFORMS[String(platform).toLowerCase()]
       ? String(platform).toLowerCase()
       : "facebook";
   activeDmSplitPlatform = platKey;
   const cfg = DM_SPLIT_PLATFORMS[platKey] || DM_SPLIT_PLATFORMS.facebook;
-  const ts = Date.now();
+  if (resetSessionTs || !activeDmSessionStartTs) {
+    activeDmSessionStartTs = Date.now();
+  }
+  const sessionStartTs = activeDmSessionStartTs;
 
   const fbBtn = document.getElementById("gb-dm-split-toggle-facebook");
   if (fbBtn) fbBtn.classList.toggle("is-active", platKey === "facebook");
@@ -435,6 +446,12 @@ function updateDmSplitWorkspaceDOM(platform = "facebook", reloadIframe = true) {
     primaryLinkEl.textContent = cfg.primaryMessengerUrl;
   }
 
+  const secondaryLinkEl = document.getElementById("gb-dm-secondary-messenger-link");
+  if (secondaryLinkEl) {
+    secondaryLinkEl.href = cfg.secondaryMessengerUrl;
+    secondaryLinkEl.textContent = cfg.secondaryMessengerUrl;
+  }
+
   const fallbackLinkEl = document.getElementById("gb-dm-fallback-page-link");
   if (fallbackLinkEl) {
     fallbackLinkEl.href = cfg.fallbackPageUrl;
@@ -446,9 +463,12 @@ function updateDmSplitWorkspaceDOM(platform = "facebook", reloadIframe = true) {
 
   const iframe = document.getElementById("gb-dm-split-iframe");
   if (iframe && reloadIframe) {
-    iframe.setAttribute("data-upstream-url", cfg.upstreamDashboardUrl);
+    const upstreamUrl = `${cfg.upstreamDashboardUrl}&since_ts=${sessionStartTs}`;
+    const proxyUrl = `${cfg.proxyDashboardUrl}&since_ts=${sessionStartTs}`;
+    iframe.setAttribute("data-upstream-url", upstreamUrl);
+    iframe.setAttribute("data-since-ts", String(sessionStartTs));
     iframe.setAttribute("data-platform", platKey);
-    iframe.src = `${cfg.proxyDashboardUrl}&_ts=${ts}`;
+    iframe.src = proxyUrl;
   }
 }
 
@@ -462,10 +482,17 @@ function openDmSplitWorkspace(platform = "facebook") {
   const modal = document.getElementById("gb-dm-split-workspace-modal");
   if (!modal) {
     const cfg = DM_SPLIT_PLATFORMS[platKey] || DM_SPLIT_PLATFORMS.facebook;
-    return openGlennBotCustomPopup(cfg.proxyDashboardUrl, cfg.dashboardWindowName, 1100, 860);
+    const sessionStartTs = Date.now();
+    activeDmSessionStartTs = sessionStartTs;
+    return openGlennBotCustomPopup(
+      `${cfg.proxyDashboardUrl}&since_ts=${sessionStartTs}`,
+      cfg.dashboardWindowName,
+      1100,
+      860
+    );
   }
 
-  updateDmSplitWorkspaceDOM(platKey, true);
+  updateDmSplitWorkspaceDOM(platKey, true, true);
   modal.hidden = false;
   document.body.style.overflow = "hidden";
 
@@ -489,7 +516,7 @@ function switchDmSplitPlatform(platform = "facebook") {
     platform && DM_SPLIT_PLATFORMS[String(platform).toLowerCase()]
       ? String(platform).toLowerCase()
       : "facebook";
-  updateDmSplitWorkspaceDOM(platKey, true);
+  updateDmSplitWorkspaceDOM(platKey, true, true);
 }
 window.switchDmSplitPlatform = switchDmSplitPlatform;
 
@@ -497,17 +524,31 @@ function refreshDmSplitIframe() {
   const cfg = DM_SPLIT_PLATFORMS[activeDmSplitPlatform] || DM_SPLIT_PLATFORMS.facebook;
   const iframe = document.getElementById("gb-dm-split-iframe");
   const btn = document.getElementById("gb-dm-refresh-live-chat-btn");
-  const ts = Date.now();
+  if (!activeDmSessionStartTs) {
+    activeDmSessionStartTs = Date.now();
+  }
+  const sessionStartTs = activeDmSessionStartTs;
+  const refreshTs = Date.now();
   if (btn) {
     btn.classList.add("is-refreshing");
     window.setTimeout(() => btn.classList.remove("is-refreshing"), 700);
   }
   if (iframe) {
-    iframe.setAttribute("data-upstream-url", cfg.upstreamDashboardUrl);
-    iframe.src = `${cfg.proxyDashboardUrl}&_ts=${ts}`;
+    iframe.setAttribute(
+      "data-upstream-url",
+      `${cfg.upstreamDashboardUrl}&since_ts=${sessionStartTs}&_refresh=${refreshTs}`
+    );
+    iframe.setAttribute("data-since-ts", String(sessionStartTs));
+    iframe.src = `${cfg.proxyDashboardUrl}&since_ts=${sessionStartTs}&_refresh=${refreshTs}`;
   }
 }
 window.refreshDmSplitIframe = refreshDmSplitIframe;
+
+function resetDmBlankSession() {
+  activeDmSessionStartTs = Date.now();
+  updateDmSplitWorkspaceDOM(activeDmSplitPlatform, true, false);
+}
+window.resetDmBlankSession = resetDmBlankSession;
 
 function closeDmSplitWorkspace() {
   const modal = document.getElementById("gb-dm-split-workspace-modal");
