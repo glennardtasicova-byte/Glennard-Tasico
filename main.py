@@ -2558,12 +2558,9 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
         )
         last_bg_ts = float(_SAVVY_FINDS_UPSTREAM_RECORD_ID_State.get("last_bg_sync_ts") or 0.0)
         ts_ms = int(time.time() * 1000)
-        if time.time() - last_bg_ts >= 8.0:
+        if time.time() - last_bg_ts >= 15.0:
             _SAVVY_FINDS_UPSTREAM_RECORD_ID_State["last_bg_sync_ts"] = time.time()
-            ordered_recs = [upstream_rec_id] + [
-                r for r in ("post_ext_dc6a96869a", "post_ext_b10078462e", "post_ext_19fdfb7f26")
-                if r != upstream_rec_id
-            ]
+            ordered_recs = [upstream_rec_id]
 
             async def _bg_force_sync_showcase() -> None:
                 try:
