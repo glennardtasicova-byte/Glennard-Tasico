@@ -812,8 +812,12 @@ def _build_session_injector_snippet(
     clean_tab = _sanitize_popout_tab(target_tab)
     if clean_mode == "comment_thread":
         rec_param = str((popout_params or {}).get("record_id") or "").strip()
-        is_ig_post = rec_param == "post_ext_b10078462e"
-        plat_label = "Instagram" if is_ig_post else "Facebook"
+        if rec_param == "post_ext_b10078462e":
+            plat_label = "Instagram"
+        elif rec_param == "post_ext_19fdfb7f26":
+            plat_label = "TikTok"
+        else:
+            plat_label = "Facebook"
         meta = {
             "title": "Post Thread — Expanded View",
             "subtitle": f"GlennBot Automations {plat_label} Post • Live Gemini AI Auto-Responder Monitor",
@@ -1140,6 +1144,24 @@ def _build_calendar_lock_body_script() -> str:
         "cta_short_label:'Comment on Actual Instagram Post',"
         "cta_icon:'fab fa-instagram text-pink-400',"
         "caption:SHARED_SHOWCASE_CAPTION"
+        "},"
+        "'post_ext_19fdfb7f26':{"
+        "record_id:'post_ext_19fdfb7f26',"
+        "platform:'tiktok',"
+        "platform_label:'TikTok',"
+        "platform_icon:'fab fa-tiktok',"
+        "platform_badge_cls:'text-cyan-400',"
+        "account_name:'@glennbot.automation',"
+        "post_type:'image',"
+        "post_type_label:'Photo Post',"
+        "post_type_icon:'fas fa-image',"
+        "external_post_id:'7706791793546906901',"
+        "short_post_id:'7706791793546906901',"
+        "permalink_url:'https://www.tiktok.com/@glennbot.automation/photo/7706791793546906901',"
+        "cta_label:'Comment on Actual TikTok Post \\u2197',"
+        "cta_short_label:'Comment on Actual TikTok Post',"
+        "cta_icon:'fab fa-tiktok text-cyan-400',"
+        "caption:SHARED_SHOWCASE_CAPTION"
         "}"
         "};"
         "var SAVVY_RECORD_ID='post_ext_dc6a96869a';"
@@ -1188,6 +1210,7 @@ def _build_calendar_lock_body_script() -> str:
         "}"
         "var searchStr=String((window.location&&window.location.search)||'');"
         "if(searchStr.indexOf('post_ext_b10078462e')!==-1)return SHOWCASE_POSTS['post_ext_b10078462e'];"
+        "if(searchStr.indexOf('post_ext_19fdfb7f26')!==-1)return SHOWCASE_POSTS['post_ext_19fdfb7f26'];"
         "if(searchStr.indexOf('post_ext_dc6a96869a')!==-1)return SHOWCASE_POSTS['post_ext_dc6a96869a'];"
         "var panel=document.getElementById('comment-detail-panel');"
         "if(panel&&panel.dataset&&panel.dataset.recordId&&SHOWCASE_POSTS[panel.dataset.recordId]){"
@@ -1216,6 +1239,9 @@ def _build_calendar_lock_body_script() -> str:
         "}"
         "if(blob.indexOf('17956773894039696')!==-1||blob.indexOf('DfkfvyEvx3b')!==-1||blob.indexOf('18198560143393683')!==-1){"
         "return SHOWCASE_POSTS['post_ext_b10078462e'];"
+        "}"
+        "if(blob.indexOf('7706791793546906901')!==-1||blob.indexOf('7706797468532458260')!==-1){"
+        "return SHOWCASE_POSTS['post_ext_19fdfb7f26'];"
         "}"
         "return null;"
         "}"
@@ -2201,6 +2227,16 @@ SHOWCASE_POST_CONFIGS: dict[str, dict[str, str]] = {
         "permalink_url": "https://www.instagram.com/p/DfkfvyEvx3b/",
         "caption": SHARED_SHOWCASE_CAPTION,
     },
+    "post_ext_19fdfb7f26": {
+        "record_id": "post_ext_19fdfb7f26",
+        "platform": "tiktok",
+        "account_name": "@glennbot.automation",
+        "post_type": "image",
+        "external_post_id": "7706791793546906901",
+        "short_post_id": "7706791793546906901",
+        "permalink_url": "https://www.tiktok.com/@glennbot.automation/photo/7706791793546906901",
+        "caption": SHARED_SHOWCASE_CAPTION,
+    },
 }
 
 SAVVY_FINDS_FB_POST_ID = "122118104811500702"
@@ -2253,6 +2289,11 @@ def _match_showcase_post_config_for_comment(item: dict) -> dict[str, str] | None
         for f in id_fields
     ):
         return SHOWCASE_POST_CONFIGS["post_ext_b10078462e"]
+    if any(
+        ("7706791793546906901" in f or "7706797468532458260" in f)
+        for f in id_fields
+    ):
+        return SHOWCASE_POST_CONFIGS["post_ext_19fdfb7f26"]
     return None
 
 
@@ -2517,7 +2558,7 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
             async def _bg_force_sync_showcase() -> None:
                 try:
                     async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as bg_client:
-                        for showcase_rec in ("post_ext_dc6a96869a", "post_ext_b10078462e"):
+                        for showcase_rec in ("post_ext_dc6a96869a", "post_ext_b10078462e", "post_ext_19fdfb7f26"):
                             bg_url = f"{GLENNBOT_BASE_URL}/api/comments?force=true&active_record_id={showcase_rec}&_ts={ts_ms}"
                             await bg_client.get(
                                 bg_url,

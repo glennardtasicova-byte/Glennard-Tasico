@@ -236,6 +236,22 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
     SYS02_SAVVY_FINDS_COMMENT_DEMO.igPopupWindowName,
     "GlennBotCommentThread_IG"
   );
+  assert.equal(
+    SYS02_SAVVY_FINDS_COMMENT_DEMO.ttPopupUrl,
+    "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260"
+  );
+  assert.equal(
+    SYS02_SAVVY_FINDS_COMMENT_DEMO.ttUpstreamUrl,
+    "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260"
+  );
+  assert.equal(
+    SYS02_SAVVY_FINDS_COMMENT_DEMO.ttPermalink,
+    "https://www.tiktok.com/@glennbot.automation/photo/7706791793546906901"
+  );
+  assert.equal(
+    SYS02_SAVVY_FINDS_COMMENT_DEMO.ttPopupWindowName,
+    "GlennBotCommentThread_TT"
+  );
   assert.deepEqual(SYS02_SAVVY_FINDS_COMMENT_DEMO.footerButtons, [
     "💬 Post a Comment",
     "✉️ Send a DM",
@@ -262,6 +278,18 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
   assert.equal(igSplit.actualPostUrl, "https://www.instagram.com/p/DfkfvyEvx3b/");
   assert.equal(igSplit.badge_label, "GlennBot Automations — Instagram");
   assert.equal(igSplit.primary_btn_label, "Open / Focus Actual Instagram Post Window");
+
+  const ttSplit = buildCommentSplitWorkspaceConfig("tiktok", 1710000000000);
+  assert.equal(
+    ttSplit.upstreamIframeUrl,
+    "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260&_ts=1710000000000"
+  );
+  assert.equal(
+    ttSplit.actualPostUrl,
+    "https://www.tiktok.com/@glennbot.automation/photo/7706791793546906901"
+  );
+  assert.equal(ttSplit.badge_label, "GlennBot Automations — TikTok (@glennbot.automation)");
+  assert.equal(ttSplit.primary_btn_label, "Open / Focus Actual TikTok Post Window");
 
   const dockedFb = computeRightDockedPopupFeatures(1920, 1080, 0, 0, "facebook");
   assert.equal(dockedFb.popupWidth, 806);
@@ -314,9 +342,17 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
       account_name: "@glennard.tasico.va",
       can_reply: false,
     },
+    {
+      record_id: "post_ext_19fdfb7f26",
+      comment_id: "7706797468532458260",
+      external_post_id: "7706791793546906901",
+      post_caption: "Previous Post",
+      account_name: "@glennbot.automation",
+      can_reply: false,
+    },
     { record_id: "post_gb_other", account_name: "GlennBot Automations", can_reply: true },
   ]);
-  assert.equal(filtered.length, 3);
+  assert.equal(filtered.length, 4);
   assert.equal(filtered[0].record_id, "post_ext_dc6a96869a");
   assert.equal(filtered[0].platform, "facebook");
   assert.equal(filtered[0].post_type, "text");
@@ -332,6 +368,13 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
   assert.equal(filtered[1].post_type, "image");
   assert.equal(filtered[1].post_permalink, "https://www.instagram.com/p/DfkfvyEvx3b/");
   assert.ok(filtered[1].post_caption.startsWith("Hello future clients!"));
+
+  assert.equal(filtered[2].record_id, "post_ext_19fdfb7f26");
+  assert.equal(filtered[2].platform, "tiktok");
+  assert.equal(filtered[2].account_name, "@glennbot.automation");
+  assert.equal(filtered[2].post_type, "image");
+  assert.equal(filtered[2].post_permalink, "https://www.tiktok.com/@glennbot.automation/photo/7706791793546906901");
+  assert.ok(filtered[2].post_caption.startsWith("Hello future clients!"));
 
   const emptyWhenAllTargetDeleted = filterPortfolioCommentsList([
     { record_id: "post_other", account_name: "Unlisted Page", can_reply: false },

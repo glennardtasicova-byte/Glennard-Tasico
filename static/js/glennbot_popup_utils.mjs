@@ -314,6 +314,27 @@ export const SYS02_SHOWCASE_POSTS = {
     docked_window_name: "GlennBotDockedSocialPost_instagram",
     caption: SHARED_SHOWCASE_CAPTION,
   },
+  post_ext_19fdfb7f26: {
+    record_id: "post_ext_19fdfb7f26",
+    platform: "tiktok",
+    platform_label: "TikTok",
+    badge_label: "GlennBot Automations — TikTok (@glennbot.automation)",
+    account_name: "@glennbot.automation",
+    post_type: "image",
+    external_post_id: "7706791793546906901",
+    short_post_id: "7706791793546906901",
+    comment_id: "7706797468532458260",
+    permalink_url: "https://www.tiktok.com/@glennbot.automation/photo/7706791793546906901",
+    cta_label: "Comment on Actual TikTok Post ↗",
+    primary_btn_label: "Open / Focus Actual TikTok Post Window",
+    popup_url:
+      "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260",
+    upstream_url:
+      "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260",
+    popup_window_name: "GlennBotCommentThread_TT",
+    docked_window_name: "GlennBotDockedSocialPost_tiktok",
+    caption: SHARED_SHOWCASE_CAPTION,
+  },
 };
 
 export function computeRightDockedPopupFeatures(
@@ -356,6 +377,8 @@ export function buildCommentSplitWorkspaceConfig(platform = "facebook", timestam
   const cfg =
     cleanPlat === "instagram"
       ? SYS02_SHOWCASE_POSTS.post_ext_b10078462e
+      : cleanPlat === "tiktok"
+      ? SYS02_SHOWCASE_POSTS.post_ext_19fdfb7f26
       : SYS02_SHOWCASE_POSTS.post_ext_dc6a96869a;
   const ts = Math.trunc(Number(timestamp) || Date.now());
   return {
@@ -374,10 +397,14 @@ export const SYS02_SAVVY_FINDS_COMMENT_DEMO = {
   igRecordId: "post_ext_b10078462e",
   igPostId: "17956773894039696",
   igPermalink: "https://www.instagram.com/p/DfkfvyEvx3b/",
+  ttRecordId: "post_ext_19fdfb7f26",
+  ttPostId: "7706791793546906901",
+  ttPermalink: "https://www.tiktok.com/@glennbot.automation/photo/7706791793546906901",
   blockedSyntheticCommentIds: ["1175872974773981_1794243091445"],
   blockedSyntheticCommentTexts: ["may gusto ako itanong pwede ba?"],
   commentId: "122118104811500702_1150007564513023",
   igCommentId: "18198560143393683",
+  ttCommentId: "7706797468532458260",
   postPlatformId: "61595021080265_122118104811500702",
   savvyFindsAccountId: "6ada535d4c608095288e2104",
   glennBotAuthorId: "61595021080265",
@@ -392,6 +419,11 @@ export const SYS02_SAVVY_FINDS_COMMENT_DEMO = {
   igUpstreamUrl:
     "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683",
   igPopupWindowName: "GlennBotCommentThread_IG",
+  ttPopupUrl:
+    "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260",
+  ttUpstreamUrl:
+    "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260",
+  ttPopupWindowName: "GlennBotCommentThread_TT",
   footerButtons: ["💬 Post a Comment", "✉️ Send a DM", "📧 Send an Email"],
 };
 
@@ -464,6 +496,13 @@ function matchShowcaseConfigForComment(item) {
     )
   ) {
     return SYS02_SHOWCASE_POSTS.post_ext_b10078462e;
+  }
+  if (
+    idFields.some(
+      (f) => f.includes("7706791793546906901") || f.includes("7706797468532458260")
+    )
+  ) {
+    return SYS02_SHOWCASE_POSTS.post_ext_19fdfb7f26;
   }
   return null;
 }

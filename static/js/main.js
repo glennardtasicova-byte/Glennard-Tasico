@@ -78,6 +78,25 @@ const COMMENT_SPLIT_PLATFORMS = {
     dockedWindowName: "GlennBotDockedSocialPost_instagram",
     caption: SHARED_SHOWCASE_CAPTION_TEXT,
   },
+  tiktok: {
+    key: "tiktok",
+    platformLabel: "TikTok",
+    badgeText: "GlennBot Automations — TikTok (@glennbot.automation)",
+    badgeClass: "is-tiktok",
+    iconClass: "fab fa-tiktok",
+    postTypeLabel: "Photo Post • Live Gemini AI (@glennbot.automation)",
+    recordId: "post_ext_19fdfb7f26",
+    commentId: "7706797468532458260",
+    proxyDashboardUrl:
+      "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260",
+    upstreamDashboardUrl:
+      "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260",
+    actualPostUrl: "https://www.tiktok.com/@glennbot.automation/photo/7706791793546906901",
+    primaryBtnText: "Open / Focus Actual TikTok Post Window",
+    dashboardWindowName: "GlennBotCommentThread_TT",
+    dockedWindowName: "GlennBotDockedSocialPost_tiktok",
+    caption: SHARED_SHOWCASE_CAPTION_TEXT,
+  },
 };
 window.COMMENT_SPLIT_PLATFORMS = COMMENT_SPLIT_PLATFORMS;
 
@@ -151,8 +170,10 @@ function updateCommentSplitWorkspaceDOM(platform, reloadIframe = true) {
 
   const fbBtn = document.getElementById("gb-split-toggle-facebook");
   const igBtn = document.getElementById("gb-split-toggle-instagram");
+  const ttBtn = document.getElementById("gb-split-toggle-tiktok");
   if (fbBtn) fbBtn.classList.toggle("is-active", platKey === "facebook");
   if (igBtn) igBtn.classList.toggle("is-active", platKey === "instagram");
+  if (ttBtn) ttBtn.classList.toggle("is-active", platKey === "tiktok");
 
   const splitGrid = document.querySelector(".gb-split-workspace-grid");
   if (splitGrid) {
@@ -170,7 +191,7 @@ function updateCommentSplitWorkspaceDOM(platform, reloadIframe = true) {
   const badgeIconEl = document.getElementById("gb-split-platform-badge-icon");
   const badgeTextEl = document.getElementById("gb-split-platform-badge-text");
   if (badgeEl) {
-    badgeEl.classList.remove("is-facebook", "is-instagram");
+    badgeEl.classList.remove("is-facebook", "is-instagram", "is-tiktok");
     badgeEl.classList.add(cfg.badgeClass);
   }
   if (badgeIconEl) badgeIconEl.className = cfg.iconClass;
@@ -1578,7 +1599,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
             type="button"
             class="btn-sys01-popout btn-live-launcher"
             onclick="event.stopPropagation(); openCommentPlatformChooser(this);"
-            title="Choose Facebook or Instagram Post on GlennBot Automations and watch Gemini AI auto-reply"
+            title="Choose Facebook, Instagram, or TikTok Post on GlennBot Automations and watch Gemini AI auto-reply"
           >
             <span>💬 Post a Comment</span>
           </button>

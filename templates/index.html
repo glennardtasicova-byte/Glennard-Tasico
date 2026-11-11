@@ -15,7 +15,7 @@
 
   <!-- Font Awesome Icons & Custom Stylesheet -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <link rel="stylesheet" href="/static/css/style.css?v=48" />
+  <link rel="stylesheet" href="/static/css/style.css?v=49" />
   <script>
     (function () {
       try {
@@ -650,7 +650,7 @@
                   type="button"
                   class="btn-sys01-popout btn-live-launcher"
                   onclick="event.stopPropagation(); openCommentPlatformChooser(this);"
-                  title="Choose Facebook or Instagram Post on GlennBot Automations and watch Gemini AI auto-reply"
+                  title="Choose Facebook, Instagram, or TikTok Post on GlennBot Automations and watch Gemini AI auto-reply"
                 >
                   <span>💬 Post a Comment</span>
                 </button>
@@ -962,6 +962,25 @@
           </div>
           <span class="gb-comment-choice-arrow" aria-hidden="true">&rarr;</span>
         </button>
+
+        <button
+          type="button"
+          id="gb-choose-tt-comment-btn"
+          class="gb-comment-choice-card gb-comment-choice-tt"
+          onclick="event.stopPropagation(); closeCommentPlatformChooser(); openCommentSplitWorkspace('tiktok', true);"
+        >
+          <div class="gb-comment-choice-icon gb-comment-choice-icon-tt">
+            <i class="fab fa-tiktok"></i>
+          </div>
+          <div class="gb-comment-choice-body">
+            <div class="gb-comment-choice-top">
+              <strong class="gb-comment-choice-name">Option 3: Comment on TikTok (@glennbot.automation)</strong>
+              <span class="gb-comment-choice-badge gb-comment-choice-badge-tt">Photo Post</span>
+            </div>
+            <p class="gb-comment-choice-desc">Opens the 2-Column Live Workspace with the GlennBot Dashboard on the left and docks the actual TikTok post (<code>tiktok.com/@glennbot.automation/photo/7706791793546906901</code>) on the right.</p>
+          </div>
+          <span class="gb-comment-choice-arrow" aria-hidden="true">&rarr;</span>
+        </button>
       </div>
     </div>
   </div>
@@ -977,7 +996,7 @@
         </div>
 
         <div class="gb-split-header-controls">
-          <!-- Platform Switcher Toggle (Facebook | Instagram) -->
+          <!-- Platform Switcher Toggle (Facebook | Instagram | TikTok) -->
           <div class="gb-split-platform-switcher" role="group" aria-label="Select Live Social Platform">
             <button
               type="button"
@@ -998,6 +1017,16 @@
             >
               <i class="fab fa-instagram"></i>
               <span>Instagram</span>
+            </button>
+            <button
+              type="button"
+              id="gb-split-toggle-tiktok"
+              class="gb-split-platform-btn"
+              data-split-platform="tiktok"
+              onclick="switchCommentSplitPlatform('tiktok', true);"
+            >
+              <i class="fab fa-tiktok"></i>
+              <span>TikTok</span>
             </button>
           </div>
 
@@ -1137,6 +1166,6 @@
   </footer>
 
   <!-- Custom Script -->
-  <script src="/static/js/main.js?v=48"></script>
+  <script src="/static/js/main.js?v=49"></script>
 </body>
 </html>

@@ -4642,6 +4642,12 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   color: #f472b6;
 }
 
+.gb-comment-choice-icon-tt {
+  background: rgba(6, 182, 212, 0.18);
+  border: 1px solid rgba(34, 211, 238, 0.48);
+  color: #22d3ee;
+}
+
 .gb-comment-choice-body {
   flex: 1;
   min-width: 0;
@@ -4681,12 +4687,24 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   color: #f9a8d4;
 }
 
+.gb-comment-choice-badge-tt {
+  background: rgba(6, 182, 212, 0.18);
+  border-color: rgba(34, 211, 238, 0.45);
+  color: #67e8f9;
+}
+
 [data-theme="light"] .gb-comment-choice-badge {
   color: #1d4ed8;
 }
 
 [data-theme="light"] .gb-comment-choice-badge-ig {
   color: #be185d;
+}
+
+[data-theme="light"] .gb-comment-choice-badge-tt {
+  background: #cffafe;
+  border-color: #22d3ee;
+  color: #0e7490;
 }
 
 .gb-comment-choice-desc {
@@ -5024,6 +5042,12 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   color: #f9a8d4;
 }
 
+.gb-split-platform-badge.is-tiktok {
+  background: rgba(6, 182, 212, 0.18);
+  border-color: rgba(34, 211, 238, 0.5);
+  color: #67e8f9;
+}
+
 [data-theme="light"] .gb-split-platform-badge {
   background: #dbeafe;
   border-color: #60a5fa;
@@ -5034,6 +5058,12 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   background: #fce7f3;
   border-color: #f472b6;
   color: #9d174d;
+}
+
+[data-theme="light"] .gb-split-platform-badge.is-tiktok {
+  background: #cffafe;
+  border-color: #06b6d4;
+  color: #0e7490;
 }
 
 .gb-split-dock-tag {
