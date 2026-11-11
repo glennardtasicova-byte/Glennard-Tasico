@@ -1462,9 +1462,10 @@ def _build_calendar_lock_body_script() -> str:
         "var syncIcon=document.getElementById('gb-manual-sync-icon');"
         "if(syncIcon&&isManual)syncIcon.classList.add('fa-spin');"
         "try{"
+        "if(typeof selectedRecordId!=='undefined')selectedRecordId=cfg.record_id;"
         "if(window._gbInFlightPolls)window._gbInFlightPolls.comments=false;"
         "if(typeof window.fetchComments==='function'){"
-        "await window.fetchComments(Boolean(isManual));"
+        "await window.fetchComments(true);"
         "}"
         "_normalizeVisitorRepliesOnClient();"
         "var grp=_getSavvyCommentsGroup(cfg.record_id);"
@@ -1669,6 +1670,9 @@ async def glennbot_authenticated_popout(request: Request):
     popout_params = dict(request.query_params)
     popout_params.setdefault("tab", target_tab)
     popout_params.setdefault("popout_mode", popout_mode)
+    req_rec_param = str(popout_params.get("record_id") or "").strip()
+    if req_rec_param in SHOWCASE_POST_CONFIGS:
+        _SAVVY_FINDS_UPSTREAM_RECORD_ID_State["record_id"] = req_rec_param
 
     session_token = await get_glennbot_auto_session_token()
     now = time.time()
@@ -2545,6 +2549,8 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
     target_url = f"{GLENNBOT_BASE_URL}/api/{path.lstrip('/')}"
     if clean_path == "comments" and method_upper == "GET":
         req_active_rec = (request.query_params.get("active_record_id") or "").strip()
+        if req_active_rec in SHOWCASE_POST_CONFIGS:
+            _SAVVY_FINDS_UPSTREAM_RECORD_ID_State["record_id"] = req_active_rec
         upstream_rec_id = (
             req_active_rec
             if req_active_rec in SHOWCASE_POST_CONFIGS
@@ -2552,13 +2558,17 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
         )
         last_bg_ts = float(_SAVVY_FINDS_UPSTREAM_RECORD_ID_State.get("last_bg_sync_ts") or 0.0)
         ts_ms = int(time.time() * 1000)
-        if (request.query_params.get("force") == "true") and (time.time() - last_bg_ts >= 8.0):
+        if time.time() - last_bg_ts >= 8.0:
             _SAVVY_FINDS_UPSTREAM_RECORD_ID_State["last_bg_sync_ts"] = time.time()
+            ordered_recs = [upstream_rec_id] + [
+                r for r in ("post_ext_dc6a96869a", "post_ext_b10078462e", "post_ext_19fdfb7f26")
+                if r != upstream_rec_id
+            ]
 
             async def _bg_force_sync_showcase() -> None:
                 try:
                     async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as bg_client:
-                        for showcase_rec in ("post_ext_dc6a96869a", "post_ext_b10078462e", "post_ext_19fdfb7f26"):
+                        for showcase_rec in ordered_recs:
                             bg_url = f"{GLENNBOT_BASE_URL}/api/comments?force=true&active_record_id={showcase_rec}&_ts={ts_ms}"
                             await bg_client.get(
                                 bg_url,
