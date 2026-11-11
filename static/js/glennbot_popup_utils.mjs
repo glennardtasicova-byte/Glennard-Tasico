@@ -61,11 +61,26 @@ export function computeCenteredPopupFeatures(width = 1240, height = 860, screenA
   return { w, h, left, top, features };
 }
 
-export function buildInstantPopoutStyleTag(targetTab = "scheduler") {
+export function buildInstantPopoutStyleTag(targetTab = "scheduler", popoutMode = "workspace_view") {
   const cleanTab = String(targetTab || "scheduler").trim().toLowerCase() || "scheduler";
+  const cleanMode = String(popoutMode || "workspace_view").trim().toLowerCase() || "workspace_view";
   const nonSchedulerBlock =
     cleanTab !== "scheduler"
       ? `  /* If target tab is NOT scheduler, hide #view-scheduler immediately until JS switchTab runs */\n  #view-scheduler:not(.gb-tab-ready) {\n    display: none !important;\n  }\n`
+      : "";
+  const commentThreadBlock =
+    cleanMode === "comment_thread"
+      ? [
+          `  /* Immediately focus on the right-hand comment thread panel in comment_thread mode and hide redundant buttons */`,
+          `  #comments-top-filter-bar,`,
+          `  #comments-left-column,`,
+          `  #gb-popout-window-bar button,`,
+          `  #gb-popout-window-bar a,`,
+          `  #gb-btn-open-actual-fb-post,`,
+          `  #gb-btn-manual-sync-now {`,
+          `    display: none !important;`,
+          `  }`,
+        ].join("\n") + "\n"
       : "";
   const composerHideCss = [
     `  /* Completely prevent any split-second flash of the bottom comment reply composer in comment_thread popup */`,
@@ -124,7 +139,7 @@ export function buildInstantPopoutStyleTag(targetTab = "scheduler") {
     `  #gb-popout-window-bar {`,
     `    display: flex !important;`,
     `  }`,
-    nonSchedulerBlock + `  #view-${cleanTab} {\n    display: flex !important;\n  }`,
+    nonSchedulerBlock + commentThreadBlock + `  #view-${cleanTab} {\n    display: flex !important;\n  }`,
     `</style>`,
   ].join("\n");
 }

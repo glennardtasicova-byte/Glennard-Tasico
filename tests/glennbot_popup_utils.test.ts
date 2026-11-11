@@ -82,6 +82,12 @@ test("buildInstantPopoutStyleTag hides homepage chrome, hides Composio calendar 
   const schedCss = buildInstantPopoutStyleTag("scheduler");
   assert.ok(!schedCss.includes("#view-scheduler:not(.gb-tab-ready)"));
   assert.ok(schedCss.includes("#view-scheduler {"));
+
+  const commentThreadCss = buildInstantPopoutStyleTag("comments", "comment_thread");
+  assert.ok(commentThreadCss.includes("#gb-popout-window-bar button"));
+  assert.ok(commentThreadCss.includes("#gb-popout-window-bar a"));
+  assert.ok(commentThreadCss.includes("#gb-btn-open-actual-fb-post"));
+  assert.ok(commentThreadCss.includes("#gb-btn-manual-sync-now"));
 });
 
 test("filterPortfolioSocialAccounts keeps only the 4 whitelisted portfolio accounts and normalizes names", () => {
