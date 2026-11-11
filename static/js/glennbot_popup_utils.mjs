@@ -393,6 +393,46 @@ export function buildCommentSplitWorkspaceConfig(platform = "facebook", timestam
   };
 }
 
+export function buildShowcaseCommentLoadingCardHtml(platformOrRecordId = "facebook") {
+  const key = String(platformOrRecordId || "facebook").trim().toLowerCase();
+  const cfg =
+    SYS02_SHOWCASE_POSTS[platformOrRecordId] ||
+    (key === "instagram" || key === "post_ext_b10078462e"
+      ? SYS02_SHOWCASE_POSTS.post_ext_b10078462e
+      : key === "tiktok" || key === "post_ext_19fdfb7f26"
+      ? SYS02_SHOWCASE_POSTS.post_ext_19fdfb7f26
+      : SYS02_SHOWCASE_POSTS.post_ext_dc6a96869a);
+  return [
+    `<div class="space-y-2">`,
+    `<div class="flex items-center justify-between">`,
+    `<span id="post-comments-count-label" class="text-[11px] font-bold uppercase tracking-wider text-gb-cyan flex items-center gap-1.5"><i class="fas fa-circle-notch fa-spin text-gb-cyan"></i> Comments on This Post (Loading...)</span>`,
+    `</div>`,
+    `<div id="post-comments-thread-list" class="space-y-2.5">`,
+    `<div id="gb-savvy-zero-comments-box" data-record-id="${cfg.record_id}" data-loading-state="1" class="p-6 rounded-xl bg-slate-900/60 border border-cyan-500/30 text-center space-y-3 shadow-[0_0_25px_rgba(6,182,212,0.08)]">`,
+    `<div class="relative w-12 h-12 mx-auto flex items-center justify-center">`,
+    `<span class="absolute inset-0 rounded-full border-2 border-cyan-400/25 border-t-cyan-400 animate-spin"></span>`,
+    `<span class="w-9 h-9 rounded-full bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center text-gb-cyan"><i class="fas fa-circle-notch fa-spin text-base"></i></span>`,
+    `</div>`,
+    `<div class="space-y-1">`,
+    `<p class="text-xs font-bold text-slate-100 tracking-wide">Loading live comments from ${cfg.platform_label}...</p>`,
+    `<p class="text-[11px] text-slate-400 max-w-xl mx-auto leading-relaxed">Fetching real-time comment thread &amp; <span class="text-gb-cyan font-semibold">GlennBot Automations' Gemini AI</span> replies for <span class="text-emerald-300 font-semibold">${cfg.account_name}</span>...</p>`,
+    `</div>`,
+    `<div class="pt-2 space-y-2 max-w-xl mx-auto text-left opacity-80">`,
+    `<div class="p-3 rounded-lg bg-slate-800/50 border border-slate-700/60 animate-pulse space-y-2">`,
+    `<div class="flex items-center gap-2.5"><div class="w-6 h-6 rounded-full bg-slate-700/80"></div><div class="h-2.5 w-28 rounded bg-slate-700/80"></div><div class="h-2 w-16 rounded bg-slate-800 ml-auto"></div></div>`,
+    `<div class="h-2.5 w-3/4 rounded bg-slate-700/60"></div>`,
+    `</div>`,
+    `<div class="ml-6 p-2.5 rounded-lg bg-cyan-950/30 border border-cyan-500/20 animate-pulse space-y-1.5">`,
+    `<div class="flex items-center gap-2"><div class="h-2 w-24 rounded bg-cyan-500/30"></div><div class="h-2 w-14 rounded bg-emerald-500/20"></div></div>`,
+    `<div class="h-2 w-5/6 rounded bg-slate-700/50"></div>`,
+    `</div>`,
+    `</div>`,
+    `</div>`,
+    `</div>`,
+    `</div>`,
+  ].join("");
+}
+
 export const SYS02_SAVVY_FINDS_COMMENT_DEMO = {
   recordId: "post_ext_dc6a96869a",
   fbPostId: "122118104811500702",

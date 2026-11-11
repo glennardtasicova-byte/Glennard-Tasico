@@ -8,6 +8,7 @@ import {
   buildGlennBotExpandedUrl,
   buildInstantPopoutStyleTag,
   buildSavvyFindsRoleReversalWebhookPayload,
+  buildShowcaseCommentLoadingCardHtml,
   computeCenteredPopupFeatures,
   computeRightDockedPopupFeatures,
   filterPortfolioCommentsList,
@@ -396,6 +397,20 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
   assert.equal(payload.comment.author.id, "61595021080265");
   assert.equal(payload.comment.isOwnAccount, false);
   assert.equal(payload.comment.isOwner, false);
+
+  for (const [plat, label, recId] of [
+    ["facebook", "Facebook", "post_ext_dc6a96869a"],
+    ["instagram", "Instagram", "post_ext_b10078462e"],
+    ["tiktok", "TikTok", "post_ext_19fdfb7f26"],
+  ]) {
+    const loadingHtml = buildShowcaseCommentLoadingCardHtml(plat);
+    assert.ok(loadingHtml.includes(`data-record-id="${recId}"`));
+    assert.ok(loadingHtml.includes(`data-loading-state="1"`));
+    assert.ok(loadingHtml.includes(`Comments on This Post (Loading...)`));
+    assert.ok(loadingHtml.includes(`Loading live comments from ${label}...`));
+    assert.ok(loadingHtml.includes(`fa-circle-notch fa-spin`));
+    assert.ok(!loadingHtml.includes("No comments on this post yet."));
+  }
 });
 
 

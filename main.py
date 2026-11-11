@@ -1308,7 +1308,7 @@ def _build_calendar_lock_body_script() -> str:
         "panel.dataset.recordId=cfg.record_id;"
         "panel.dataset.savvyEmptyState='1';"
         "var existingZeroBox=document.getElementById('gb-savvy-zero-comments-box');"
-        "if(!existingZeroBox||existingZeroBox.dataset.recordId!==cfg.record_id){"
+        "if(!existingZeroBox||existingZeroBox.dataset.recordId!==cfg.record_id||existingZeroBox.dataset.loadingState!=='1'){"
         "panel.innerHTML="
         "'<div class=\"flex flex-col h-full justify-between gap-3\">'"
         "+'<div class=\"space-y-3 overflow-y-auto pr-1 max-h-[760px] custom-scrollbar\">'"
@@ -1330,13 +1330,28 @@ def _build_calendar_lock_body_script() -> str:
         "+'</div>'"
         "+'<div class=\"space-y-2\">'"
         "+'<div class=\"flex items-center justify-between\">'"
-        "+'<span id=\"post-comments-count-label\" class=\"text-[11px] font-bold uppercase tracking-wider text-gb-cyan flex items-center gap-1.5\"><i class=\"fas fa-comments\"></i> Comments on This Post (0)</span>'"
+        "+'<span id=\"post-comments-count-label\" class=\"text-[11px] font-bold uppercase tracking-wider text-gb-cyan flex items-center gap-1.5\"><i class=\"fas fa-circle-notch fa-spin text-gb-cyan\"></i> Comments on This Post (Loading...)</span>'"
         "+'</div>'"
         "+'<div id=\"post-comments-thread-list\" class=\"space-y-2.5\">'"
-        "+'<div id=\"gb-savvy-zero-comments-box\" data-record-id=\"'+cfg.record_id+'\" class=\"p-6 rounded-xl bg-slate-900/60 border border-slate-800/90 text-center space-y-2\">'"
-        "+'<div class=\"w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-400/30 flex items-center justify-center mx-auto text-emerald-300\"><i class=\"fas fa-comment-slash\"></i></div>'"
-        "+'<p class=\"text-xs font-semibold text-slate-200\">No comments on this post yet.</p>'"
-        "+'<p class=\"text-[11px] text-slate-400 max-w-xl mx-auto leading-relaxed\">Leave a comment on the live <span class=\"text-emerald-300 font-semibold\">'+cfg.platform_label+' Post</span> window on the right and watch GlennBot Automations\\x27 Gemini AI reply appear here automatically!</p>'"
+        "+'<div id=\"gb-savvy-zero-comments-box\" data-record-id=\"'+cfg.record_id+'\" data-loading-state=\"1\" class=\"p-6 rounded-xl bg-slate-900/60 border border-cyan-500/30 text-center space-y-3 shadow-[0_0_25px_rgba(6,182,212,0.08)]\">'"
+        "+'<div class=\"relative w-12 h-12 mx-auto flex items-center justify-center\">'"
+        "+'<span class=\"absolute inset-0 rounded-full border-2 border-cyan-400/25 border-t-cyan-400 animate-spin\"></span>'"
+        "+'<span class=\"w-9 h-9 rounded-full bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center text-gb-cyan\"><i class=\"fas fa-circle-notch fa-spin text-base\"></i></span>'"
+        "+'</div>'"
+        "+'<div class=\"space-y-1\">'"
+        "+'<p class=\"text-xs font-bold text-slate-100 tracking-wide\">Loading live comments from '+cfg.platform_label+'...</p>'"
+        "+'<p class=\"text-[11px] text-slate-400 max-w-xl mx-auto leading-relaxed\">Fetching real-time comment thread &amp; <span class=\"text-gb-cyan font-semibold\">GlennBot Automations\\x27 Gemini AI</span> replies for <span class=\"text-emerald-300 font-semibold\">'+cfg.account_name+'</span>...</p>'"
+        "+'</div>'"
+        "+'<div class=\"pt-2 space-y-2 max-w-xl mx-auto text-left opacity-80\">'"
+        "+'<div class=\"p-3 rounded-lg bg-slate-800/50 border border-slate-700/60 animate-pulse space-y-2\">'"
+        "+'<div class=\"flex items-center gap-2.5\"><div class=\"w-6 h-6 rounded-full bg-slate-700/80\"></div><div class=\"h-2.5 w-28 rounded bg-slate-700/80\"></div><div class=\"h-2 w-16 rounded bg-slate-800 ml-auto\"></div></div>'"
+        "+'<div class=\"h-2.5 w-3/4 rounded bg-slate-700/60\"></div>'"
+        "+'</div>'"
+        "+'<div class=\"ml-6 p-2.5 rounded-lg bg-cyan-950/30 border border-cyan-500/20 animate-pulse space-y-1.5\">'"
+        "+'<div class=\"flex items-center gap-2\"><div class=\"h-2 w-24 rounded bg-cyan-500/30\"></div><div class=\"h-2 w-14 rounded bg-emerald-500/20\"></div></div>'"
+        "+'<div class=\"h-2 w-5/6 rounded bg-slate-700/50\"></div>'"
+        "+'</div>'"
+        "+'</div>'"
         "+'</div>'"
         "+'</div>'"
         "+'</div>'"
@@ -1344,6 +1359,11 @@ def _build_calendar_lock_body_script() -> str:
         "+'</div>';"
         "}"
         "_removeBottomComposerDom();"
+        "var nowMs=Date.now();"
+        "if(!window.__gbSavvySyncInFlight&&(nowMs-(window.__gbLastZeroRetryMs||0)>1800)){"
+        "window.__gbLastZeroRetryMs=nowMs;"
+        "setTimeout(function(){_runSavvyLiveAutoSync(true);},350);"
+        "}"
         "}"
         "function _replacePreviousPostCaptionInDom(panel,cfg){"
         "if(!panel||!cfg)return;"
@@ -1427,6 +1447,7 @@ def _build_calendar_lock_body_script() -> str:
         "function _normalizeVisitorRepliesOnClient(){"
         "_ensureShowcaseLivePostDetailsCache();"
         "if(typeof commentsList==='undefined'||!Array.isArray(commentsList))return;"
+        "window.__gbLastGoodShowcaseComments=window.__gbLastGoodShowcaseComments||{};"
         "for(var i=commentsList.length-1;i>=0;i--){"
         "if(_isBlockedSyntheticEntry(commentsList[i])){commentsList.splice(i,1);}"
         "}"
@@ -1451,6 +1472,20 @@ def _build_calendar_lock_body_script() -> str:
         "c.can_reply=true;"
         "if(Array.isArray(c.replies)){"
         "c.replies=c.replies.filter(function(r){return !_isBlockedSyntheticEntry(r);});"
+        "}"
+        "});"
+        "Object.keys(SHOWCASE_POSTS).forEach(function(recKey){"
+        "var curForRec=commentsList.filter(function(c){return c&&c.record_id===recKey;});"
+        "if(curForRec.length>0){"
+        "window.__gbLastGoodShowcaseComments[recKey]=curForRec.slice();"
+        "}else if(Array.isArray(window.__gbLastGoodShowcaseComments[recKey])&&window.__gbLastGoodShowcaseComments[recKey].length>0){"
+        "var existingIds={};"
+        "commentsList.forEach(function(c){if(c&&c.comment_id)existingIds[c.comment_id]=true;});"
+        "window.__gbLastGoodShowcaseComments[recKey].forEach(function(cachedC){"
+        "if(cachedC&&cachedC.comment_id&&!existingIds[cachedC.comment_id]){"
+        "commentsList.push(cachedC);"
+        "}"
+        "});"
         "}"
         "});"
         "}"
@@ -1533,6 +1568,21 @@ def _build_calendar_lock_body_script() -> str:
         "window.openScheduleMeetingModal=function(){};"
         "window.startCalendarOAuthPopup=function(){};"
         "window.openConnectAccountsModal=function(){};"
+        "var curResetDetail=window.resetCommentDetailPanel;"
+        "if(typeof curResetDetail==='function'&&!curResetDetail._gbSavvyWrapped){"
+        "var origResetDetail=curResetDetail;"
+        "var wrappedResetDetail=function(){"
+        "var activeCfg=_getActiveShowcaseConfig();"
+        "if(activeCfg){"
+        "if(typeof selectedRecordId!=='undefined')selectedRecordId=activeCfg.record_id;"
+        "_renderSavvyZeroCommentsCard(activeCfg.record_id);"
+        "return;"
+        "}"
+        "return origResetDetail.apply(this,arguments);"
+        "};"
+        "wrappedResetDetail._gbSavvyWrapped=true;"
+        "window.resetCommentDetailPanel=wrappedResetDetail;"
+        "}"
         "var curRenderDetail=window.renderSelectedCommentDetail;"
         "if(typeof curRenderDetail==='function'&&!curRenderDetail._gbSavvyWrapped){"
         "var origRenderDetail=curRenderDetail;"
@@ -1585,8 +1635,11 @@ def _build_calendar_lock_body_script() -> str:
         "var origFetchComments=curFetchComments;"
         "var wrappedFetchComments=async function(showFeedback){"
         "var activeCfg=_getActiveShowcaseConfig();"
-        "if(activeCfg&&typeof selectedRecordId!=='undefined'){"
-        "selectedRecordId=activeCfg.record_id;"
+        "if(activeCfg){"
+        "if(typeof selectedRecordId!=='undefined')selectedRecordId=activeCfg.record_id;"
+        "if(_getSavvyCommentsGroup(activeCfg.record_id).length===0&&window._gbInFlightPolls){"
+        "window._gbInFlightPolls.comments=false;"
+        "}"
         "}"
         "var r=await origFetchComments.apply(this,arguments);"
         "var postFetchCfg=_getActiveShowcaseConfig();"
@@ -2256,6 +2309,10 @@ _SAVVY_FINDS_UPSTREAM_RECORD_ID_State: dict[str, str | float] = {
     "record_id": "post_ext_dc6a96869a",
     "last_bg_sync_ts": 0.0,
 }
+_PORTFOLIO_COMMENTS_LAST_GOOD_CACHE: dict[str, object] = {
+    "by_record": {},
+    "payload": None,
+}
 
 
 def _is_synthetic_blocked_comment(obj: dict) -> bool:
@@ -2353,6 +2410,7 @@ def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> di
 
     if clean_path == "comments" and isinstance(data.get("comments"), list):
         kept = []
+        seen_cids: set[str] = set()
         for item in data["comments"]:
             if not isinstance(item, dict):
                 continue
@@ -2360,7 +2418,11 @@ def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> di
                 continue
             matched_cfg = _match_showcase_post_config_for_comment(item)
             if matched_cfg is not None:
-                kept.append(_normalize_showcase_comment_item(item, matched_cfg))
+                norm_sc = _normalize_showcase_comment_item(item, matched_cfg)
+                cid_sc = str(norm_sc.get("comment_id") or "").strip()
+                if cid_sc:
+                    seen_cids.add(cid_sc)
+                kept.append(norm_sc)
                 continue
             plat = str(item.get("platform") or "").strip().lower()
             if _matches_whitelisted_portfolio_account(plat, item):
@@ -2372,8 +2434,26 @@ def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> di
                         r for r in norm_item["replies"]
                         if isinstance(r, dict) and not _is_synthetic_blocked_comment(r)
                     ]
+                cid_wh = str(norm_item.get("comment_id") or "").strip()
+                if cid_wh:
+                    seen_cids.add(cid_wh)
                 kept.append(norm_item)
+
+        by_rec_cache = _PORTFOLIO_COMMENTS_LAST_GOOD_CACHE.setdefault("by_record", {})
+        for rec_key in SHOWCASE_POST_CONFIGS:
+            rec_items = [c for c in kept if isinstance(c, dict) and c.get("record_id") == rec_key]
+            if rec_items:
+                by_rec_cache[rec_key] = rec_items
+            elif by_rec_cache.get(rec_key):
+                for cached_c in by_rec_cache[rec_key]:
+                    cached_cid = str(cached_c.get("comment_id") or "").strip()
+                    if cached_cid and cached_cid not in seen_cids:
+                        seen_cids.add(cached_cid)
+                        kept.append(cached_c)
+
         data["comments"] = kept
+        if kept:
+            _PORTFOLIO_COMMENTS_LAST_GOOD_CACHE["payload"] = dict(data)
         return data
 
     if clean_path == "messages/conversations":
@@ -2564,6 +2644,7 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
 
             async def _bg_force_sync_showcase() -> None:
                 try:
+                    await asyncio.sleep(2.0)
                     async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as bg_client:
                         for showcase_rec in ordered_recs:
                             bg_url = f"{GLENNBOT_BASE_URL}/api/comments?force=true&active_record_id={showcase_rec}&_ts={ts_ms}"
@@ -2663,8 +2744,9 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
         if method_upper == "GET" and clean_path == "connected_accounts":
             return JSONResponse(content=_filter_connected_accounts_payload({}), status_code=200)
         if method_upper == "GET" and clean_path == "comments":
+            cached_payload = _PORTFOLIO_COMMENTS_LAST_GOOD_CACHE.get("payload")
             return JSONResponse(
-                content={"status": "success", "comments": []},
+                content=cached_payload if isinstance(cached_payload, dict) else {"status": "success", "comments": []},
                 status_code=200,
                 headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"},
             )
