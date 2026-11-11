@@ -81,6 +81,22 @@ export function buildInstantPopoutStyleTag(targetTab = "scheduler", popoutMode =
           `    display: none !important;`,
           `  }`,
         ].join("\n") + "\n"
+      : cleanMode === "message_thread"
+      ? [
+          `  /* Immediately focus on the right-hand message thread panel in message_thread mode and hide destructive controls */`,
+          `  #messages-top-filter-bar,`,
+          `  #messages-left-column,`,
+          `  #gb-popout-window-bar button,`,
+          `  #gb-popout-window-bar a,`,
+          `  button[onclick*="promptDeleteConversation("],`,
+          `  button[onclick*="promptDeleteSingleChatMessage("] {`,
+          `    display: none !important;`,
+          `  }`,
+          `  #message-detail-panel {`,
+          `    width: 100% !important;`,
+          `    flex: 1 1 0% !important;`,
+          `  }`,
+        ].join("\n") + "\n"
       : "";
   const composerHideCss = [
     `  /* Completely prevent any split-second flash of the bottom comment reply composer in comment_thread popup */`,
@@ -431,6 +447,51 @@ export function buildShowcaseCommentLoadingCardHtml(platformOrRecordId = "facebo
     `</div>`,
     `</div>`,
   ].join("");
+}
+
+export const SYS02_DM_SHOWCASE_CONFIG = {
+  facebook: {
+    platform: "facebook",
+    platform_label: "Facebook",
+    page_header: "GlennBot Automations",
+    page_subtitle: "Facebook Page • AI Messenger Chatbot Active",
+    account_id: "6af0b109818eb5c88d1e87a6",
+    account_name: "GlennBot Automations",
+    conv_key: "6af0b109818eb5c88d1e87a6_28783346117962442",
+    conv_id: "28783346117962442",
+    auto_latest: "1",
+    primary_messenger_url: "https://m.me/1340688402467466",
+    fallback_page_url: "https://www.facebook.com/1340688402467466",
+    primary_cta_label: "💬 Open Facebook Messenger (Send a DM)",
+    quick_starter_hints: [
+      "Hi GlennBot! What automation services do you offer?",
+      "How can your Python & AI workflows help my business save time?",
+      "Magkano ang rate mo at paano mag-inquire?",
+    ],
+    step_1_text: 'Click "Open Facebook Messenger" and send any message to GlennBot Automations.',
+    step_2_text:
+      "Watch the Live GlennBot Dashboard on the right automatically focus on your conversation and reply in real time using Gemini 3.5 Flash!",
+    status_bar_text:
+      "🟢 LIVE MESSENGER SYNC • Auto-Focusing Latest Active Chat on GlennBot Automations",
+    refresh_btn_label: "🔄 Refresh Live Chat",
+    popup_url:
+      "/glennbot-popout?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&conv_key=6af0b109818eb5c88d1e87a6_28783346117962442&conv_id=28783346117962442&auto_latest=1",
+    upstream_url:
+      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&conv_key=6af0b109818eb5c88d1e87a6_28783346117962442&conv_id=28783346117962442&auto_latest=1",
+    popup_window_name: "GlennBotMessageThread_FB",
+    messenger_window_name: "GlennBotDockedMessenger_facebook",
+  },
+};
+
+export function buildDmSplitWorkspaceConfig(platform = "facebook", timestamp = Date.now()) {
+  const cleanPlat = String(platform || "facebook").trim().toLowerCase();
+  const cfg = SYS02_DM_SHOWCASE_CONFIG[cleanPlat] || SYS02_DM_SHOWCASE_CONFIG.facebook;
+  const ts = Math.trunc(Number(timestamp) || Date.now());
+  return {
+    ...cfg,
+    iframeUrl: `${cfg.popup_url}&_ts=${ts}`,
+    upstreamIframeUrl: `${cfg.upstream_url}&_ts=${ts}`,
+  };
 }
 
 export const SYS02_SAVVY_FINDS_COMMENT_DEMO = {

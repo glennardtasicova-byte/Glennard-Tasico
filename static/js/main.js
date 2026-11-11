@@ -335,6 +335,219 @@ function closeCommentPlatformChooser() {
 }
 window.closeCommentPlatformChooser = closeCommentPlatformChooser;
 
+const DM_SPLIT_PLATFORMS = {
+  facebook: {
+    key: "facebook",
+    platformLabel: "Facebook",
+    pageHeader: "GlennBot Automations",
+    pageSubtitle: "Facebook Page • AI Messenger Chatbot Active",
+    accountId: "6af0b109818eb5c88d1e87a6",
+    accountName: "GlennBot Automations",
+    convKey: "6af0b109818eb5c88d1e87a6_28783346117962442",
+    convId: "28783346117962442",
+    primaryMessengerUrl: "https://m.me/1340688402467466",
+    fallbackPageUrl: "https://www.facebook.com/1340688402467466",
+    primaryCtaLabel: "💬 Open Facebook Messenger (Send a DM)",
+    statusBarText:
+      "🟢 LIVE MESSENGER SYNC • Auto-Focusing Latest Active Chat on GlennBot Automations",
+    refreshBtnLabel: "🔄 Refresh Live Chat",
+    proxyDashboardUrl:
+      "/glennbot-popout?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&conv_key=6af0b109818eb5c88d1e87a6_28783346117962442&conv_id=28783346117962442&auto_latest=1",
+    upstreamDashboardUrl:
+      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&conv_key=6af0b109818eb5c88d1e87a6_28783346117962442&conv_id=28783346117962442&auto_latest=1",
+    dashboardWindowName: "GlennBotMessageThread_FB",
+    messengerWindowName: "GlennBotDockedMessenger_facebook",
+    quickStarterHints: [
+      "Hi GlennBot! What automation services do you offer?",
+      "How can your Python & AI workflows help my business save time?",
+      "Magkano ang rate mo at paano mag-inquire?",
+    ],
+  },
+};
+window.DM_SPLIT_PLATFORMS = DM_SPLIT_PLATFORMS;
+
+let activeDmSplitPlatform = "facebook";
+
+function openFacebookMessengerDmWindow(targetUrl) {
+  const cfg = DM_SPLIT_PLATFORMS[activeDmSplitPlatform] || DM_SPLIT_PLATFORMS.facebook;
+  const urlToOpen = String(targetUrl || cfg.primaryMessengerUrl).trim();
+  const availW = window.screen?.availWidth || window.innerWidth || 1440;
+  const availH = window.screen?.availHeight || window.innerHeight || 900;
+  const screenLeft = window.screenLeft !== undefined ? window.screenLeft : window.screenX || 0;
+  const screenTop = window.screenTop !== undefined ? window.screenTop : window.screenY || 0;
+  const popupWidth = Math.min(availW - 24, Math.max(520, Math.round(availW * 0.42)));
+  const popupHeight = Math.min(availH - 20, Math.max(680, Math.round(availH * 0.86)));
+  const popupLeft = Math.max(screenLeft + 16, Math.round(screenLeft + 24));
+  const popupTop = Math.max(screenTop, Math.round(screenTop + (availH - popupHeight) / 2));
+  const features = `width=${popupWidth},height=${popupHeight},left=${popupLeft},top=${popupTop},menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes`;
+  const win = window.open(urlToOpen, cfg.messengerWindowName, features);
+  if (win) {
+    try {
+      win.resizeTo(popupWidth, popupHeight);
+      win.moveTo(popupLeft, popupTop);
+    } catch (_) {}
+    win.focus();
+  }
+  return win;
+}
+window.openFacebookMessengerDmWindow = openFacebookMessengerDmWindow;
+
+function copyStarterHintAndOpenMessenger(hintText, btnEl) {
+  const cleanHint = String(hintText || "").trim();
+  if (cleanHint && navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(cleanHint).catch(() => {});
+  }
+  if (btnEl) {
+    const origHtml = btnEl.getAttribute("data-orig-html") || btnEl.innerHTML;
+    btnEl.setAttribute("data-orig-html", origHtml);
+    btnEl.innerHTML = "<span>✓ Copied! Opening Messenger...</span>";
+    btnEl.classList.add("is-copied");
+    window.setTimeout(() => {
+      btnEl.innerHTML = origHtml;
+      btnEl.classList.remove("is-copied");
+    }, 2200);
+  }
+  openFacebookMessengerDmWindow(DM_SPLIT_PLATFORMS.facebook.primaryMessengerUrl);
+}
+window.copyStarterHintAndOpenMessenger = copyStarterHintAndOpenMessenger;
+
+function updateDmSplitWorkspaceDOM(platform = "facebook", reloadIframe = true) {
+  const platKey =
+    platform && DM_SPLIT_PLATFORMS[String(platform).toLowerCase()]
+      ? String(platform).toLowerCase()
+      : "facebook";
+  activeDmSplitPlatform = platKey;
+  const cfg = DM_SPLIT_PLATFORMS[platKey] || DM_SPLIT_PLATFORMS.facebook;
+  const ts = Date.now();
+
+  const fbBtn = document.getElementById("gb-dm-split-toggle-facebook");
+  if (fbBtn) fbBtn.classList.toggle("is-active", platKey === "facebook");
+
+  const pageTitleEl = document.getElementById("gb-dm-page-title");
+  if (pageTitleEl) pageTitleEl.textContent = cfg.pageHeader;
+
+  const pageSubtitleEl = document.getElementById("gb-dm-page-subtitle");
+  if (pageSubtitleEl) pageSubtitleEl.textContent = cfg.pageSubtitle;
+
+  const primaryLinkEl = document.getElementById("gb-dm-primary-messenger-link");
+  if (primaryLinkEl) {
+    primaryLinkEl.href = cfg.primaryMessengerUrl;
+    primaryLinkEl.textContent = cfg.primaryMessengerUrl;
+  }
+
+  const fallbackLinkEl = document.getElementById("gb-dm-fallback-page-link");
+  if (fallbackLinkEl) {
+    fallbackLinkEl.href = cfg.fallbackPageUrl;
+    fallbackLinkEl.textContent = cfg.fallbackPageUrl;
+  }
+
+  const statusTextEl = document.getElementById("gb-dm-live-status-text");
+  if (statusTextEl) statusTextEl.textContent = cfg.statusBarText;
+
+  const iframe = document.getElementById("gb-dm-split-iframe");
+  if (iframe && reloadIframe) {
+    iframe.setAttribute("data-upstream-url", cfg.upstreamDashboardUrl);
+    iframe.setAttribute("data-platform", platKey);
+    iframe.src = `${cfg.proxyDashboardUrl}&_ts=${ts}`;
+  }
+}
+
+function openDmSplitWorkspace(platform = "facebook") {
+  const platKey =
+    platform && DM_SPLIT_PLATFORMS[String(platform).toLowerCase()]
+      ? String(platform).toLowerCase()
+      : "facebook";
+  closeDmPlatformChooser();
+
+  const modal = document.getElementById("gb-dm-split-workspace-modal");
+  if (!modal) {
+    const cfg = DM_SPLIT_PLATFORMS[platKey] || DM_SPLIT_PLATFORMS.facebook;
+    return openGlennBotCustomPopup(cfg.proxyDashboardUrl, cfg.dashboardWindowName, 1100, 860);
+  }
+
+  updateDmSplitWorkspaceDOM(platKey, true);
+  modal.hidden = false;
+  document.body.style.overflow = "hidden";
+
+  if (!modal.dataset.boundDmSplitListeners) {
+    modal.dataset.boundDmSplitListeners = "true";
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeDmSplitWorkspace();
+    });
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !modal.hidden) {
+        e.stopPropagation();
+        closeDmSplitWorkspace();
+      }
+    });
+  }
+}
+window.openDmSplitWorkspace = openDmSplitWorkspace;
+
+function switchDmSplitPlatform(platform = "facebook") {
+  const platKey =
+    platform && DM_SPLIT_PLATFORMS[String(platform).toLowerCase()]
+      ? String(platform).toLowerCase()
+      : "facebook";
+  updateDmSplitWorkspaceDOM(platKey, true);
+}
+window.switchDmSplitPlatform = switchDmSplitPlatform;
+
+function refreshDmSplitIframe() {
+  const cfg = DM_SPLIT_PLATFORMS[activeDmSplitPlatform] || DM_SPLIT_PLATFORMS.facebook;
+  const iframe = document.getElementById("gb-dm-split-iframe");
+  const btn = document.getElementById("gb-dm-refresh-live-chat-btn");
+  const ts = Date.now();
+  if (btn) {
+    btn.classList.add("is-refreshing");
+    window.setTimeout(() => btn.classList.remove("is-refreshing"), 700);
+  }
+  if (iframe) {
+    iframe.setAttribute("data-upstream-url", cfg.upstreamDashboardUrl);
+    iframe.src = `${cfg.proxyDashboardUrl}&_ts=${ts}`;
+  }
+}
+window.refreshDmSplitIframe = refreshDmSplitIframe;
+
+function closeDmSplitWorkspace() {
+  const modal = document.getElementById("gb-dm-split-workspace-modal");
+  if (modal) {
+    modal.hidden = true;
+    const inspectorModal = document.getElementById("project-inspector-modal");
+    if (!inspectorModal || inspectorModal.hidden) {
+      document.body.style.overflow = "";
+    }
+  }
+}
+window.closeDmSplitWorkspace = closeDmSplitWorkspace;
+
+function openDmPlatformChooser() {
+  const chooser = document.getElementById("gb-dm-platform-chooser-modal");
+  if (!chooser) {
+    return openDmSplitWorkspace("facebook");
+  }
+  chooser.hidden = false;
+  if (!chooser.dataset.boundDmListeners) {
+    chooser.dataset.boundDmListeners = "true";
+    chooser.addEventListener("click", (e) => {
+      if (e.target === chooser) closeDmPlatformChooser();
+    });
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !chooser.hidden) {
+        e.stopPropagation();
+        closeDmPlatformChooser();
+      }
+    });
+  }
+}
+window.openDmPlatformChooser = openDmPlatformChooser;
+
+function closeDmPlatformChooser() {
+  const chooser = document.getElementById("gb-dm-platform-chooser-modal");
+  if (chooser) chooser.hidden = true;
+}
+window.closeDmPlatformChooser = closeDmPlatformChooser;
+
 (function () {
   const STORAGE_KEY = "glenn_portfolio_theme";
 
@@ -1609,8 +1822,8 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
           <button
             type="button"
             class="btn-sys01-popout btn-live-launcher"
-            onclick="event.stopPropagation(); openGlennBotLivePopup('messages');"
-            title="Open Unified Direct Messages & SMS Inbox Expanded View"
+            onclick="event.stopPropagation(); openDmPlatformChooser(this);"
+            title="Send a DM on Facebook Messenger to GlennBot Automations and watch Gemini 3.5 Flash auto-reply live"
           >
             <span>✉️ Send a DM</span>
           </button>

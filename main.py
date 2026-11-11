@@ -823,6 +823,12 @@ def _build_session_injector_snippet(
             "subtitle": f"GlennBot Automations {plat_label} Post • Live Gemini AI Auto-Responder Monitor",
             "icon": "fa-comments",
         }
+    elif clean_mode == "message_thread":
+        meta = {
+            "title": "Messenger Thread — Expanded View",
+            "subtitle": "GlennBot Automations Facebook Page • Live Gemini 3.5 Flash AI Messenger Chatbot",
+            "icon": "fa-comments",
+        }
     else:
         meta = _GLENNBOT_WORKSPACE_VIEW_META.get(
             clean_tab,
@@ -855,6 +861,22 @@ def _build_session_injector_snippet(
             "    display: none !important;\n"
             "  }\n"
             "  #comment-detail-panel {\n"
+            "    width: 100% !important;\n"
+            "    flex: 1 1 0% !important;\n"
+            "  }\n"
+        )
+    elif clean_mode == "message_thread":
+        comment_thread_css = (
+            "  /* Immediately focus on the right-hand message thread panel in message_thread mode */\n"
+            "  #messages-top-filter-bar,\n"
+            "  #messages-left-column,\n"
+            "  #gb-popout-window-bar button,\n"
+            "  #gb-popout-window-bar a,\n"
+            "  button[onclick*=\"promptDeleteConversation(\"],\n"
+            "  button[onclick*=\"promptDeleteSingleChatMessage(\"] {\n"
+            "    display: none !important;\n"
+            "  }\n"
+            "  #message-detail-panel {\n"
             "    width: 100% !important;\n"
             "    flex: 1 1 0% !important;\n"
             "  }\n"
@@ -1679,10 +1701,54 @@ def _build_calendar_lock_body_script() -> str:
         "}"
         "_customizeSavvyFindsComposer();"
         "}"
+        "async function _syncLatestActiveMessengerThread(){"
+        "if(window.gbActivePopoutMode!=='message_thread'&&String(window.location&&window.location.search||'').indexOf('popout_mode=message_thread')===-1)return;"
+        "if(window.__gbMsgAutoSyncInFlight)return;"
+        "window.__gbMsgAutoSyncInFlight=true;"
+        "try{"
+        "var p=window.gbActivePopoutParams||{};"
+        "var accId=String(p.account_id||'6af0b109818eb5c88d1e87a6').trim();"
+        "var fallbackKey=String(p.conv_key||'6af0b109818eb5c88d1e87a6_28783346117962442').trim();"
+        "var fallbackId=String(p.conv_id||'28783346117962442').trim();"
+        "var res=await fetch('/api/messages/conversations?force=false&platform=facebook&account_id='+encodeURIComponent(accId)+'&limit_per_page=10');"
+        "var data=await res.json();"
+        "var convs=(data&&Array.isArray(data.conversations))?data.conversations:[];"
+        "var fbConvs=convs.filter(function(c){return c&&String(c.platform||'').toLowerCase()==='facebook'&&(String(c.account_id||'')===accId||String(c.account_name||'').toLowerCase().indexOf('glennbot')!==-1);});"
+        "var latest=fbConvs.length>0?fbConvs[0]:null;"
+        "var targetKey=latest?String(latest.conv_key||fallbackKey):fallbackKey;"
+        "var targetId=latest?String(latest.conversation_id||fallbackId):fallbackId;"
+        "var targetAcc=latest?String(latest.account_id||accId):accId;"
+        "if(latest&&typeof messagesConversationsList!=='undefined'&&Array.isArray(messagesConversationsList)){"
+        "if(!messagesConversationsList.some(function(x){return x&&x.conv_key===latest.conv_key;})){messagesConversationsList.unshift(latest);}"
+        "}"
+        "var curKey=(typeof selectedConversationKey!=='undefined')?String(selectedConversationKey||''):'';"
+        "if(curKey&&curKey!==targetKey){"
+        "if(typeof window.selectMessageConversation==='function'){"
+        "await window.selectMessageConversation(targetKey,targetId,targetAcc);"
+        "}"
+        "}else if(typeof window.refreshOpenConversationSilently==='function'){"
+        "await window.refreshOpenConversationSilently(targetId,targetAcc);"
+        "}"
+        "}catch(_){}finally{"
+        "window.__gbMsgAutoSyncInFlight=false;"
+        "}"
+        "}"
+        "function _ensureAutoLatestMessageThreadMonitor(){"
+        "if(window.gbActivePopoutMode!=='message_thread'&&String(window.location&&window.location.search||'').indexOf('popout_mode=message_thread')===-1)return;"
+        "if(!window.__gbMsgAutoLatestStarted){"
+        "window.__gbMsgAutoLatestStarted=true;"
+        "window.__gbMsgAutoLatestInterval=setInterval(function(){"
+        "if(document.hidden)return;"
+        "_syncLatestActiveMessengerThread();"
+        "},12000);"
+        "}"
+        "}"
         "_lockCalendarDomAndFns();"
-        "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',_lockCalendarDomAndFns);}"
+        "_ensureAutoLatestMessageThreadMonitor();"
+        "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){_lockCalendarDomAndFns();_ensureAutoLatestMessageThreadMonitor();});}"
         "window.addEventListener('load',function(){"
         "_lockCalendarDomAndFns();"
+        "_ensureAutoLatestMessageThreadMonitor();"
         "setTimeout(_lockCalendarDomAndFns,150);"
         "setTimeout(_lockCalendarDomAndFns,600);"
         "try{"
@@ -1719,6 +1785,8 @@ async def glennbot_authenticated_popout(request: Request):
     raw_tab = request.query_params.get("tab")
     if not raw_tab and popout_mode == "comment_thread":
         raw_tab = "comments"
+    elif not raw_tab and popout_mode == "message_thread":
+        raw_tab = "messages"
     target_tab = _sanitize_popout_tab(raw_tab)
     popout_params = dict(request.query_params)
     popout_params.setdefault("tab", target_tab)
@@ -2313,6 +2381,7 @@ _PORTFOLIO_COMMENTS_LAST_GOOD_CACHE: dict[str, object] = {
     "by_record": {},
     "payload": None,
 }
+_PORTFOLIO_MESSAGES_THREAD_CACHE: dict[str, dict[str, object]] = {}
 
 
 def _is_synthetic_blocked_comment(obj: dict) -> bool:
@@ -2484,6 +2553,22 @@ def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> di
                     norm_pg["name"] = _PORTFOLIO_WHITELISTED_ACCOUNTS[plat]["name"]
                     kept_pages.append(norm_pg)
             data["connected_pages"] = kept_pages
+        return data
+
+    if clean_path.startswith("messages/") and clean_path.endswith("/thread"):
+        parts = clean_path.split("/")
+        conv_id_key = parts[1] if len(parts) >= 3 else ""
+        if conv_id_key:
+            msgs = data.get("messages")
+            if isinstance(msgs, list) and len(msgs) > 0:
+                _PORTFOLIO_MESSAGES_THREAD_CACHE.setdefault(conv_id_key, {})["messages"] = list(msgs)
+                if isinstance(data.get("conversation"), dict):
+                    _PORTFOLIO_MESSAGES_THREAD_CACHE[conv_id_key]["conversation"] = dict(data["conversation"])
+            elif isinstance(msgs, list) and len(msgs) == 0:
+                cached_entry = _PORTFOLIO_MESSAGES_THREAD_CACHE.get(conv_id_key) or {}
+                cached_msgs = cached_entry.get("messages")
+                if isinstance(cached_msgs, list) and len(cached_msgs) > 0:
+                    data["messages"] = list(cached_msgs)
         return data
 
     if clean_path == "analytics":
@@ -2663,6 +2748,43 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
             asyncio.create_task(_bg_force_sync_showcase())
 
         target_url = f"{GLENNBOT_BASE_URL}/api/comments?active_record_id={upstream_rec_id}&_ts={ts_ms}"
+    elif clean_path.startswith("messages/") and clean_path.endswith("/thread") and method_upper == "GET":
+        parts = clean_path.split("/")
+        conv_id_key = parts[1] if len(parts) >= 3 else ""
+        acc_param = (request.query_params.get("account_id") or "6af0b109818eb5c88d1e87a6").strip()
+        cache_entry = _PORTFOLIO_MESSAGES_THREAD_CACHE.setdefault(conv_id_key, {})
+        last_force_ts = float(cache_entry.get("last_force_ts") or 0.0)
+        has_cached_msgs = bool(cache_entry.get("messages"))
+        ts_ms = int(time.time() * 1000)
+        if time.time() - last_force_ts >= 15.0:
+            cache_entry["last_force_ts"] = time.time()
+
+            async def _bg_force_sync_msg_thread() -> None:
+                try:
+                    await asyncio.sleep(1.5)
+                    async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as bg_client:
+                        bg_url = f"{GLENNBOT_BASE_URL}/api/messages/{conv_id_key}/thread?account_id={acc_param}&force=true&_ts={ts_ms}"
+                        bg_resp = await bg_client.get(
+                            bg_url,
+                            headers={
+                                **get_glennbot_headers(session_token),
+                                "Cache-Control": "no-cache, no-store",
+                                "Pragma": "no-cache",
+                            },
+                            cookies={"gb_auth_session": session_token},
+                        )
+                        if bg_resp.status_code == 200:
+                            bg_data = bg_resp.json()
+                            if isinstance(bg_data, dict) and isinstance(bg_data.get("messages"), list) and bg_data["messages"]:
+                                cache_entry["messages"] = list(bg_data["messages"])
+                except Exception:
+                    pass
+
+            asyncio.create_task(_bg_force_sync_msg_thread())
+
+        target_url = (
+            f"{target_url}?account_id={acc_param}&force={'false' if has_cached_msgs else 'true'}&_ts={ts_ms}"
+        )
     elif request.url.query:
         target_url = f"{target_url}?{request.url.query}"
 

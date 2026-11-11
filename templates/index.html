@@ -15,7 +15,7 @@
 
   <!-- Font Awesome Icons & Custom Stylesheet -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <link rel="stylesheet" href="/static/css/style.css?v=51" />
+  <link rel="stylesheet" href="/static/css/style.css?v=52" />
   <script>
     (function () {
       try {
@@ -656,9 +656,10 @@
                 </button>
                 <button
                   type="button"
+                  id="gb-project2-send-dm-btn"
                   class="btn-sys01-popout btn-live-launcher"
-                  onclick="event.stopPropagation(); openGlennBotLivePopup('messages');"
-                  title="Open Unified Direct Messages & SMS Inbox Expanded View"
+                  onclick="event.stopPropagation(); openDmPlatformChooser(this);"
+                  title="Send a DM on Facebook Messenger to GlennBot Automations and watch Gemini 3.5 Flash auto-reply live"
                 >
                   <span>✉️ Send a DM</span>
                 </button>
@@ -1156,6 +1157,243 @@
     </div>
   </div>
 
+  <!-- Live DM Platform Chooser Modal Popover (Starting with Facebook Messenger for GlennBot Automations) -->
+  <div id="gb-dm-platform-chooser-modal" class="gb-comment-chooser-backdrop" role="dialog" aria-modal="true" aria-labelledby="gb-dm-chooser-title" hidden>
+    <div class="gb-comment-chooser-dialog" onclick="event.stopPropagation();">
+      <div class="gb-comment-chooser-header">
+        <div>
+          <span class="gb-comment-chooser-eyebrow">SYS-02 &bull; Live Gemini 3.5 Flash AI Messenger Chatbot</span>
+          <h3 id="gb-dm-chooser-title" class="gb-comment-chooser-title">✉️ Send a DM to GlennBot Automations</h3>
+          <p class="gb-comment-chooser-subtitle">Select an official <strong>GlennBot Automations</strong> messaging channel to launch the 1-Step Direct Message Split-Screen Showcase:</p>
+        </div>
+        <button type="button" class="gb-comment-chooser-close" onclick="closeDmPlatformChooser();" aria-label="Close DM platform chooser">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="gb-comment-chooser-options">
+        <button
+          type="button"
+          id="gb-choose-fb-dm-btn"
+          class="gb-comment-choice-card gb-comment-choice-fb"
+          onclick="event.stopPropagation(); closeDmPlatformChooser(); openDmSplitWorkspace('facebook');"
+        >
+          <div class="gb-comment-choice-icon gb-comment-choice-icon-fb">
+            <i class="fab fa-facebook"></i>
+          </div>
+          <div class="gb-comment-choice-body">
+            <div class="gb-comment-choice-top">
+              <strong class="gb-comment-choice-name">Facebook (GlennBot Automations)</strong>
+              <span class="gb-comment-choice-badge">AI Messenger Chatbot Active</span>
+            </div>
+            <p class="gb-comment-choice-desc">Opens the Split-Screen Interactive Showcase with the 1-Step Facebook Messenger Trigger (<code>m.me/1340688402467466</code>) on the left and the Auto-Focusing Live GlennBot Dashboard on the right.</p>
+          </div>
+          <span class="gb-comment-choice-arrow" aria-hidden="true">&rarr;</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2-Column Side-by-Side Live DM Showcase Modal (Option 1: Left Client Messenger Trigger + Right Auto-Focusing GlennBot Dashboard) -->
+  <div id="gb-dm-split-workspace-modal" class="gb-split-workspace-backdrop" role="dialog" aria-modal="true" aria-labelledby="gb-dm-split-workspace-title" hidden>
+    <div class="gb-split-workspace-dialog w-[98.5vw] max-w-[1900px] h-[92vh]" onclick="event.stopPropagation();">
+      <!-- Top Header Bar -->
+      <header class="gb-split-workspace-header">
+        <div class="gb-split-header-left">
+          <span class="status-dot-live" aria-hidden="true"></span>
+          <h3 id="gb-dm-split-workspace-title" class="gb-split-header-title">GLENNBOT AUTOMATIONS — LIVE AI MESSENGER DM SHOWCASE</h3>
+        </div>
+
+        <div class="gb-split-header-controls">
+          <!-- Platform Switcher Toggle (Facebook: GlennBot Automations) -->
+          <div class="gb-split-platform-switcher" role="group" aria-label="Select Live DM Platform">
+            <button
+              type="button"
+              id="gb-dm-split-toggle-facebook"
+              class="gb-split-platform-btn is-active"
+              data-dm-platform="facebook"
+              onclick="switchDmSplitPlatform('facebook');"
+            >
+              <i class="fab fa-facebook"></i>
+              <span>Facebook (GlennBot Automations)</span>
+            </button>
+          </div>
+
+          <!-- Close Button -->
+          <button
+            type="button"
+            id="gb-dm-split-close-btn"
+            class="gb-split-close-btn"
+            onclick="closeDmSplitWorkspace();"
+            aria-label="Close Live DM Split-Screen Showcase"
+          >
+            <span>&times;</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- 2-Column Split-Screen Body (Left Client Trigger + Right Live GlennBot Dashboard) -->
+      <div class="gb-split-workspace-grid gb-dm-split-workspace-grid grid-cols-1 lg:grid-cols-12">
+        <!-- Left Panel (lg:col-span-5, 42% width): Client Trigger — Facebook Messenger -->
+        <div class="gb-dm-col-left lg:col-span-5">
+          <div class="gb-split-launchpad-card gb-dm-launchpad-card">
+            <!-- 1. Official Page Header -->
+            <div class="gb-dm-page-header-box">
+              <div class="gb-split-badge-row">
+                <span id="gb-dm-platform-badge" class="gb-split-platform-badge is-facebook">
+                  <i class="fab fa-facebook"></i>
+                  <span>Facebook Messenger &bull; 1-Step Trigger</span>
+                </span>
+                <span class="gb-split-dock-tag">24h Meta Window + Gemini 3.5 Flash</span>
+              </div>
+              <div class="gb-dm-official-header">
+                <div class="gb-dm-page-avatar">
+                  <i class="fab fa-facebook"></i>
+                </div>
+                <div class="gb-dm-page-meta">
+                  <h4 id="gb-dm-page-title" class="gb-dm-page-title">GlennBot Automations</h4>
+                  <p id="gb-dm-page-subtitle" class="gb-dm-page-subtitle">Facebook Page &bull; AI Messenger Chatbot Active</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Primary CTA Button & Official Messenger / Fallback Page URLs -->
+            <div class="gb-dm-cta-box">
+              <button
+                type="button"
+                id="gb-dm-open-messenger-btn"
+                class="gb-split-btn-primary gb-dm-btn-messenger"
+                onclick="openFacebookMessengerDmWindow('https://m.me/1340688402467466');"
+              >
+                <span>💬 Open Facebook Messenger (Send a DM)</span>
+              </button>
+
+              <div class="gb-dm-urls-grid">
+                <div class="gb-dm-url-row">
+                  <span class="gb-split-url-label">Primary Messenger URL:</span>
+                  <a
+                    id="gb-dm-primary-messenger-link"
+                    href="https://m.me/1340688402467466"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="gb-split-url-code"
+                    onclick="event.preventDefault(); openFacebookMessengerDmWindow('https://m.me/1340688402467466');"
+                  >https://m.me/1340688402467466</a>
+                </div>
+                <div class="gb-dm-url-row">
+                  <span class="gb-split-url-label">Fallback Facebook Page URL:</span>
+                  <a
+                    id="gb-dm-fallback-page-link"
+                    href="https://www.facebook.com/1340688402467466"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="gb-split-url-code"
+                    onclick="event.preventDefault(); openFacebookMessengerDmWindow('https://www.facebook.com/1340688402467466');"
+                  >https://www.facebook.com/1340688402467466</a>
+                </div>
+              </div>
+            </div>
+
+            <!-- 3. 3 Optional Quick Starter Message Hints (with 1-Click "Copy & Open Messenger") -->
+            <div class="gb-dm-hints-box">
+              <div class="gb-split-caption-header">
+                <span class="gb-split-section-label">Quick Starter Message Hints</span>
+                <span class="gb-split-post-type-tag">1-Click Copy &amp; Test</span>
+              </div>
+              <div class="gb-dm-hints-list">
+                <div class="gb-dm-hint-card">
+                  <p class="gb-dm-hint-text">"Hi GlennBot! What automation services do you offer?"</p>
+                  <button
+                    type="button"
+                    class="gb-dm-hint-btn"
+                    data-hint-text="Hi GlennBot! What automation services do you offer?"
+                    onclick="copyStarterHintAndOpenMessenger(this.getAttribute('data-hint-text'), this);"
+                  >
+                    <span>📋 Copy &amp; Open Messenger</span>
+                  </button>
+                </div>
+
+                <div class="gb-dm-hint-card">
+                  <p class="gb-dm-hint-text">"How can your Python &amp; AI workflows help my business save time?"</p>
+                  <button
+                    type="button"
+                    class="gb-dm-hint-btn"
+                    data-hint-text="How can your Python & AI workflows help my business save time?"
+                    onclick="copyStarterHintAndOpenMessenger(this.getAttribute('data-hint-text'), this);"
+                  >
+                    <span>📋 Copy &amp; Open Messenger</span>
+                  </button>
+                </div>
+
+                <div class="gb-dm-hint-card">
+                  <p class="gb-dm-hint-text">"Magkano ang rate mo at paano mag-inquire?"</p>
+                  <button
+                    type="button"
+                    class="gb-dm-hint-btn"
+                    data-hint-text="Magkano ang rate mo at paano mag-inquire?"
+                    onclick="copyStarterHintAndOpenMessenger(this.getAttribute('data-hint-text'), this);"
+                  >
+                    <span>📋 Copy &amp; Open Messenger</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 4. Clear Step-by-Step Instruction Badge -->
+            <div class="gb-split-steps-box gb-dm-steps-box">
+              <span class="gb-split-section-label">1-Step Direct Message Trigger Flow</span>
+              <ol class="gb-split-steps-list">
+                <li class="gb-split-step-item">
+                  <span class="gb-split-step-badge">Step 1</span>
+                  <p class="gb-split-step-desc">
+                    Click <strong>"Open Facebook Messenger"</strong> and send any message to <strong>GlennBot Automations</strong>.
+                  </p>
+                </li>
+                <li class="gb-split-step-item">
+                  <span class="gb-split-step-badge">Step 2</span>
+                  <p class="gb-split-step-desc">
+                    Watch the <strong>Live GlennBot Dashboard</strong> on the right automatically focus on your conversation and reply in real time using <strong>Gemini 3.5 Flash</strong>!
+                  </p>
+                </li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Panel (lg:col-span-7, 58% width): Live GlennBot Dashboard — Option 1 Auto-Focus Latest Active DM Thread -->
+        <div class="gb-dm-col-right lg:col-span-7">
+          <!-- Live Status Bar above the Embedded Dashboard -->
+          <div class="gb-dm-status-bar">
+            <div class="gb-dm-status-bar-left">
+              <span id="gb-dm-live-status-text" class="gb-dm-live-status-text">🟢 LIVE MESSENGER SYNC &bull; Auto-Focusing Latest Active Chat on GlennBot Automations</span>
+            </div>
+            <div class="gb-dm-status-bar-actions">
+              <button
+                type="button"
+                id="gb-dm-refresh-live-chat-btn"
+                class="gb-split-refresh-btn gb-dm-refresh-btn"
+                onclick="refreshDmSplitIframe();"
+                title="Manually reload the Live GlennBot Message Thread Dashboard"
+              >
+                <span id="gb-dm-refresh-icon">🔄</span>
+                <span>Refresh Live Chat</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Embedded Live GlennBot Expanded Message Thread View -->
+          <iframe
+            id="gb-dm-split-iframe"
+            class="gb-comment-split-iframe gb-dm-split-iframe w-full h-full rounded-xl border border-cyan-500/30"
+            src="about:blank"
+            data-upstream-url="https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&conv_key=6af0b109818eb5c88d1e87a6_28783346117962442&conv_id=28783346117962442&auto_latest=1"
+            title="Live GlennBot Dashboard — Auto-Focus Latest Active Messenger Thread"
+            allow="clipboard-read; clipboard-write"
+          ></iframe>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Minimal Footer -->
   <footer class="site-footer">
     <div class="container footer-inner scroll-reveal" data-reveal-delay="60">
@@ -1166,6 +1404,6 @@
   </footer>
 
   <!-- Custom Script -->
-  <script src="/static/js/main.js?v=51"></script>
+  <script src="/static/js/main.js?v=52"></script>
 </body>
 </html>

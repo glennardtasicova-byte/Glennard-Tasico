@@ -4,7 +4,9 @@ import {
   SYS01_EXPANDED_VIEWS,
   SYS01_PROJECT_SPEC,
   SYS02_SAVVY_FINDS_COMMENT_DEMO,
+  SYS02_DM_SHOWCASE_CONFIG,
   buildCommentSplitWorkspaceConfig,
+  buildDmSplitWorkspaceConfig,
   buildGlennBotExpandedUrl,
   buildInstantPopoutStyleTag,
   buildSavvyFindsRoleReversalWebhookPayload,
@@ -412,6 +414,45 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
     assert.ok(!loadingHtml.includes("No comments on this post yet."));
   }
 });
+
+test("SYS-02 Send a DM Option 1 (Facebook Messenger + Auto-Focus Latest Active Conversation Thread) config and instant CSS", () => {
+  const dmCfg = buildDmSplitWorkspaceConfig("facebook", 1712345678901);
+  assert.equal(dmCfg.platform, "facebook");
+  assert.equal(dmCfg.page_header, "GlennBot Automations");
+  assert.equal(dmCfg.page_subtitle, "Facebook Page • AI Messenger Chatbot Active");
+  assert.equal(dmCfg.primary_cta_label, "💬 Open Facebook Messenger (Send a DM)");
+  assert.equal(dmCfg.primary_messenger_url, "https://m.me/1340688402467466");
+  assert.equal(dmCfg.fallback_page_url, "https://www.facebook.com/1340688402467466");
+  assert.deepEqual(dmCfg.quick_starter_hints, [
+    "Hi GlennBot! What automation services do you offer?",
+    "How can your Python & AI workflows help my business save time?",
+    "Magkano ang rate mo at paano mag-inquire?",
+  ]);
+  assert.equal(
+    dmCfg.status_bar_text,
+    "🟢 LIVE MESSENGER SYNC • Auto-Focusing Latest Active Chat on GlennBot Automations"
+  );
+  assert.equal(dmCfg.refresh_btn_label, "🔄 Refresh Live Chat");
+  assert.equal(
+    dmCfg.upstream_url,
+    "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&conv_key=6af0b109818eb5c88d1e87a6_28783346117962442&conv_id=28783346117962442&auto_latest=1"
+  );
+  assert.equal(
+    dmCfg.popup_url,
+    "/glennbot-popout?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&conv_key=6af0b109818eb5c88d1e87a6_28783346117962442&conv_id=28783346117962442&auto_latest=1"
+  );
+  assert.equal(
+    dmCfg.iframeUrl,
+    "/glennbot-popout?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&conv_key=6af0b109818eb5c88d1e87a6_28783346117962442&conv_id=28783346117962442&auto_latest=1&_ts=1712345678901"
+  );
+
+  const msgStyleTag = buildInstantPopoutStyleTag("messages", "message_thread");
+  assert.ok(msgStyleTag.includes("#messages-top-filter-bar"));
+  assert.ok(msgStyleTag.includes("#messages-left-column"));
+  assert.ok(msgStyleTag.includes("#message-detail-panel"));
+  assert.ok(msgStyleTag.includes("#view-messages"));
+});
+
 
 
 
