@@ -4739,8 +4739,8 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   -webkit-backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 16px;
+  justify-content: flex-start;
+  padding: 10px 12px;
 }
 
 .gb-split-workspace-backdrop[hidden] {
@@ -4752,9 +4752,9 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
 }
 
 .gb-split-workspace-dialog {
-  width: 96vw;
-  max-width: 1600px;
-  height: 90vh;
+  width: 98.5vw;
+  max-width: 1900px;
+  height: 92vh;
   background: linear-gradient(180deg, #0b1325 0%, #070d19 100%);
   border: 1px solid rgba(34, 211, 238, 0.35);
   border-radius: 18px;
@@ -4976,11 +4976,11 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
 }
 
 .gb-split-workspace-grid.is-instagram-layout .gb-split-col-left {
-  grid-column: span 5 / span 5;
+  grid-column: span 7 / span 7;
 }
 
 .gb-split-workspace-grid.is-instagram-layout .gb-split-col-right {
-  grid-column: span 7 / span 7;
+  grid-column: span 5 / span 5;
 }
 
 .gb-comment-split-iframe {

@@ -298,18 +298,18 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
   assert.equal(dockedFb.popupTop, Math.round((1080 - 929) / 2));
   assert.ok(dockedFb.features.includes("width=806,height=929,left=1094,top=76"));
 
-  // Instagram requires >= 736px viewport width (780px-840px+ outer window) so Instagram Web renders its 2-column side-by-side comment box instead of a 100%-width photo
+  // Instagram requires >= 736px viewport width (760px-820px outer window) so Instagram Web renders its 2-column side-by-side comment box while keeping >= 57% of the screen (~1,092px on 1920px) uncovered on the left for the Live GlennBot Dashboard
   const dockedIg1920 = computeRightDockedPopupFeatures(1920, 1080, 0, 0, "instagram");
-  assert.equal(dockedIg1920.popupWidth, 1075);
-  assert.equal(dockedIg1920.popupHeight, 1015);
-  assert.equal(dockedIg1920.popupLeft, 1920 - 1075 - 12);
-  assert.ok(dockedIg1920.popupWidth >= 840);
+  assert.equal(dockedIg1920.popupWidth, 820);
+  assert.equal(dockedIg1920.popupHeight, 994);
+  assert.equal(dockedIg1920.popupLeft, 1920 - 820 - 8);
+  assert.ok(dockedIg1920.popupWidth >= 760 && dockedIg1920.popupWidth <= 820);
 
   for (const availW of [1280, 1366, 1440, 1536]) {
     const igLaptop = computeRightDockedPopupFeatures(availW, 860, 0, 0, "instagram");
     assert.ok(
-      igLaptop.popupWidth >= 780,
-      `Expected Instagram popupWidth >= 780 on ${availW}px screen, got ${igLaptop.popupWidth}`
+      igLaptop.popupWidth >= 760 && igLaptop.popupWidth <= 800,
+      `Expected Instagram popupWidth between 760 and 800 on ${availW}px screen, got ${igLaptop.popupWidth}`
     );
   }
 

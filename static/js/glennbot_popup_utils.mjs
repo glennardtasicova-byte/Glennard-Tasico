@@ -350,15 +350,18 @@ export function computeRightDockedPopupFeatures(
   const safeScreenTop = Number.isFinite(Number(screenTop)) ? Number(screenTop) : 0;
   const isInstagram = String(platform || "").trim().toLowerCase() === "instagram";
 
-  // Instagram Web switches from giant single-column photo to compact 2-column side-by-side
-  // (360px photo on left + 356px comment thread & "Add a comment..." box on right) at >= 736px width
-  // (and >= 780px-840px when logged in with the 72px left icon rail).
-  const minW = isInstagram ? (safeAvailW < 1400 ? 780 : 840) : 500;
-  const widthRatio = isInstagram ? (safeAvailW < 1400 ? 0.58 : 0.56) : 0.42;
-  const heightRatio = isInstagram ? 0.94 : 0.86;
-  const rightMargin = isInstagram ? 12 : 20;
+  // Instagram Web switches to its compact 2-column side-by-side desktop layout at >= 736px width.
+  // Capping Instagram's popup to 760px-820px (~43% of a 1920px screen) keeps the comment box visible
+  // on the right while preserving the full 57%-58% left side (~1,090px) for the Live GlennBot Dashboard.
+  const minW = isInstagram ? (safeAvailW < 1400 ? 760 : 780) : 500;
+  const maxW = isInstagram
+    ? Math.min(safeAvailW - 24, safeAvailW < 1600 ? 800 : 820)
+    : safeAvailW - 24;
+  const widthRatio = isInstagram ? 0.43 : 0.42;
+  const heightRatio = isInstagram ? 0.92 : 0.86;
+  const rightMargin = isInstagram ? 8 : 20;
 
-  const popupWidth = Math.min(safeAvailW - 24, Math.max(minW, Math.round(safeAvailW * widthRatio)));
+  const popupWidth = Math.min(maxW, Math.max(minW, Math.round(safeAvailW * widthRatio)));
   const popupHeight = Math.min(safeAvailH - 16, Math.max(680, Math.round(safeAvailH * heightRatio)));
   const popupLeft = Math.max(safeScreenLeft, Math.round(safeScreenLeft + safeAvailW - popupWidth - rightMargin));
   const popupTop = Math.max(safeScreenTop, Math.round(safeScreenTop + (safeAvailH - popupHeight) / 2));
