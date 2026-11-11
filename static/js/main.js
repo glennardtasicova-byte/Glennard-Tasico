@@ -340,23 +340,28 @@ const DM_SPLIT_PLATFORMS = {
     key: "facebook",
     platformLabel: "Facebook",
     pageHeader: "GlennBot Automations",
-    pageSubtitle: "Facebook Page • AI Messenger Chatbot Active",
+    pageSubtitle:
+      "Facebook Messenger • 24h Meta Window + Gemini 3.5 Flash Active",
     accountId: "6af0b109818eb5c88d1e87a6",
     accountName: "GlennBot Automations",
-    pageProfileId: "61595021080265",
-    primaryMessengerUrl: "https://www.facebook.com/messages/t/61595021080265",
-    secondaryMessengerUrl: "https://m.me/61595021080265",
-    fallbackPageUrl: "https://www.facebook.com/61595021080265",
-    primaryCtaLabel: "💬 Open Facebook Messenger (Send a DM)",
+    defaultVisitorName: "Portfolio Client",
+    visitorNamePlaceholder: "Your Name (e.g. Alex)",
+    newBlankChatLabel: "🔄 New Blank Chat",
+    typingIndicatorText:
+      "GlennBot Automations is typing via Gemini 3.5 Flash...",
+    composerPlaceholder: "Write a message to GlennBot Automations...",
+    liveDmPostEndpoint: "/api/messages/portfolio_live_dm",
+    upstreamLiveDmPostEndpoint:
+      "https://glennbotautomations.onrender.com/api/messages/portfolio_live_dm",
+    pollIntervalMs: 2500,
     statusBarText:
-      "🟢 LIVE MESSENGER SESSION • Blank Standby Ready (Send a DM on Messenger to begin)",
+      "🟢 LIVE MESSENGER SESSION • Synced in Real Time with Your Client Chat",
     refreshBtnLabel: "🔄 Refresh Live Chat",
-    proxyDashboardUrl:
-      "/glennbot-popout?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&auto_latest=1&wait_for_new=1",
-    upstreamDashboardUrl:
-      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&auto_latest=1&wait_for_new=1",
+    baseProxyDashboardUrl:
+      "/glennbot-popout?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations",
+    baseUpstreamDashboardUrl:
+      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations",
     dashboardWindowName: "GlennBotMessageThread_FB",
-    messengerWindowName: "GlennBotDockedMessenger_facebook",
     quickStarterHints: [
       "Hi GlennBot! What automation services do you offer?",
       "How can your Python & AI workflows help my business save time?",
@@ -367,58 +372,303 @@ const DM_SPLIT_PLATFORMS = {
 window.DM_SPLIT_PLATFORMS = DM_SPLIT_PLATFORMS;
 
 let activeDmSplitPlatform = "facebook";
-let activeDmSessionStartTs = 0;
-window.getActiveDmSessionStartTs = function () {
-  return activeDmSessionStartTs;
+let activeDmSessionConvId = "";
+let activeDmSessionConvKey = "";
+let dmClientMessages = [];
+let dmClientWaitingForAi = false;
+let dmClientPollTimer = null;
+let dmClientSendingInFlight = false;
+
+function generateNewDmSessionIds(accountId = "6af0b109818eb5c88d1e87a6") {
+  const sessionConvId = `fb_live_${Math.random().toString(36).slice(2, 9)}_${Date.now().toString(36)}`;
+  const cleanAccId = String(accountId || "6af0b109818eb5c88d1e87a6").trim();
+  const sessionConvKey = `${cleanAccId}_${sessionConvId}`;
+  return {
+    sessionConvId,
+    accountId: cleanAccId,
+    sessionConvKey,
+  };
+}
+window.generateNewDmSessionIds = generateNewDmSessionIds;
+
+window.getActiveDmSessionConvId = function () {
+  return activeDmSessionConvId;
+};
+window.getActiveDmSessionConvKey = function () {
+  return activeDmSessionConvKey;
 };
 
-function openFacebookMessengerDmWindow(targetUrl) {
-  const cfg = DM_SPLIT_PLATFORMS[activeDmSplitPlatform] || DM_SPLIT_PLATFORMS.facebook;
-  const urlToOpen = String(targetUrl || cfg.primaryMessengerUrl).trim();
-  const availW = window.screen?.availWidth || window.innerWidth || 1440;
-  const availH = window.screen?.availHeight || window.innerHeight || 900;
-  const screenLeft = window.screenLeft !== undefined ? window.screenLeft : window.screenX || 0;
-  const screenTop = window.screenTop !== undefined ? window.screenTop : window.screenY || 0;
-  const popupWidth = Math.min(availW - 24, Math.max(520, Math.round(availW * 0.42)));
-  const popupHeight = Math.min(availH - 20, Math.max(680, Math.round(availH * 0.86)));
-  const popupLeft = Math.max(screenLeft + 16, Math.round(screenLeft + 24));
-  const popupTop = Math.max(screenTop, Math.round(screenTop + (availH - popupHeight) / 2));
-  const features = `width=${popupWidth},height=${popupHeight},left=${popupLeft},top=${popupTop},menubar=no,toolbar=no,location=yes,status=no,resizable=yes,scrollbars=yes`;
-  const win = window.open(urlToOpen, cfg.messengerWindowName, features);
-  if (win) {
-    try {
-      win.resizeTo(popupWidth, popupHeight);
-      win.moveTo(popupLeft, popupTop);
-    } catch (_) {}
-    win.focus();
-  }
-  return win;
+function escapeDmHtml(str) {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
-window.openFacebookMessengerDmWindow = openFacebookMessengerDmWindow;
 
-function copyStarterHintAndOpenMessenger(hintText, btnEl) {
-  const cleanHint = String(hintText || "").trim();
-  if (cleanHint && navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(cleanHint).catch(() => {});
+function formatDmBubbleTime(tsValue) {
+  if (!tsValue) return "Just now";
+  try {
+    const dt = new Date(tsValue);
+    if (Number.isNaN(dt.getTime())) return String(tsValue);
+    return dt.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } catch (_) {
+    return "Just now";
   }
-  if (btnEl) {
-    const origHtml = btnEl.getAttribute("data-orig-html") || btnEl.innerHTML;
-    btnEl.setAttribute("data-orig-html", origHtml);
-    btnEl.innerHTML = "<span>✓ Copied! Opening Messenger...</span>";
-    btnEl.classList.add("is-copied");
-    window.setTimeout(() => {
-      btnEl.innerHTML = origHtml;
-      btnEl.classList.remove("is-copied");
-    }, 2200);
-  }
-  openFacebookMessengerDmWindow(DM_SPLIT_PLATFORMS.facebook.primaryMessengerUrl);
 }
-window.copyStarterHintAndOpenMessenger = copyStarterHintAndOpenMessenger;
+
+function setDmTypingIndicatorVisible(isVisible) {
+  dmClientWaitingForAi = Boolean(isVisible);
+  const typingEl = document.getElementById("gb-dm-typing-indicator");
+  if (typingEl) {
+    typingEl.hidden = !dmClientWaitingForAi;
+  }
+  if (dmClientWaitingForAi) {
+    scrollDmClientChatToBottom();
+  }
+}
+
+function scrollDmClientChatToBottom() {
+  const scrollEl = document.getElementById("gb-dm-client-chat-scroll");
+  if (!scrollEl) return;
+  scrollEl.scrollTop = scrollEl.scrollHeight;
+}
+
+function renderDmClientMessages(messagesList = dmClientMessages) {
+  const listEl = document.getElementById("gb-dm-client-messages-list");
+  if (!listEl) return;
+  const items = Array.isArray(messagesList) ? messagesList : [];
+  if (!items.length) {
+    listEl.innerHTML = "";
+    return;
+  }
+
+  const visitorInput = document.getElementById("gb-dm-visitor-name-input");
+  const fallbackVisitorName =
+    (visitorInput && visitorInput.value ? visitorInput.value.trim() : "") ||
+    "Portfolio Client";
+
+  const html = items
+    .map((m) => {
+      const isGlennBotReply = Boolean(m && m.is_own);
+      const rawText = String((m && (m.message || m.text || m.content)) || "").trim();
+      if (!rawText) return "";
+      const timeLabel = formatDmBubbleTime(m.timestamp || m.created_at);
+      if (isGlennBotReply) {
+        return `
+          <div class="gb-dm-msg-row is-glennbot" data-msg-id="${escapeDmHtml(m.id || m.message_id || "")}">
+            <div class="gb-dm-msg-avatar">
+              <i class="fas fa-robot" aria-hidden="true"></i>
+            </div>
+            <div class="gb-dm-msg-content">
+              <div class="gb-dm-msg-meta">
+                <span class="gb-dm-msg-author-badge">GlennBot Automations</span>
+                <span class="gb-dm-msg-ai-tag">Gemini 3.5 Flash</span>
+                <span class="gb-dm-msg-time">${escapeDmHtml(timeLabel)}</span>
+              </div>
+              <div class="gb-dm-bubble is-glennbot">${escapeDmHtml(rawText).replace(/\n/g, "<br>")}</div>
+            </div>
+          </div>
+        `;
+      }
+
+      const clientName =
+        String(m.sender_name || m.participant_name || fallbackVisitorName).trim() ||
+        "Portfolio Client";
+      return `
+        <div class="gb-dm-msg-row is-client" data-msg-id="${escapeDmHtml(m.id || m.message_id || "")}">
+          <div class="gb-dm-msg-content is-client">
+            <div class="gb-dm-msg-meta is-client">
+              <span class="gb-dm-msg-client-name">${escapeDmHtml(clientName)}</span>
+              <span class="gb-dm-msg-time">${escapeDmHtml(timeLabel)}</span>
+            </div>
+            <div class="gb-dm-bubble is-client">${escapeDmHtml(rawText).replace(/\n/g, "<br>")}</div>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+
+  listEl.innerHTML = html;
+}
+
+function notifyRightDashboardIframeLiveDmUpdate() {
+  const iframe = document.getElementById("gb-dm-split-iframe");
+  if (iframe && iframe.contentWindow) {
+    try {
+      iframe.contentWindow.postMessage(
+        {
+          type: "gb_live_dm_updated",
+          conv_id: activeDmSessionConvId,
+          conv_key: activeDmSessionConvKey,
+          account_id: "6af0b109818eb5c88d1e87a6",
+        },
+        "*"
+      );
+    } catch (_) {}
+  }
+}
+
+function applyServerThreadMessages(serverMessages) {
+  if (!Array.isArray(serverMessages)) return;
+  const previousCount = dmClientMessages.length;
+  const prevOwnCount = dmClientMessages.filter((m) => m && m.is_own).length;
+
+  if (serverMessages.length === 0 && dmClientMessages.length > 0 && dmClientWaitingForAi) {
+    // Keep optimistic client bubble visible while waiting for the server write to settle
+    return;
+  }
+
+  dmClientMessages = serverMessages.map((m, idx) => ({
+    id: m.id || m.message_id || `srv_${idx}`,
+    is_own: Boolean(m.is_own),
+    sender_name:
+      m.sender_name ||
+      (m.is_own ? "GlennBot Automations" : "Portfolio Client"),
+    message: String(m.message || m.text || m.content || ""),
+    timestamp: m.timestamp || m.created_at || new Date().toISOString(),
+  }));
+
+  renderDmClientMessages(dmClientMessages);
+
+  const newOwnCount = dmClientMessages.filter((m) => m && m.is_own).length;
+  const lastMsg = dmClientMessages[dmClientMessages.length - 1];
+  if (newOwnCount > prevOwnCount || (lastMsg && lastMsg.is_own)) {
+    setDmTypingIndicatorVisible(false);
+  }
+
+  if (dmClientMessages.length !== previousCount || newOwnCount > prevOwnCount) {
+    scrollDmClientChatToBottom();
+    notifyRightDashboardIframeLiveDmUpdate();
+  }
+}
+
+async function pollDmClientThread() {
+  const modal = document.getElementById("gb-dm-split-workspace-modal");
+  if (!modal || modal.hidden || !activeDmSessionConvId) return;
+
+  const cfg = DM_SPLIT_PLATFORMS[activeDmSplitPlatform] || DM_SPLIT_PLATFORMS.facebook;
+  const pollUrl = `/api/messages/${encodeURIComponent(activeDmSessionConvId)}/thread?account_id=${encodeURIComponent(cfg.accountId)}&force=false`;
+
+  try {
+    const res = await fetch(pollUrl, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data && Array.isArray(data.messages)) {
+      applyServerThreadMessages(data.messages);
+    }
+  } catch (_) {}
+}
+window.pollDmClientThread = pollDmClientThread;
+
+function startDmClientPolling() {
+  stopDmClientPolling();
+  const cfg = DM_SPLIT_PLATFORMS[activeDmSplitPlatform] || DM_SPLIT_PLATFORMS.facebook;
+  dmClientPollTimer = window.setInterval(() => {
+    pollDmClientThread();
+  }, cfg.pollIntervalMs || 2500);
+}
+
+function stopDmClientPolling() {
+  if (dmClientPollTimer) {
+    window.clearInterval(dmClientPollTimer);
+    dmClientPollTimer = null;
+  }
+}
+
+async function sendPortfolioLiveDmMessage(rawText) {
+  const messageText = String(rawText || "").trim();
+  if (!messageText || dmClientSendingInFlight) return;
+
+  if (!activeDmSessionConvId) {
+    const generated = generateNewDmSessionIds();
+    activeDmSessionConvId = generated.sessionConvId;
+    activeDmSessionConvKey = generated.sessionConvKey;
+  }
+
+  const cfg = DM_SPLIT_PLATFORMS[activeDmSplitPlatform] || DM_SPLIT_PLATFORMS.facebook;
+  const visitorInput = document.getElementById("gb-dm-visitor-name-input");
+  const visitorName =
+    (visitorInput && visitorInput.value ? visitorInput.value.trim() : "") ||
+    cfg.defaultVisitorName ||
+    "Portfolio Client";
+
+  const msgInput = document.getElementById("gb-dm-client-message-input");
+  if (msgInput && msgInput.value.trim() === messageText) {
+    msgInput.value = "";
+  }
+
+  // 1. Optimistically append the visitor's message bubble to the Left Panel chat area and show typing indicator
+  const optimisticMsg = {
+    id: `opt_${Date.now()}`,
+    is_own: false,
+    sender_name: visitorName,
+    message: messageText,
+    timestamp: new Date().toISOString(),
+  };
+  dmClientMessages = [...dmClientMessages, optimisticMsg];
+  renderDmClientMessages(dmClientMessages);
+  setDmTypingIndicatorVisible(true);
+  scrollDmClientChatToBottom();
+
+  const sendBtn = document.getElementById("gb-dm-client-send-btn");
+  dmClientSendingInFlight = true;
+  if (sendBtn) sendBtn.disabled = true;
+
+  const payload = {
+    conversation_id: activeDmSessionConvId,
+    account_id: cfg.accountId,
+    account_name: cfg.accountName,
+    platform: "facebook",
+    participant_name: visitorName || "Portfolio Client",
+    message: messageText,
+  };
+
+  try {
+    const res = await fetch(cfg.liveDmPostEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && Array.isArray(data.messages)) {
+        applyServerThreadMessages(data.messages);
+      } else {
+        await pollDmClientThread();
+      }
+      notifyRightDashboardIframeLiveDmUpdate();
+    } else {
+      await pollDmClientThread();
+    }
+  } catch (_) {
+    await pollDmClientThread();
+  } finally {
+    dmClientSendingInFlight = false;
+    if (sendBtn) sendBtn.disabled = false;
+  }
+}
+window.sendPortfolioLiveDmMessage = sendPortfolioLiveDmMessage;
+
+function submitDmClientComposer() {
+  const msgInput = document.getElementById("gb-dm-client-message-input");
+  if (!msgInput) return;
+  const text = String(msgInput.value || "").trim();
+  if (!text) return;
+  msgInput.value = "";
+  sendPortfolioLiveDmMessage(text);
+}
+window.submitDmClientComposer = submitDmClientComposer;
 
 function updateDmSplitWorkspaceDOM(
   platform = "facebook",
   reloadIframe = true,
-  resetSessionTs = true
+  generateFreshSession = true
 ) {
   const platKey =
     platform && DM_SPLIT_PLATFORMS[String(platform).toLowerCase()]
@@ -426,10 +676,15 @@ function updateDmSplitWorkspaceDOM(
       : "facebook";
   activeDmSplitPlatform = platKey;
   const cfg = DM_SPLIT_PLATFORMS[platKey] || DM_SPLIT_PLATFORMS.facebook;
-  if (resetSessionTs || !activeDmSessionStartTs) {
-    activeDmSessionStartTs = Date.now();
+
+  if (generateFreshSession || !activeDmSessionConvId) {
+    const generated = generateNewDmSessionIds(cfg.accountId);
+    activeDmSessionConvId = generated.sessionConvId;
+    activeDmSessionConvKey = generated.sessionConvKey;
+    dmClientMessages = [];
+    renderDmClientMessages([]);
+    setDmTypingIndicatorVisible(false);
   }
-  const sessionStartTs = activeDmSessionStartTs;
 
   const fbBtn = document.getElementById("gb-dm-split-toggle-facebook");
   if (fbBtn) fbBtn.classList.toggle("is-active", platKey === "facebook");
@@ -440,37 +695,41 @@ function updateDmSplitWorkspaceDOM(
   const pageSubtitleEl = document.getElementById("gb-dm-page-subtitle");
   if (pageSubtitleEl) pageSubtitleEl.textContent = cfg.pageSubtitle;
 
-  const primaryLinkEl = document.getElementById("gb-dm-primary-messenger-link");
-  if (primaryLinkEl) {
-    primaryLinkEl.href = cfg.primaryMessengerUrl;
-    primaryLinkEl.textContent = cfg.primaryMessengerUrl;
-  }
-
-  const secondaryLinkEl = document.getElementById("gb-dm-secondary-messenger-link");
-  if (secondaryLinkEl) {
-    secondaryLinkEl.href = cfg.secondaryMessengerUrl;
-    secondaryLinkEl.textContent = cfg.secondaryMessengerUrl;
-  }
-
-  const fallbackLinkEl = document.getElementById("gb-dm-fallback-page-link");
-  if (fallbackLinkEl) {
-    fallbackLinkEl.href = cfg.fallbackPageUrl;
-    fallbackLinkEl.textContent = cfg.fallbackPageUrl;
-  }
-
   const statusTextEl = document.getElementById("gb-dm-live-status-text");
   if (statusTextEl) statusTextEl.textContent = cfg.statusBarText;
 
+  const sessionBadgeEl = document.getElementById("gb-dm-session-id-badge");
+  if (sessionBadgeEl) sessionBadgeEl.textContent = activeDmSessionConvId;
+
+  const clientCard = document.getElementById("gb-dm-messenger-client-card");
+  if (clientCard) {
+    clientCard.setAttribute("data-session-conv-id", activeDmSessionConvId);
+    clientCard.setAttribute("data-session-conv-key", activeDmSessionConvKey);
+    clientCard.setAttribute(
+      "data-thread-poll-url",
+      `https://glennbotautomations.onrender.com/api/messages/${encodeURIComponent(activeDmSessionConvId)}/thread?account_id=${encodeURIComponent(cfg.accountId)}&force=false`
+    );
+  }
+
   const iframe = document.getElementById("gb-dm-split-iframe");
   if (iframe && reloadIframe) {
-    const upstreamUrl = `${cfg.upstreamDashboardUrl}&since_ts=${sessionStartTs}`;
-    const proxyUrl = `${cfg.proxyDashboardUrl}&since_ts=${sessionStartTs}`;
+    const queryTail = `&conv_key=${encodeURIComponent(activeDmSessionConvKey)}&conv_id=${encodeURIComponent(activeDmSessionConvId)}`;
+    const upstreamUrl = `${cfg.baseUpstreamDashboardUrl}${queryTail}`;
+    const proxyUrl = `${cfg.baseProxyDashboardUrl}${queryTail}`;
     iframe.setAttribute("data-upstream-url", upstreamUrl);
-    iframe.setAttribute("data-since-ts", String(sessionStartTs));
+    iframe.setAttribute("data-session-conv-id", activeDmSessionConvId);
+    iframe.setAttribute("data-session-conv-key", activeDmSessionConvKey);
     iframe.setAttribute("data-platform", platKey);
     iframe.src = proxyUrl;
   }
 }
+
+function startNewBlankDmSession() {
+  updateDmSplitWorkspaceDOM(activeDmSplitPlatform, true, true);
+  startDmClientPolling();
+}
+window.startNewBlankDmSession = startNewBlankDmSession;
+window.resetDmBlankSession = startNewBlankDmSession;
 
 function openDmSplitWorkspace(platform = "facebook") {
   const platKey =
@@ -482,10 +741,11 @@ function openDmSplitWorkspace(platform = "facebook") {
   const modal = document.getElementById("gb-dm-split-workspace-modal");
   if (!modal) {
     const cfg = DM_SPLIT_PLATFORMS[platKey] || DM_SPLIT_PLATFORMS.facebook;
-    const sessionStartTs = Date.now();
-    activeDmSessionStartTs = sessionStartTs;
+    const generated = generateNewDmSessionIds(cfg.accountId);
+    activeDmSessionConvId = generated.sessionConvId;
+    activeDmSessionConvKey = generated.sessionConvKey;
     return openGlennBotCustomPopup(
-      `${cfg.proxyDashboardUrl}&since_ts=${sessionStartTs}`,
+      `${cfg.baseProxyDashboardUrl}&conv_key=${encodeURIComponent(activeDmSessionConvKey)}&conv_id=${encodeURIComponent(activeDmSessionConvId)}`,
       cfg.dashboardWindowName,
       1100,
       860
@@ -495,6 +755,7 @@ function openDmSplitWorkspace(platform = "facebook") {
   updateDmSplitWorkspaceDOM(platKey, true, true);
   modal.hidden = false;
   document.body.style.overflow = "hidden";
+  startDmClientPolling();
 
   if (!modal.dataset.boundDmSplitListeners) {
     modal.dataset.boundDmSplitListeners = "true";
@@ -517,6 +778,7 @@ function switchDmSplitPlatform(platform = "facebook") {
       ? String(platform).toLowerCase()
       : "facebook";
   updateDmSplitWorkspaceDOM(platKey, true, true);
+  startDmClientPolling();
 }
 window.switchDmSplitPlatform = switchDmSplitPlatform;
 
@@ -524,33 +786,32 @@ function refreshDmSplitIframe() {
   const cfg = DM_SPLIT_PLATFORMS[activeDmSplitPlatform] || DM_SPLIT_PLATFORMS.facebook;
   const iframe = document.getElementById("gb-dm-split-iframe");
   const btn = document.getElementById("gb-dm-refresh-live-chat-btn");
-  if (!activeDmSessionStartTs) {
-    activeDmSessionStartTs = Date.now();
+  if (!activeDmSessionConvId) {
+    const generated = generateNewDmSessionIds(cfg.accountId);
+    activeDmSessionConvId = generated.sessionConvId;
+    activeDmSessionConvKey = generated.sessionConvKey;
   }
-  const sessionStartTs = activeDmSessionStartTs;
   const refreshTs = Date.now();
   if (btn) {
     btn.classList.add("is-refreshing");
     window.setTimeout(() => btn.classList.remove("is-refreshing"), 700);
   }
   if (iframe) {
+    const queryTail = `&conv_key=${encodeURIComponent(activeDmSessionConvKey)}&conv_id=${encodeURIComponent(activeDmSessionConvId)}&_refresh=${refreshTs}`;
     iframe.setAttribute(
       "data-upstream-url",
-      `${cfg.upstreamDashboardUrl}&since_ts=${sessionStartTs}&_refresh=${refreshTs}`
+      `${cfg.baseUpstreamDashboardUrl}${queryTail}`
     );
-    iframe.setAttribute("data-since-ts", String(sessionStartTs));
-    iframe.src = `${cfg.proxyDashboardUrl}&since_ts=${sessionStartTs}&_refresh=${refreshTs}`;
+    iframe.setAttribute("data-session-conv-id", activeDmSessionConvId);
+    iframe.setAttribute("data-session-conv-key", activeDmSessionConvKey);
+    iframe.src = `${cfg.baseProxyDashboardUrl}${queryTail}`;
   }
+  pollDmClientThread();
 }
 window.refreshDmSplitIframe = refreshDmSplitIframe;
 
-function resetDmBlankSession() {
-  activeDmSessionStartTs = Date.now();
-  updateDmSplitWorkspaceDOM(activeDmSplitPlatform, true, false);
-}
-window.resetDmBlankSession = resetDmBlankSession;
-
 function closeDmSplitWorkspace() {
+  stopDmClientPolling();
   const modal = document.getElementById("gb-dm-split-workspace-modal");
   if (modal) {
     modal.hidden = true;

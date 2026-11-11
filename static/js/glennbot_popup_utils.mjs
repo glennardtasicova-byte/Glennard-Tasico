@@ -449,102 +449,106 @@ export function buildShowcaseCommentLoadingCardHtml(platformOrRecordId = "facebo
   ].join("");
 }
 
+export function generateLiveDmSessionIds(
+  randomToken = null,
+  timestampMs = Date.now(),
+  accountId = "6af0b109818eb5c88d1e87a6"
+) {
+  const randPart =
+    typeof randomToken === "string" && randomToken.trim()
+      ? randomToken.trim().replace(/[^a-z0-9]/gi, "").slice(0, 7)
+      : Math.random().toString(36).slice(2, 9);
+  const tsNum = Math.trunc(Number(timestampMs) || Date.now());
+  const tsPart = tsNum.toString(36);
+  const cleanAccId = String(accountId || "6af0b109818eb5c88d1e87a6").trim();
+  const sessionConvId = `fb_live_${randPart}_${tsPart}`;
+  const sessionConvKey = `${cleanAccId}_${sessionConvId}`;
+  return {
+    sessionConvId,
+    accountId: cleanAccId,
+    sessionConvKey,
+  };
+}
+
 export const SYS02_DM_SHOWCASE_CONFIG = {
   facebook: {
     platform: "facebook",
     platform_label: "Facebook",
     page_header: "GlennBot Automations",
-    page_subtitle: "Facebook Page • AI Messenger Chatbot Active",
+    page_subtitle: "Facebook Messenger • 24h Meta Window + Gemini 3.5 Flash Active",
     account_id: "6af0b109818eb5c88d1e87a6",
     account_name: "GlennBot Automations",
-    page_profile_id: "61595021080265",
-    auto_latest: "1",
-    wait_for_new: "1",
-    primary_messenger_url: "https://www.facebook.com/messages/t/61595021080265",
-    secondary_messenger_url: "https://m.me/61595021080265",
-    fallback_page_url: "https://www.facebook.com/61595021080265",
-    primary_cta_label: "💬 Open Facebook Messenger (Send a DM)",
+    default_visitor_name: "Portfolio Client",
+    visitor_name_placeholder: "Your Name (e.g. Alex)",
+    new_blank_chat_label: "🔄 New Blank Chat",
+    typing_indicator_text: "GlennBot Automations is typing via Gemini 3.5 Flash...",
+    composer_placeholder: "Write a message to GlennBot Automations...",
+    live_dm_post_endpoint: "/api/messages/portfolio_live_dm",
+    upstream_live_dm_post_endpoint:
+      "https://glennbotautomations.onrender.com/api/messages/portfolio_live_dm",
+    poll_interval_ms: 2500,
     quick_starter_hints: [
       "Hi GlennBot! What automation services do you offer?",
       "How can your Python & AI workflows help my business save time?",
       "Magkano ang rate mo at paano mag-inquire?",
     ],
-    step_1_text: 'Click "Open Facebook Messenger" and send any message to GlennBot Automations.',
-    step_2_text:
-      "Watch the Live GlennBot Dashboard on the right automatically focus on your conversation and reply in real time using Gemini 3.5 Flash!",
     status_bar_text:
-      "🟢 LIVE MESSENGER SESSION • Blank Standby Ready (Send a DM on Messenger to begin)",
+      "🟢 LIVE MESSENGER SESSION • Synced in Real Time with Your Client Chat",
     refresh_btn_label: "🔄 Refresh Live Chat",
-    popup_url:
-      "/glennbot-popout?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&auto_latest=1&wait_for_new=1",
-    upstream_url:
-      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&auto_latest=1&wait_for_new=1",
+    base_popup_url:
+      "/glennbot-popout?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations",
+    base_upstream_url:
+      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations",
     popup_window_name: "GlennBotMessageThread_FB",
-    messenger_window_name: "GlennBotDockedMessenger_facebook",
   },
 };
 
+export function buildPortfolioLiveDmPayload(
+  sessionConvId,
+  messageText,
+  visitorName = "Portfolio Client",
+  accountId = "6af0b109818eb5c88d1e87a6"
+) {
+  const cleanConvId = String(sessionConvId || "").trim();
+  const cleanAccId = String(accountId || "6af0b109818eb5c88d1e87a6").trim();
+  const cleanVisitor = String(visitorName || "").trim() || "Portfolio Client";
+  const cleanMsg = String(messageText || "").trim();
+  return {
+    conversation_id: cleanConvId,
+    account_id: cleanAccId,
+    account_name: "GlennBot Automations",
+    platform: "facebook",
+    participant_name: cleanVisitor,
+    message: cleanMsg,
+  };
+}
+
 export function buildDmSplitWorkspaceConfig(
   platform = "facebook",
-  sessionStartTs = Date.now(),
+  sessionConvId = null,
   refreshTs = null
 ) {
   const cleanPlat = String(platform || "facebook").trim().toLowerCase();
   const cfg = SYS02_DM_SHOWCASE_CONFIG[cleanPlat] || SYS02_DM_SHOWCASE_CONFIG.facebook;
-  const sinceTs = Math.trunc(Number(sessionStartTs) || Date.now());
+  const resolvedConvId =
+    typeof sessionConvId === "string" && sessionConvId.trim().startsWith("fb_live_")
+      ? sessionConvId.trim()
+      : generateLiveDmSessionIds(null, Date.now(), cfg.account_id).sessionConvId;
+  const sessionConvKey = `${cfg.account_id}_${resolvedConvId}`;
   const refreshSuffix =
     refreshTs !== null && refreshTs !== undefined
       ? `&_refresh=${Math.trunc(Number(refreshTs) || Date.now())}`
       : "";
+  const queryTail = `&conv_key=${encodeURIComponent(sessionConvKey)}&conv_id=${encodeURIComponent(resolvedConvId)}${refreshSuffix}`;
   return {
     ...cfg,
-    sessionStartTs: sinceTs,
-    iframeUrl: `${cfg.popup_url}&since_ts=${sinceTs}${refreshSuffix}`,
-    upstreamIframeUrl: `${cfg.upstream_url}&since_ts=${sinceTs}${refreshSuffix}`,
+    sessionConvId: resolvedConvId,
+    sessionConvKey,
+    iframeUrl: `${cfg.base_popup_url}${queryTail}`,
+    upstreamIframeUrl: `${cfg.base_upstream_url}${queryTail}`,
+    threadPollUrl: `/api/messages/${encodeURIComponent(resolvedConvId)}/thread?account_id=${encodeURIComponent(cfg.account_id)}&force=false`,
+    upstreamThreadPollUrl: `https://glennbotautomations.onrender.com/api/messages/${encodeURIComponent(resolvedConvId)}/thread?account_id=${encodeURIComponent(cfg.account_id)}&force=false`,
   };
-}
-
-export function buildDmBlankStandbyCardHtml(
-  accountName = "GlennBot Automations",
-  sinceTs = 0
-) {
-  const safeName = String(accountName || "GlennBot Automations").trim();
-  const safeTs = Math.trunc(Number(sinceTs) || 0);
-  return [
-    `<div id="gb-dm-blank-standby-card" data-standby-active="1" data-since-ts="${safeTs}" class="flex flex-col h-full justify-between gap-4 p-4 sm:p-6">`,
-    `<div class="flex items-center justify-between gap-3 pb-3 border-b border-slate-700/70 flex-wrap">`,
-    `<div class="flex items-center gap-2.5 flex-wrap">`,
-    `<span class="w-9 h-9 rounded-full bg-blue-500/15 border border-blue-400/40 flex items-center justify-center text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]"><i class="fab fa-facebook-messenger text-base"></i></span>`,
-    `<div>`,
-    `<div class="flex items-center gap-2 flex-wrap">`,
-    `<span class="text-xs sm:text-sm font-extrabold text-white">${safeName}</span>`,
-    `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">Blank Standby Ready</span>`,
-    `</div>`,
-    `<p class="text-[11px] text-slate-400">Facebook Page &bull; Gemini 3.5 Flash AI Messenger Chatbot &bull; 24h Meta Window</p>`,
-    `</div>`,
-    `</div>`,
-    `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-400/30"><span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>Listening for New DM...</span>`,
-    `</div>`,
-    `<div class="my-auto py-8 px-4 rounded-2xl bg-slate-900/70 border border-cyan-500/30 text-center space-y-4 max-w-xl mx-auto w-full shadow-[0_0_30px_rgba(6,182,212,0.08)]">`,
-    `<div class="relative w-14 h-14 mx-auto flex items-center justify-center">`,
-    `<span class="absolute inset-0 rounded-full border-2 border-cyan-400/25 border-t-emerald-400 animate-spin"></span>`,
-    `<span class="w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center text-gb-cyan"><i class="fab fa-facebook-messenger text-lg"></i></span>`,
-    `</div>`,
-    `<div class="space-y-1.5">`,
-    `<h3 class="text-sm sm:text-base font-extrabold text-white tracking-wide">Blank Conversation Standby Ready</h3>`,
-    `<p class="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">No previous visitor chat history is shown. Send a message to <span class="text-emerald-300 font-semibold">${safeName}</span> on Facebook Messenger using the panel on the left to start a fresh live session!</p>`,
-    `</div>`,
-    `<div class="p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-left space-y-1.5 max-w-md mx-auto">`,
-    `<div class="text-[10px] font-bold uppercase tracking-wider text-gb-cyan flex items-center gap-1.5"><i class="fas fa-bolt"></i> Real-Time Session Filter Active</div>`,
-    `<p class="text-[11px] text-slate-400 leading-relaxed">As soon as you send a DM on Messenger (<code class="text-cyan-300">facebook.com/messages/t/61595021080265</code>), this screen will automatically switch to your live conversation and display <span class="text-emerald-300 font-semibold">Gemini 3.5 Flash's</span> instant reply.</p>`,
-    `</div>`,
-    `</div>`,
-    `<div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 flex-wrap gap-2">`,
-    `<span><i class="fas fa-shield-alt text-emerald-400 mr-1"></i> Privacy Filter: Only messages from your current session are displayed</span>`,
-    `<span class="text-gb-cyan font-mono text-[10px]">wait_for_new=1 &bull; auto_latest=1</span>`,
-    `</div>`,
-    `</div>`,
-  ].join("");
 }
 
 export const SYS02_SAVVY_FINDS_COMMENT_DEMO = {

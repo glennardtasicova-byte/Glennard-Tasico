@@ -15,7 +15,7 @@
 
   <!-- Font Awesome Icons & Custom Stylesheet -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <link rel="stylesheet" href="/static/css/style.css?v=53" />
+  <link rel="stylesheet" href="/static/css/style.css?v=54" />
   <script>
     (function () {
       try {
@@ -1185,7 +1185,7 @@
               <strong class="gb-comment-choice-name">Facebook (GlennBot Automations)</strong>
               <span class="gb-comment-choice-badge">AI Messenger Chatbot Active</span>
             </div>
-            <p class="gb-comment-choice-desc">Opens the Split-Screen Interactive Showcase with the 1-Step Facebook Messenger Trigger (<code>facebook.com/messages/t/61595021080265</code>) on the left and the Blank Standby Live GlennBot Session on the right.</p>
+            <p class="gb-comment-choice-desc">Opens the Split-Screen Interactive Showcase with an In-Portfolio Facebook Messenger Client Window on the left synced in real time with the Live GlennBot Dashboard on the right.</p>
           </div>
           <span class="gb-comment-choice-arrow" aria-hidden="true">&rarr;</span>
         </button>
@@ -1193,7 +1193,7 @@
     </div>
   </div>
 
-  <!-- 2-Column Side-by-Side Live DM Showcase Modal (Idea A: Left Client Messenger Trigger + Right Blank Standby Session) -->
+  <!-- 2-Column Side-by-Side Live DM Showcase Modal (Idea B: Left Interactive In-Portfolio Facebook Messenger Client Window + Right Live GlennBot Dashboard) -->
   <div id="gb-dm-split-workspace-modal" class="gb-split-workspace-backdrop" role="dialog" aria-modal="true" aria-labelledby="gb-dm-split-workspace-title" hidden>
     <div class="gb-split-workspace-dialog w-[98.5vw] max-w-[1900px] h-[92vh]" onclick="event.stopPropagation();">
       <!-- Top Header Bar -->
@@ -1231,151 +1231,169 @@
         </div>
       </header>
 
-      <!-- 2-Column Split-Screen Body (Left Client Trigger + Right Live GlennBot Dashboard) -->
+      <!-- 2-Column Split-Screen Body (Left Interactive Messenger Client View + Right Live GlennBot Dashboard) -->
       <div class="gb-split-workspace-grid gb-dm-split-workspace-grid grid-cols-1 lg:grid-cols-12">
-        <!-- Left Panel (lg:col-span-5, 42% width): Client Trigger — Facebook Messenger -->
+        <!-- Left Panel (lg:col-span-5, 42% width): Interactive "Facebook Messenger (Client View)" -->
         <div class="gb-dm-col-left lg:col-span-5">
-          <div class="gb-split-launchpad-card gb-dm-launchpad-card">
-            <!-- 1. Official Page Header -->
-            <div class="gb-dm-page-header-box">
-              <div class="gb-split-badge-row">
-                <span id="gb-dm-platform-badge" class="gb-split-platform-badge is-facebook">
-                  <i class="fab fa-facebook"></i>
-                  <span>Facebook Messenger &bull; 1-Step Trigger</span>
-                </span>
-                <span class="gb-split-dock-tag">24h Meta Window + Gemini 3.5 Flash</span>
-              </div>
-              <div class="gb-dm-official-header">
-                <div class="gb-dm-page-avatar">
-                  <i class="fab fa-facebook"></i>
+          <div
+            id="gb-dm-messenger-client-card"
+            class="gb-dm-messenger-card"
+            data-post-endpoint="https://glennbotautomations.onrender.com/api/messages/portfolio_live_dm"
+          >
+            <!-- 1. Top Messenger Header -->
+            <div class="gb-dm-messenger-header">
+              <div class="gb-dm-messenger-header-top">
+                <div class="gb-dm-messenger-identity">
+                  <div class="gb-dm-messenger-avatar">
+                    <i class="fab fa-facebook-messenger"></i>
+                    <span class="gb-dm-messenger-online-dot" aria-hidden="true"></span>
+                  </div>
+                  <div class="gb-dm-page-meta">
+                    <div class="gb-dm-page-title-row">
+                      <h4 id="gb-dm-page-title" class="gb-dm-page-title">GlennBot Automations</h4>
+                      <span class="gb-dm-client-view-pill">Facebook Messenger (Client View)</span>
+                    </div>
+                    <p id="gb-dm-page-subtitle" class="gb-dm-page-subtitle">Facebook Messenger &bull; 24h Meta Window + Gemini 3.5 Flash Active</p>
+                  </div>
                 </div>
-                <div class="gb-dm-page-meta">
-                  <h4 id="gb-dm-page-title" class="gb-dm-page-title">GlennBot Automations</h4>
-                  <p id="gb-dm-page-subtitle" class="gb-dm-page-subtitle">Facebook Page &bull; AI Messenger Chatbot Active</p>
+
+                <button
+                  type="button"
+                  id="gb-dm-new-blank-chat-btn"
+                  class="gb-dm-new-chat-btn"
+                  onclick="startNewBlankDmSession();"
+                  title="Generate a fresh sessionConvId, clear Left Panel messages, and reload Right Panel with a 100% blank session"
+                >
+                  <span>🔄 New Blank Chat</span>
+                </button>
+              </div>
+
+              <!-- Compact Inline Visitor Name Input -->
+              <div class="gb-dm-visitor-bar">
+                <label for="gb-dm-visitor-name-input" class="gb-dm-visitor-label">
+                  <span>👤 Speaking as:</span>
+                </label>
+                <input
+                  type="text"
+                  id="gb-dm-visitor-name-input"
+                  class="gb-dm-visitor-name-input"
+                  value="Portfolio Client"
+                  placeholder="Your Name (e.g. Alex)"
+                  maxlength="48"
+                  aria-label="Your Name (e.g. Alex)"
+                />
+                <span class="gb-dm-visitor-hint">Appears live in GlennBot Dashboard &rarr;</span>
+              </div>
+            </div>
+
+            <!-- 2. Middle Scrollable Messenger Chat Area -->
+            <div id="gb-dm-client-chat-scroll" class="gb-dm-chat-scroll" aria-live="polite">
+              <!-- Friendly Blank Conversation Welcome Card + 3 Clickable Quick Starter Pills -->
+              <div id="gb-dm-welcome-card" class="gb-dm-welcome-card">
+                <div class="gb-dm-welcome-top">
+                  <div class="gb-dm-welcome-avatar">
+                    <i class="fab fa-facebook-messenger"></i>
+                  </div>
+                  <div class="gb-dm-welcome-text-wrap">
+                    <h5 class="gb-dm-welcome-title">Chat Live with GlennBot Automations</h5>
+                    <p class="gb-dm-welcome-desc">
+                      This is your isolated, <strong>100% blank live Messenger session</strong>. Send any message below (or click a starter pill) to trigger <strong>Gemini 3.5 Flash + n8n</strong> and watch both panels sync in real time!
+                    </p>
+                  </div>
+                </div>
+
+                <div class="gb-dm-starter-pills-section">
+                  <span class="gb-dm-starter-pills-label">⚡ 1-Click Quick Starter Messages (Click to Send Immediately):</span>
+                  <div id="gb-dm-starter-pills-list" class="gb-dm-starter-pills-list">
+                    <button
+                      type="button"
+                      class="gb-dm-starter-pill"
+                      data-hint-text="Hi GlennBot! What automation services do you offer?"
+                      onclick="sendPortfolioLiveDmMessage(this.getAttribute('data-hint-text'));"
+                    >
+                      <span class="gb-dm-starter-pill-icon">💬</span>
+                      <span class="gb-dm-starter-pill-text">"Hi GlennBot! What automation services do you offer?"</span>
+                      <span class="gb-dm-starter-pill-send">Send &rarr;</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      class="gb-dm-starter-pill"
+                      data-hint-text="How can your Python & AI workflows help my business save time?"
+                      onclick="sendPortfolioLiveDmMessage(this.getAttribute('data-hint-text'));"
+                    >
+                      <span class="gb-dm-starter-pill-icon">⚡</span>
+                      <span class="gb-dm-starter-pill-text">"How can your Python &amp; AI workflows help my business save time?"</span>
+                      <span class="gb-dm-starter-pill-send">Send &rarr;</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      class="gb-dm-starter-pill"
+                      data-hint-text="Magkano ang rate mo at paano mag-inquire?"
+                      onclick="sendPortfolioLiveDmMessage(this.getAttribute('data-hint-text'));"
+                    >
+                      <span class="gb-dm-starter-pill-icon">💼</span>
+                      <span class="gb-dm-starter-pill-text">"Magkano ang rate mo at paano mag-inquire?"</span>
+                      <span class="gb-dm-starter-pill-send">Send &rarr;</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dynamic Messenger Chat Bubbles Container -->
+              <div id="gb-dm-client-messages-list" class="gb-dm-messages-list"></div>
+
+              <!-- Animated Gemini 3.5 Flash Typing Indicator -->
+              <div id="gb-dm-typing-indicator" class="gb-dm-typing-indicator" hidden>
+                <div class="gb-dm-typing-avatar">
+                  <i class="fas fa-robot"></i>
+                </div>
+                <div class="gb-dm-typing-bubble">
+                  <div class="gb-dm-typing-dots" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
+                  <span id="gb-dm-typing-text" class="gb-dm-typing-text">GlennBot Automations is typing via Gemini 3.5 Flash...</span>
                 </div>
               </div>
             </div>
 
-            <!-- 2. Primary CTA Button & Official Messenger / Fallback Page URLs -->
-            <div class="gb-dm-cta-box">
+            <!-- 3. Bottom Messenger Composer Bar -->
+            <form
+              id="gb-dm-client-composer-form"
+              class="gb-dm-composer-bar"
+              onsubmit="event.preventDefault(); submitDmClientComposer();"
+            >
+              <input
+                type="text"
+                id="gb-dm-client-message-input"
+                class="gb-dm-composer-input"
+                placeholder="Write a message to GlennBot Automations..."
+                autocomplete="off"
+                aria-label="Write a message to GlennBot Automations"
+              />
               <button
-                type="button"
-                id="gb-dm-open-messenger-btn"
-                class="gb-split-btn-primary gb-dm-btn-messenger"
-                onclick="openFacebookMessengerDmWindow('https://www.facebook.com/messages/t/61595021080265');"
+                type="submit"
+                id="gb-dm-client-send-btn"
+                class="gb-dm-composer-send-btn"
+                aria-label="Send message to GlennBot Automations"
               >
-                <span>💬 Open Facebook Messenger (Send a DM)</span>
+                <i class="fas fa-paper-plane" aria-hidden="true"></i>
+                <span>Send</span>
               </button>
-
-              <div class="gb-dm-urls-grid">
-                <div class="gb-dm-url-row">
-                  <span class="gb-split-url-label">Primary Messenger URL (Desktop &amp; Mobile Deep Link):</span>
-                  <a
-                    id="gb-dm-primary-messenger-link"
-                    href="https://www.facebook.com/messages/t/61595021080265"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="gb-split-url-code"
-                    onclick="event.preventDefault(); openFacebookMessengerDmWindow('https://www.facebook.com/messages/t/61595021080265');"
-                  >https://www.facebook.com/messages/t/61595021080265</a>
-                </div>
-                <div class="gb-dm-url-row">
-                  <span class="gb-split-url-label">Secondary / Mobile Shortlink:</span>
-                  <a
-                    id="gb-dm-secondary-messenger-link"
-                    href="https://m.me/61595021080265"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="gb-split-url-code"
-                    onclick="event.preventDefault(); openFacebookMessengerDmWindow('https://m.me/61595021080265');"
-                  >https://m.me/61595021080265</a>
-                </div>
-                <div class="gb-dm-url-row">
-                  <span class="gb-split-url-label">Fallback Facebook Page URL:</span>
-                  <a
-                    id="gb-dm-fallback-page-link"
-                    href="https://www.facebook.com/61595021080265"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="gb-split-url-code"
-                    onclick="event.preventDefault(); openFacebookMessengerDmWindow('https://www.facebook.com/61595021080265');"
-                  >https://www.facebook.com/61595021080265</a>
-                </div>
-              </div>
-            </div>
-
-            <!-- 3. 3 Optional Quick Starter Message Hints (with 1-Click "Copy & Open Messenger") -->
-            <div class="gb-dm-hints-box">
-              <div class="gb-split-caption-header">
-                <span class="gb-split-section-label">Quick Starter Message Hints</span>
-                <span class="gb-split-post-type-tag">1-Click Copy &amp; Test</span>
-              </div>
-              <div class="gb-dm-hints-list">
-                <div class="gb-dm-hint-card">
-                  <p class="gb-dm-hint-text">"Hi GlennBot! What automation services do you offer?"</p>
-                  <button
-                    type="button"
-                    class="gb-dm-hint-btn"
-                    data-hint-text="Hi GlennBot! What automation services do you offer?"
-                    onclick="copyStarterHintAndOpenMessenger(this.getAttribute('data-hint-text'), this);"
-                  >
-                    <span>📋 Copy &amp; Open Messenger</span>
-                  </button>
-                </div>
-
-                <div class="gb-dm-hint-card">
-                  <p class="gb-dm-hint-text">"How can your Python &amp; AI workflows help my business save time?"</p>
-                  <button
-                    type="button"
-                    class="gb-dm-hint-btn"
-                    data-hint-text="How can your Python & AI workflows help my business save time?"
-                    onclick="copyStarterHintAndOpenMessenger(this.getAttribute('data-hint-text'), this);"
-                  >
-                    <span>📋 Copy &amp; Open Messenger</span>
-                  </button>
-                </div>
-
-                <div class="gb-dm-hint-card">
-                  <p class="gb-dm-hint-text">"Magkano ang rate mo at paano mag-inquire?"</p>
-                  <button
-                    type="button"
-                    class="gb-dm-hint-btn"
-                    data-hint-text="Magkano ang rate mo at paano mag-inquire?"
-                    onclick="copyStarterHintAndOpenMessenger(this.getAttribute('data-hint-text'), this);"
-                  >
-                    <span>📋 Copy &amp; Open Messenger</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- 4. Clear Step-by-Step Instruction Badge -->
-            <div class="gb-split-steps-box gb-dm-steps-box">
-              <span class="gb-split-section-label">1-Step Direct Message Trigger Flow</span>
-              <ol class="gb-split-steps-list">
-                <li class="gb-split-step-item">
-                  <span class="gb-split-step-badge">Step 1</span>
-                  <p class="gb-split-step-desc">
-                    Click <strong>"Open Facebook Messenger"</strong> and send any message to <strong>GlennBot Automations</strong>.
-                  </p>
-                </li>
-                <li class="gb-split-step-item">
-                  <span class="gb-split-step-badge">Step 2</span>
-                  <p class="gb-split-step-desc">
-                    Watch the <strong>Live GlennBot Dashboard</strong> on the right automatically focus on your conversation and reply in real time using <strong>Gemini 3.5 Flash</strong>!
-                  </p>
-                </li>
-              </ol>
-            </div>
+            </form>
           </div>
         </div>
 
-        <!-- Right Panel (lg:col-span-7, 58% width): Live GlennBot Dashboard — Idea A Blank Conversation Standby State + Fresh Session Timestamp Filter -->
+        <!-- Right Panel (lg:col-span-7, 58% width): Live GlennBot Dashboard Iframe (Locked to Visitor's sessionConvId) -->
         <div class="gb-dm-col-right lg:col-span-7">
           <!-- Live Status Bar above the Embedded Dashboard -->
           <div class="gb-dm-status-bar">
             <div class="gb-dm-status-bar-left">
-              <span id="gb-dm-live-status-text" class="gb-dm-live-status-text">🟢 LIVE MESSENGER SESSION &bull; Blank Standby Ready (Send a DM on Messenger to begin)</span>
+              <span id="gb-dm-live-status-text" class="gb-dm-live-status-text">🟢 LIVE MESSENGER SESSION &bull; Synced in Real Time with Your Client Chat</span>
+              <code id="gb-dm-session-id-badge" class="gb-dm-session-id-badge">fb_live_session</code>
             </div>
             <div class="gb-dm-status-bar-actions">
               <button
@@ -1383,7 +1401,7 @@
                 id="gb-dm-refresh-live-chat-btn"
                 class="gb-split-refresh-btn gb-dm-refresh-btn"
                 onclick="refreshDmSplitIframe();"
-                title="Reload the Live GlennBot Message Thread Dashboard without resetting your current session timestamp"
+                title="Reload the Live GlennBot Message Thread Dashboard for your current session"
               >
                 <span id="gb-dm-refresh-icon">🔄</span>
                 <span>Refresh Live Chat</span>
@@ -1396,8 +1414,8 @@
             id="gb-dm-split-iframe"
             class="gb-comment-split-iframe gb-dm-split-iframe w-full h-full rounded-xl border border-cyan-500/30"
             src="about:blank"
-            data-upstream-url="https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&auto_latest=1&wait_for_new=1"
-            title="Live GlennBot Dashboard — Blank Standby Session & Real-Time Messenger Sync"
+            data-upstream-url="https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations"
+            title="Live GlennBot Dashboard — Isolated Visitor Messenger Session Sync"
             allow="clipboard-read; clipboard-write"
           ></iframe>
         </div>
@@ -1415,6 +1433,6 @@
   </footer>
 
   <!-- Custom Script -->
-  <script src="/static/js/main.js?v=53"></script>
+  <script src="/static/js/main.js?v=54"></script>
 </body>
 </html>

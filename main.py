@@ -1714,209 +1714,47 @@ def _build_calendar_lock_body_script() -> str:
         "var s=String((window.location&&window.location.search)||'');"
         "return window.gbActivePopoutMode==='message_thread'||s.indexOf('popout_mode=message_thread')!==-1;"
         "}"
+        "function _getLivePortfolioConvId(){"
+        "var p=window.gbActivePopoutParams||{};"
+        "var cid=String(p.conv_id||'').trim();"
+        "if(!cid&&window.location&&window.location.search){"
+        "try{cid=String(new URLSearchParams(window.location.search).get('conv_id')||'').trim();}catch(_){}"
+        "}"
+        "return cid.indexOf('fb_live_')===0?cid:'';"
+        "}"
+        "function _isLivePortfolioDmSession(){"
+        "return Boolean(_isMessageThreadMode()&&_getLivePortfolioConvId());"
+        "}"
         "function _isWaitForNewMessageMode(){"
-        "if(!_isMessageThreadMode())return false;"
+        "if(!_isMessageThreadMode()||_isLivePortfolioDmSession())return false;"
         "var p=window.gbActivePopoutParams||{};"
         "var s=String((window.location&&window.location.search)||'');"
         "return String(p.wait_for_new||'')==='1'||s.indexOf('wait_for_new=1')!==-1;"
-        "}"
-        "function _getMessageSessionSinceTs(){"
-        "var p=window.gbActivePopoutParams||{};"
-        "var raw=p.since_ts;"
-        "if(!raw&&window.location&&window.location.search){"
-        "try{raw=new URLSearchParams(window.location.search).get('since_ts');}catch(_){}"
-        "}"
-        "var n=Number(raw||0);"
-        "if(!n||isNaN(n)){"
-        "if(!window.__gbFallbackSessionStartTs)window.__gbFallbackSessionStartTs=Date.now();"
-        "return window.__gbFallbackSessionStartTs;"
-        "}"
-        "return n;"
-        "}"
-        "function _parseIsoOrEpochMs(val){"
-        "if(!val)return 0;"
-        "if(typeof val==='number'&&isFinite(val))return val<1e11?Math.round(val*1000):Math.round(val);"
-        "var str=String(val).trim();"
-        "if(!str)return 0;"
-        "if(/^\\d+$/.test(str)){"
-        "var num=Number(str);"
-        "return num<1e11?Math.round(num*1000):Math.round(num);"
-        "}"
-        "var parsed=Date.parse(str);"
-        "return isNaN(parsed)?0:parsed;"
-        "}"
-        "function _recordBaselineConversations(convs){"
-        "if(!Array.isArray(convs))return;"
-        "if(window.__gbBaselineConvRecorded)return;"
-        "window.__gbBaselineConvRecorded=true;"
-        "window.__gbBaselineConvSignatures=window.__gbBaselineConvSignatures||{};"
-        "var sinceTs=_getMessageSessionSinceTs();"
-        "convs.forEach(function(c){"
-        "if(!c||!c.conv_key)return;"
-        "var uTs=_parseIsoOrEpochMs(c.updated_iso||c.updated_at||c.timestamp);"
-        "if(!uTs||uTs<(sinceTs-5000)){"
-        "window.__gbBaselineConvSignatures[c.conv_key]=String(c.updated_iso||'')+'|'+String(c.snippet||'');"
-        "}"
-        "});"
-        "}"
-        "function _isConvNewInSession(conv){"
-        "if(!conv||typeof conv!=='object')return false;"
-        "var sinceTs=_getMessageSessionSinceTs();"
-        "var uTs=_parseIsoOrEpochMs(conv.updated_iso||conv.updated_at||conv.timestamp);"
-        "if(uTs>0&&sinceTs>0&&uTs>=(sinceTs-5000))return true;"
-        "var baseMap=window.__gbBaselineConvSignatures;"
-        "if(baseMap&&conv.conv_key&&baseMap[conv.conv_key]!==undefined){"
-        "var curSig=String(conv.updated_iso||'')+'|'+String(conv.snippet||'');"
-        "if(curSig!==baseMap[conv.conv_key])return true;"
-        "}"
-        "return false;"
-        "}"
-        "function _isMessageNewInSession(msg){"
-        "if(!msg||typeof msg!=='object')return false;"
-        "var sinceTs=_getMessageSessionSinceTs();"
-        "var mTs=_parseIsoOrEpochMs(msg.created_iso||msg.created_at||msg.timestamp||msg.sent_at);"
-        "if(mTs>0&&sinceTs>0)return mTs>=(sinceTs-5000);"
-        "return true;"
-        "}"
-        "function _renderDmBlankStandbyCard(){"
-        "if(!_isWaitForNewMessageMode())return;"
-        "var panel=document.getElementById('message-detail-panel');"
-        "if(!panel)return;"
-        "var p=window.gbActivePopoutParams||{};"
-        "var accName=String(p.account_name||'GlennBot Automations').replace(/\\+/g,' ').trim()||'GlennBot Automations';"
-        "var sinceTs=_getMessageSessionSinceTs();"
-        "var tEl=document.getElementById('gb-popout-window-title');"
-        "if(tEl)tEl.textContent='GlennBot Automations \\u2014 Live Messenger Session';"
-        "var sEl=document.getElementById('gb-popout-window-subtitle');"
-        "if(sEl)sEl.textContent='Blank Standby Ready \\u2022 Send a DM on Facebook Messenger to start a live chat';"
-        "panel.dataset.standbyActive='1';"
-        "var existing=document.getElementById('gb-dm-blank-standby-card');"
-        "if(existing&&existing.getAttribute('data-since-ts')===String(sinceTs))return;"
-        "panel.innerHTML="
-        "'<div id=\"gb-dm-blank-standby-card\" data-standby-active=\"1\" data-since-ts=\"'+sinceTs+'\" class=\"flex flex-col h-full justify-between gap-4 p-4 sm:p-6\">'"
-        "+'<div class=\"flex items-center justify-between gap-3 pb-3 border-b border-slate-700/70 flex-wrap\">'"
-        "+'<div class=\"flex items-center gap-2.5 flex-wrap\">'"
-        "+'<span class=\"w-9 h-9 rounded-full bg-blue-500/15 border border-blue-400/40 flex items-center justify-center text-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.2)]\"><i class=\"fab fa-facebook-messenger text-base\"></i></span>'"
-        "+'<div>'"
-        "+'<div class=\"flex items-center gap-2 flex-wrap\">'"
-        "+'<span class=\"text-xs sm:text-sm font-extrabold text-white\">'+accName+'</span>'"
-        "+'<span class=\"px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/40\">Blank Standby Ready</span>'"
-        "+'</div>'"
-        "+'<p class=\"text-[11px] text-slate-400\">Facebook Page &bull; Gemini 3.5 Flash AI Messenger Chatbot &bull; 24h Meta Window</p>'"
-        "+'</div>'"
-        "+'</div>'"
-        "+'<span class=\"inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-400/30\"><span class=\"w-2 h-2 rounded-full bg-emerald-400 animate-ping\"></span>Listening for New DM...</span>'"
-        "+'</div>'"
-        "+'<div class=\"my-auto py-8 px-4 rounded-2xl bg-slate-900/70 border border-cyan-500/30 text-center space-y-4 max-w-xl mx-auto w-full shadow-[0_0_30px_rgba(6,182,212,0.08)]\">'"
-        "+'<div class=\"relative w-14 h-14 mx-auto flex items-center justify-center\">'"
-        "+'<span class=\"absolute inset-0 rounded-full border-2 border-cyan-400/25 border-t-emerald-400 animate-spin\"></span>'"
-        "+'<span class=\"w-10 h-10 rounded-full bg-cyan-500/10 border border-cyan-400/30 flex items-center justify-center text-gb-cyan\"><i class=\"fab fa-facebook-messenger text-lg\"></i></span>'"
-        "+'</div>'"
-        "+'<div class=\"space-y-1.5\">'"
-        "+'<h3 class=\"text-sm sm:text-base font-extrabold text-white tracking-wide\">Blank Conversation Standby Ready</h3>'"
-        "+'<p class=\"text-xs text-slate-300 max-w-md mx-auto leading-relaxed\">No previous visitor chat history is shown. Send a message to <span class=\"text-emerald-300 font-semibold\">'+accName+'</span> on Facebook Messenger using the panel on the left to start a fresh live session!</p>'"
-        "+'</div>'"
-        "+'<div class=\"p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-left space-y-1.5 max-w-md mx-auto\">'"
-        "+'<div class=\"text-[10px] font-bold uppercase tracking-wider text-gb-cyan flex items-center gap-1.5\"><i class=\"fas fa-bolt\"></i> Real-Time Session Filter Active</div>'"
-        "+'<p class=\"text-[11px] text-slate-400 leading-relaxed\">As soon as you send a DM on Messenger (<code class=\"text-cyan-300\">facebook.com/messages/t/61595021080265</code>), this screen will automatically switch to your live conversation and display <span class=\"text-emerald-300 font-semibold\">Gemini 3.5 Flash\\x27s</span> instant reply.</p>'"
-        "+'</div>'"
-        "+'</div>'"
-        "+'<div class=\"pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 flex-wrap gap-2\">'"
-        "+'<span><i class=\"fas fa-shield-alt text-emerald-400 mr-1\"></i> Privacy Filter: Only messages from your current session are displayed</span>'"
-        "+'<span class=\"text-gb-cyan font-mono text-[10px]\">wait_for_new=1 &bull; auto_latest=1</span>'"
-        "+'</div>'"
-        "+'</div>';"
-        "}"
-        "function _lockMessageStandbyDomAndFns(){"
-        "if(!_isWaitForNewMessageMode())return;"
-        "var curSelectConv=window.selectMessageConversation;"
-        "if(typeof curSelectConv==='function'&&!curSelectConv._gbStandbyWrapped){"
-        "var origSelectConv=curSelectConv;"
-        "var wrappedSelectConv=async function(convKey,convId,accId){"
-        "if(_isWaitForNewMessageMode()){"
-        "var list=(typeof messagesConversationsList!=='undefined'&&Array.isArray(messagesConversationsList))?messagesConversationsList:[];"
-        "_recordBaselineConversations(list);"
-        "var found=list.find(function(x){return x&&(x.conv_key===convKey||String(x.conversation_id||'')===String(convId||''));});"
-        "if(!found||!_isConvNewInSession(found)){"
-        "if(typeof selectedConversationKey!=='undefined')selectedConversationKey=null;"
-        "if(typeof selectedConversationId!=='undefined')selectedConversationId=null;"
-        "_renderDmBlankStandbyCard();"
-        "return;"
-        "}"
-        "window.__gbActiveSessionConvKey=String(found.conv_key||convKey||'');"
-        "}"
-        "return await origSelectConv.apply(this,arguments);"
-        "};"
-        "wrappedSelectConv._gbStandbyWrapped=true;"
-        "window.selectMessageConversation=wrappedSelectConv;"
-        "}"
-        "var curRenderThread=window.renderActiveConversationThread;"
-        "if(typeof curRenderThread==='function'&&!curRenderThread._gbStandbyWrapped){"
-        "var origRenderThread=curRenderThread;"
-        "var wrappedRenderThread=function(conv,messages){"
-        "if(_isWaitForNewMessageMode()){"
-        "var rawMsgs=Array.isArray(messages)?messages:[];"
-        "var freshMsgs=rawMsgs.filter(function(m){return _isMessageNewInSession(m);});"
-        "if(freshMsgs.length===0&&(!conv||!_isConvNewInSession(conv))){"
-        "_renderDmBlankStandbyCard();"
-        "return;"
-        "}"
-        "var panel=document.getElementById('message-detail-panel');"
-        "if(panel&&panel.dataset)panel.dataset.standbyActive='0';"
-        "if(typeof activeConversationMessages!=='undefined'&&Array.isArray(activeConversationMessages)){"
-        "activeConversationMessages=freshMsgs;"
-        "}"
-        "return origRenderThread.call(this,conv,freshMsgs);"
-        "}"
-        "return origRenderThread.apply(this,arguments);"
-        "};"
-        "wrappedRenderThread._gbStandbyWrapped=true;"
-        "window.renderActiveConversationThread=wrappedRenderThread;"
-        "}"
-        "if(!window.__gbActiveSessionConvKey){"
-        "_renderDmBlankStandbyCard();"
-        "}"
         "}"
         "async function _syncLatestActiveMessengerThread(){"
         "if(!_isMessageThreadMode())return;"
         "if(window.__gbMsgAutoSyncInFlight)return;"
         "window.__gbMsgAutoSyncInFlight=true;"
         "try{"
-        "_lockMessageStandbyDomAndFns();"
         "var p=window.gbActivePopoutParams||{};"
         "var accId=String(p.account_id||'6af0b109818eb5c88d1e87a6').trim();"
-        "var res=await fetch('/api/messages/conversations?force=true&platform=facebook&account_id='+encodeURIComponent(accId)+'&limit_per_page=10&_ts='+Date.now());"
+        "var liveConvId=_getLivePortfolioConvId();"
+        "if(liveConvId){"
+        "var liveConvKey=String(p.conv_key||(accId+'_'+liveConvId)).trim();"
+        "var curId=(typeof selectedConversationId!=='undefined')?String(selectedConversationId||''):'';"
+        "if(!curId||curId!==liveConvId){"
+        "if(typeof window.selectMessageConversation==='function'){"
+        "await window.selectMessageConversation(liveConvKey,liveConvId,accId);"
+        "}"
+        "}else if(typeof window.refreshOpenConversationSilently==='function'){"
+        "await window.refreshOpenConversationSilently(liveConvId,accId);"
+        "}"
+        "return;"
+        "}"
+        "var res=await fetch('/api/messages/conversations?force=false&platform=facebook&account_id='+encodeURIComponent(accId)+'&limit_per_page=10&_ts='+Date.now());"
         "var data=await res.json();"
         "var convs=(data&&Array.isArray(data.conversations))?data.conversations:[];"
         "var fbConvs=convs.filter(function(c){return c&&String(c.platform||'').toLowerCase()==='facebook'&&(String(c.account_id||'')===accId||String(c.account_name||'').toLowerCase().indexOf('glennbot')!==-1);});"
-        "_recordBaselineConversations(fbConvs);"
-        "if(_isWaitForNewMessageMode()){"
-        "var activeConvs=fbConvs.filter(function(c){return _isConvNewInSession(c);});"
-        "if(activeConvs.length===0){"
-        "window.__gbActiveSessionConvKey=null;"
-        "_renderDmBlankStandbyCard();"
-        "return;"
-        "}"
-        "var latestNew=activeConvs[0];"
-        "var newKey=String(latestNew.conv_key||'');"
-        "var newId=String(latestNew.conversation_id||'');"
-        "var newAcc=String(latestNew.account_id||accId);"
-        "window.__gbActiveSessionConvKey=newKey;"
-        "if(typeof messagesConversationsList!=='undefined'&&Array.isArray(messagesConversationsList)){"
-        "var existingIdx=messagesConversationsList.findIndex(function(x){return x&&x.conv_key===newKey;});"
-        "if(existingIdx>=0){messagesConversationsList[existingIdx]=latestNew;}else{messagesConversationsList.unshift(latestNew);}"
-        "}"
-        "var curKey=(typeof selectedConversationKey!=='undefined')?String(selectedConversationKey||''):'';"
-        "var standbyEl=document.getElementById('gb-dm-blank-standby-card');"
-        "if(standbyEl||!curKey||curKey!==newKey){"
-        "if(typeof window.selectMessageConversation==='function'){"
-        "await window.selectMessageConversation(newKey,newId,newAcc);"
-        "}"
-        "}else if(typeof window.refreshOpenConversationSilently==='function'){"
-        "await window.refreshOpenConversationSilently(newId,newAcc);"
-        "}"
-        "return;"
-        "}"
         "var latest=fbConvs.length>0?fbConvs[0]:null;"
         "if(!latest)return;"
         "var targetKey=String(latest.conv_key||'');"
@@ -1939,31 +1777,33 @@ def _build_calendar_lock_body_script() -> str:
         "}"
         "function _ensureAutoLatestMessageThreadMonitor(){"
         "if(!_isMessageThreadMode())return;"
-        "_lockMessageStandbyDomAndFns();"
         "if(!window.__gbMsgAutoLatestStarted){"
         "window.__gbMsgAutoLatestStarted=true;"
+        "var pollMs=_isLivePortfolioDmSession()?2500:8000;"
         "window.__gbMsgAutoLatestInterval=setInterval(function(){"
         "if(document.hidden)return;"
         "_syncLatestActiveMessengerThread();"
-        "},8000);"
+        "},pollMs);"
+        "window.addEventListener('message',function(ev){"
+        "if(ev&&ev.data&&ev.data.type==='gb_live_dm_updated'){"
+        "_syncLatestActiveMessengerThread();"
+        "}"
+        "});"
         "}"
         "}"
         "_lockCalendarDomAndFns();"
-        "_lockMessageStandbyDomAndFns();"
         "_ensureAutoLatestMessageThreadMonitor();"
-        "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){_lockCalendarDomAndFns();_lockMessageStandbyDomAndFns();_ensureAutoLatestMessageThreadMonitor();});}"
+        "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){_lockCalendarDomAndFns();_ensureAutoLatestMessageThreadMonitor();});}"
         "window.addEventListener('load',function(){"
         "_lockCalendarDomAndFns();"
-        "_lockMessageStandbyDomAndFns();"
         "_ensureAutoLatestMessageThreadMonitor();"
-        "setTimeout(function(){_lockCalendarDomAndFns();_lockMessageStandbyDomAndFns();},150);"
-        "setTimeout(function(){_lockCalendarDomAndFns();_lockMessageStandbyDomAndFns();},600);"
+        "setTimeout(_lockCalendarDomAndFns,150);"
+        "setTimeout(_lockCalendarDomAndFns,600);"
         "try{"
         "var obsTarget=document.body||document.getElementById('comment-detail-panel');"
         "if(obsTarget&&typeof MutationObserver!=='undefined'){"
         "var mo=new MutationObserver(function(){"
         "_removeBottomComposerDom();"
-        "_lockMessageStandbyDomAndFns();"
         "var activeCfg=_getActiveShowcaseConfig();"
         "var panel=document.getElementById('comment-detail-panel');"
         "if(activeCfg&&panel)_replacePreviousPostCaptionInDom(panel,activeCfg);"
@@ -2740,7 +2580,8 @@ def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> di
                 if not isinstance(conv, dict):
                     continue
                 plat = str(conv.get("platform") or "").strip().lower()
-                if plat in ("sms", "textbee"):
+                cid_str = str(conv.get("conversation_id") or conv.get("conv_key") or "").strip()
+                if plat in ("sms", "textbee") or "fb_live_" in cid_str:
                     kept_convs.append(conv)
                 elif _matches_whitelisted_portfolio_account(plat, conv):
                     norm_conv = dict(conv)
@@ -2766,7 +2607,7 @@ def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> di
     if clean_path.startswith("messages/") and clean_path.endswith("/thread"):
         parts = clean_path.split("/")
         conv_id_key = parts[1] if len(parts) >= 3 else ""
-        if conv_id_key:
+        if conv_id_key and not conv_id_key.startswith("fb_live_"):
             msgs = data.get("messages")
             if isinstance(msgs, list) and len(msgs) > 0:
                 _PORTFOLIO_MESSAGES_THREAD_CACHE.setdefault(conv_id_key, {})["messages"] = list(msgs)
@@ -2960,39 +2801,42 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
         parts = clean_path.split("/")
         conv_id_key = parts[1] if len(parts) >= 3 else ""
         acc_param = (request.query_params.get("account_id") or "6af0b109818eb5c88d1e87a6").strip()
-        cache_entry = _PORTFOLIO_MESSAGES_THREAD_CACHE.setdefault(conv_id_key, {})
-        last_force_ts = float(cache_entry.get("last_force_ts") or 0.0)
-        has_cached_msgs = bool(cache_entry.get("messages"))
         ts_ms = int(time.time() * 1000)
-        if time.time() - last_force_ts >= 15.0:
-            cache_entry["last_force_ts"] = time.time()
+        if conv_id_key.startswith("fb_live_"):
+            target_url = f"{target_url}?account_id={acc_param}&force=false&_ts={ts_ms}"
+        else:
+            cache_entry = _PORTFOLIO_MESSAGES_THREAD_CACHE.setdefault(conv_id_key, {})
+            last_force_ts = float(cache_entry.get("last_force_ts") or 0.0)
+            has_cached_msgs = bool(cache_entry.get("messages"))
+            if time.time() - last_force_ts >= 15.0:
+                cache_entry["last_force_ts"] = time.time()
 
-            async def _bg_force_sync_msg_thread() -> None:
-                try:
-                    await asyncio.sleep(1.5)
-                    async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as bg_client:
-                        bg_url = f"{GLENNBOT_BASE_URL}/api/messages/{conv_id_key}/thread?account_id={acc_param}&force=true&_ts={ts_ms}"
-                        bg_resp = await bg_client.get(
-                            bg_url,
-                            headers={
-                                **get_glennbot_headers(session_token),
-                                "Cache-Control": "no-cache, no-store",
-                                "Pragma": "no-cache",
-                            },
-                            cookies={"gb_auth_session": session_token},
-                        )
-                        if bg_resp.status_code == 200:
-                            bg_data = bg_resp.json()
-                            if isinstance(bg_data, dict) and isinstance(bg_data.get("messages"), list) and bg_data["messages"]:
-                                cache_entry["messages"] = list(bg_data["messages"])
-                except Exception:
-                    pass
+                async def _bg_force_sync_msg_thread() -> None:
+                    try:
+                        await asyncio.sleep(1.5)
+                        async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as bg_client:
+                            bg_url = f"{GLENNBOT_BASE_URL}/api/messages/{conv_id_key}/thread?account_id={acc_param}&force=true&_ts={ts_ms}"
+                            bg_resp = await bg_client.get(
+                                bg_url,
+                                headers={
+                                    **get_glennbot_headers(session_token),
+                                    "Cache-Control": "no-cache, no-store",
+                                    "Pragma": "no-cache",
+                                },
+                                cookies={"gb_auth_session": session_token},
+                            )
+                            if bg_resp.status_code == 200:
+                                bg_data = bg_resp.json()
+                                if isinstance(bg_data, dict) and isinstance(bg_data.get("messages"), list) and bg_data["messages"]:
+                                    cache_entry["messages"] = list(bg_data["messages"])
+                    except Exception:
+                        pass
 
-            asyncio.create_task(_bg_force_sync_msg_thread())
+                asyncio.create_task(_bg_force_sync_msg_thread())
 
-        target_url = (
-            f"{target_url}?account_id={acc_param}&force={'false' if has_cached_msgs else 'true'}&_ts={ts_ms}"
-        )
+            target_url = (
+                f"{target_url}?account_id={acc_param}&force={'false' if has_cached_msgs else 'true'}&_ts={ts_ms}"
+            )
     elif request.url.query:
         target_url = f"{target_url}?{request.url.query}"
 
@@ -3009,8 +2853,13 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
         if val:
             forward_headers[hdr] = val
 
-    # Use a responsive timeout for account discovery endpoints so fallback safety kicks in without stalling UI
-    req_timeout = 8.0 if clean_path in ("social/accounts", "connected_accounts") else GLENNBOT_TIMEOUT_SECONDS
+    # Use a responsive timeout for account discovery endpoints and a generous timeout for live AI DM generation
+    if clean_path in ("social/accounts", "connected_accounts"):
+        req_timeout = 8.0
+    elif clean_path == "messages/portfolio_live_dm":
+        req_timeout = 45.0
+    else:
+        req_timeout = GLENNBOT_TIMEOUT_SECONDS
 
     try:
         async with httpx.AsyncClient(
@@ -3052,7 +2901,7 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
                         filtered_json = _filter_whitelisted_records_in_proxy_json(clean_path, parsed_json)
                         resp_headers = (
                             {"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"}
-                            if clean_path == "comments"
+                            if (clean_path == "comments" or clean_path.startswith("messages/"))
                             else None
                         )
                         return JSONResponse(
