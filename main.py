@@ -1702,7 +1702,7 @@ def _build_calendar_lock_body_script() -> str:
         "if(!cid&&window.location&&window.location.search){"
         "try{cid=String(new URLSearchParams(window.location.search).get('conv_id')||'').trim();}catch(_){}"
         "}"
-        "return cid.indexOf('fb_live_')===0?cid:'';"
+        "return (cid.indexOf('fb_live_')===0||cid.indexOf('wa_live_dm_')===0||cid.indexOf('wa_live_')===0||cid.indexOf('ig_live_')===0)?cid:'';"
         "}"
         "function _isLivePortfolioDmSession(){"
         "return Boolean(_isMessageThreadMode()&&_getLivePortfolioConvId());"
@@ -1713,9 +1713,9 @@ def _build_calendar_lock_body_script() -> str:
         "var s=String((window.location&&window.location.search)||'');"
         "return String(p.wait_for_new||'')==='1'||s.indexOf('wait_for_new=1')!==-1;"
         "}"
-        "async function _syncLatestActiveMessengerThread(){"
+        "async function _syncLatestActiveMessengerThread(forceReload){"
         "if(!_isMessageThreadMode())return;"
-        "if(window.__gbMsgAutoSyncInFlight)return;"
+        "if(window.__gbMsgAutoSyncInFlight&&!forceReload)return;"
         "window.__gbMsgAutoSyncInFlight=true;"
         "try{"
         "var p=window.gbActivePopoutParams||{};"
@@ -1724,12 +1724,16 @@ def _build_calendar_lock_body_script() -> str:
         "if(liveConvId){"
         "var liveConvKey=String(p.conv_key||(accId+'_'+liveConvId)).trim();"
         "var curId=(typeof selectedConversationId!=='undefined')?String(selectedConversationId||''):'';"
-        "if(!curId||curId!==liveConvId){"
+        "if(!curId||curId!==liveConvId||forceReload){"
         "if(typeof window.selectMessageConversation==='function'){"
         "await window.selectMessageConversation(liveConvKey,liveConvId,accId);"
+        "}else if(typeof window.refreshOpenConversationSilently==='function'){"
+        "await window.refreshOpenConversationSilently(liveConvId,accId);"
         "}"
         "}else if(typeof window.refreshOpenConversationSilently==='function'){"
         "await window.refreshOpenConversationSilently(liveConvId,accId);"
+        "}else if(typeof window.selectMessageConversation==='function'){"
+        "await window.selectMessageConversation(liveConvKey,liveConvId,accId);"
         "}"
         "return;"
         "}"
@@ -1764,11 +1768,17 @@ def _build_calendar_lock_body_script() -> str:
         "var pollMs=_isLivePortfolioDmSession()?2500:8000;"
         "window.__gbMsgAutoLatestInterval=setInterval(function(){"
         "if(document.hidden)return;"
-        "_syncLatestActiveMessengerThread();"
+        "_syncLatestActiveMessengerThread(false);"
         "},pollMs);"
         "window.addEventListener('message',function(ev){"
         "if(ev&&ev.data&&ev.data.type==='gb_live_dm_updated'){"
-        "_syncLatestActiveMessengerThread();"
+        "if(ev.data.conv_id&&window.gbActivePopoutParams){"
+        "window.gbActivePopoutParams.conv_id=String(ev.data.conv_id);"
+        "if(ev.data.conv_key)window.gbActivePopoutParams.conv_key=String(ev.data.conv_key);"
+        "if(ev.data.account_id)window.gbActivePopoutParams.account_id=String(ev.data.account_id);"
+        "}"
+        "_syncLatestActiveMessengerThread(true);"
+        "setTimeout(function(){_syncLatestActiveMessengerThread(true);},600);"
         "}"
         "});"
         "}"
@@ -1847,37 +1857,100 @@ async def glennbot_authenticated_popout(request: Request):
 
         html_text = ""
         status_code = 200
-        async with httpx.AsyncClient(
-            timeout=GLENNBOT_TIMEOUT_SECONDS,
-            follow_redirects=True,
-        ) as client:
-            resp = await client.get(
-                upstream_url,
-                headers=req_headers,
-                cookies={"gb_auth_session": session_token},
-            )
-            if resp.status_code in (401, 403):
-                session_token = await get_glennbot_auto_session_token(force_refresh=True)
-                req_headers["X-GlennBot-Session"] = session_token
-                req_headers["Cookie"] = f"gb_auth_session={session_token}"
+        try:
+            async with httpx.AsyncClient(
+                timeout=GLENNBOT_TIMEOUT_SECONDS,
+                follow_redirects=True,
+            ) as client:
                 resp = await client.get(
                     upstream_url,
                     headers=req_headers,
                     cookies={"gb_auth_session": session_token},
                 )
-            status_code = resp.status_code
-            html_text = resp.text
+                if resp.status_code in (401, 403):
+                    session_token = await get_glennbot_auto_session_token(force_refresh=True)
+                    req_headers["X-GlennBot-Session"] = session_token
+                    req_headers["Cookie"] = f"gb_auth_session={session_token}"
+                    resp = await client.get(
+                        upstream_url,
+                        headers=req_headers,
+                        cookies={"gb_auth_session": session_token},
+                    )
+                status_code = resp.status_code
+                html_text = resp.text
+        except Exception:
+            status_code = 502
+            html_text = ""
 
-        if status_code == 200 and html_text:
+        if status_code == 200 and html_text and "<html" in html_text.lower():
             _GLENNBOT_HTML_SHELL_CACHE["html"] = html_text
             _GLENNBOT_HTML_SHELL_CACHE["status_code"] = 200
             _GLENNBOT_HTML_SHELL_CACHE["expires_at"] = now + 300.0
         else:
             status_code = 200
-            if cached_html:
+            if cached_html and "<html" in cached_html.lower():
                 html_text = cached_html
-            elif not html_text:
-                html_text = "<!DOCTYPE html><html><head><meta charset='utf-8'><title>GlennBot Live Thread</title></head><body style='background:#050b14;color:#e2e8f0;font-family:sans-serif;padding:24px;'></body></html>"
+            else:
+                html_text = (
+                    "<!DOCTYPE html><html><head><meta charset='utf-8'>"
+                    "<title>GlennBot Live Thread</title>"
+                    "<style>"
+                    "body{background:#050b14;color:#e2e8f0;font-family:system-ui,-apple-system,sans-serif;margin:0;padding:16px;}"
+                    ".gb-fb-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:12px;background:rgba(15,23,42,0.85);border:1px solid rgba(6,182,212,0.3);margin-bottom:14px;}"
+                    ".gb-fb-badge{background:rgba(6,182,212,0.2);color:#22d3ee;border:1px solid rgba(34,211,238,0.4);padding:3px 8px;border-radius:6px;font-size:10px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;}"
+                    ".gb-fb-card{border-radius:14px;background:rgba(15,23,42,0.75);border:1px solid rgba(51,65,85,0.7);padding:16px;display:flex;flex-direction:column;gap:12px;min-height:380px;}"
+                    ".gb-fb-hdr{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid rgba(51,65,85,0.6);}"
+                    ".gb-fb-msgs{display:flex;flex-direction:column;gap:12px;flex:1;overflow-y:auto;max-height:340px;padding:6px 2px;}"
+                    ".gb-fb-row{display:flex;flex-direction:column;max-width:82%;gap:4px;}"
+                    ".gb-fb-row.own{align-self:flex-end;align-items:flex-end;}"
+                    ".gb-fb-row.user{align-self:flex-start;align-items:flex-start;}"
+                    ".gb-fb-meta{font-size:11px;color:#94a3b8;}"
+                    ".gb-fb-meta .own-name{color:#22d3ee;font-weight:700;}"
+                    ".gb-fb-bubble{padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.45;}"
+                    ".gb-fb-row.user .gb-fb-bubble{background:#1e293b;color:#f8fafc;border:1px solid rgba(71,85,105,0.6);}"
+                    ".gb-fb-row.own .gb-fb-bubble{background:rgba(8,51,68,0.65);color:#f0fdfa;border:1px solid rgba(6,182,212,0.45);box-shadow:0 0 18px rgba(6,182,212,0.12);}"
+                    "</style></head><body>"
+                    "<div id='gb-popout-window-bar' class='gb-fb-bar'>"
+                    "<div style='display:flex;align-items:center;gap:10px;'>"
+                    "<span class='gb-fb-badge'>EXPANDED FOCUS WINDOW</span>"
+                    "<div><div id='gb-popout-window-title' style='font-size:13px;font-weight:800;color:#fff;'>Chat with Portfolio Client — Expanded View</div>"
+                    "<div id='gb-popout-window-subtitle' style='font-size:11px;color:#94a3b8;'>Focused Conversation Window • Real-Time Direct Messaging &amp; Replies</div></div>"
+                    "</div></div>"
+                    "<div id='view-messages'><div id='message-detail-panel' class='gb-fb-card'>"
+                    "<div class='gb-fb-hdr'><div><div id='gb-fb-part-name' style='font-weight:800;font-size:14px;color:#fff;'>Portfolio Client</div>"
+                    "<div style='font-size:11px;color:#94a3b8;'>Chatting via <span id='gb-fb-acc-name' style='color:#22d3ee;font-weight:700;'>GlennBot Automations</span> • External API</div></div>"
+                    "<button type='button' onclick='if(window.refreshOpenConversationSilently)window.refreshOpenConversationSilently(window.selectedConversationId,window.selectedAccountId);' style='background:#0f172a;color:#cbd5e1;border:1px solid #334155;border-radius:8px;padding:6px 12px;font-size:11px;cursor:pointer;'>&#x21bb; Refresh Chat</button></div>"
+                    "<div id='gb-fb-thread-messages' class='gb-fb-msgs'></div>"
+                    "</div></div>"
+                    "<script>"
+                    "window.selectedConversationId='';window.selectedAccountId='6af0b109818eb5c88d1e87a6';"
+                    "window.selectMessageConversation=async function(convKey,convId,accId){"
+                    "window.selectedConversationId=String(convId||'');window.selectedAccountId=String(accId||'6af0b109818eb5c88d1e87a6');"
+                    "return window.refreshOpenConversationSilently(window.selectedConversationId,window.selectedAccountId);"
+                    "};"
+                    "window.refreshOpenConversationSilently=async function(convId,accId){"
+                    "var cid=String(convId||window.selectedConversationId||'').trim();"
+                    "var aid=String(accId||window.selectedAccountId||'6af0b109818eb5c88d1e87a6').trim();"
+                    "if(!cid)return;"
+                    "try{"
+                    "var r=await fetch('/api/messages/'+encodeURIComponent(cid)+'/thread?account_id='+encodeURIComponent(aid)+'&force=false&_ts='+Date.now(),{cache:'no-store'});"
+                    "if(!r.ok)return;"
+                    "var d=await r.json();"
+                    "var msgs=(d&&Array.isArray(d.messages))?d.messages:[];"
+                    "var box=document.getElementById('gb-fb-thread-messages');"
+                    "if(!box)return;"
+                    "if(!msgs.length){box.innerHTML='<div style=\"color:#64748b;font-size:12px;padding:24px 0;text-align:center;\">Waiting for first message in session '+cid+'...</div>';return;}"
+                    "box.innerHTML=msgs.map(function(m){"
+                    "var own=Boolean(m&&m.is_own);"
+                    "var sender=String((m&&m.sender_name)||(own?'GlennBot Automations':'Portfolio Client'));"
+                    "var txt=String((m&&(m.message||m.text||m.content))||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');"
+                    "return '<div class=\"gb-fb-row '+(own?'own':'user')+'\"><div class=\"gb-fb-meta\">'+(own?'<span class=\"own-name\">'+sender+'</span>':sender)+'</div><div class=\"gb-fb-bubble\">'+txt+'</div></div>';"
+                    "}).join('');"
+                    "box.scrollTop=box.scrollHeight;"
+                    "}catch(_){}"
+                    "};"
+                    "</script></body></html>"
+                )
 
     user_obj = _GLENNBOT_SESSION_CACHE.get("user") or {
         "user_id": DASHBOARD_USER_ID,
@@ -2573,6 +2646,7 @@ def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> di
                     plat in ("sms", "textbee", "whatsapp")
                     or "fb_live_" in cid_str
                     or "wa_live_dm_" in cid_str
+                    or "wa_live_" in cid_str
                     or "ig_live_" in cid_str
                 ):
                     kept_convs.append(conv)
@@ -2600,22 +2674,22 @@ def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> di
     if clean_path.startswith("messages/") and clean_path.endswith("/thread"):
         parts = clean_path.split("/")
         conv_id_key = parts[1] if len(parts) >= 3 else ""
-        is_live_session = (
-            conv_id_key.startswith("fb_live_")
-            or conv_id_key.startswith("wa_live_dm_")
-            or conv_id_key.startswith("ig_live_")
-        )
-        if conv_id_key and not is_live_session:
+        if conv_id_key:
             msgs = data.get("messages")
+            cached_entry = _PORTFOLIO_MESSAGES_THREAD_CACHE.get(conv_id_key) or {}
+            cached_msgs = cached_entry.get("messages")
+            cached_list = cached_msgs if isinstance(cached_msgs, list) else []
             if isinstance(msgs, list) and len(msgs) > 0:
-                _PORTFOLIO_MESSAGES_THREAD_CACHE.setdefault(conv_id_key, {})["messages"] = list(msgs)
-                if isinstance(data.get("conversation"), dict):
-                    _PORTFOLIO_MESSAGES_THREAD_CACHE[conv_id_key]["conversation"] = dict(data["conversation"])
-            elif isinstance(msgs, list) and len(msgs) == 0:
-                cached_entry = _PORTFOLIO_MESSAGES_THREAD_CACHE.get(conv_id_key) or {}
-                cached_msgs = cached_entry.get("messages")
-                if isinstance(cached_msgs, list) and len(cached_msgs) > 0:
-                    data["messages"] = list(cached_msgs)
+                has_own_upstream = any(isinstance(m, dict) and bool(m.get("is_own")) for m in msgs)
+                if len(msgs) >= len(cached_list) or has_own_upstream:
+                    _PORTFOLIO_MESSAGES_THREAD_CACHE.setdefault(conv_id_key, {})["messages"] = list(msgs)
+                    _DM_TEST_SESSIONS.setdefault(conv_id_key, {})["messages"] = list(msgs)
+                    if isinstance(data.get("conversation"), dict):
+                        _PORTFOLIO_MESSAGES_THREAD_CACHE[conv_id_key]["conversation"] = dict(data["conversation"])
+                elif len(cached_list) > len(msgs):
+                    data["messages"] = list(cached_list)
+            elif isinstance(msgs, list) and len(msgs) == 0 and len(cached_list) > 0:
+                data["messages"] = list(cached_list)
         return data
 
     if clean_path == "analytics":
@@ -2651,6 +2725,8 @@ def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> di
 
 import asyncio
 
+_DM_TEST_SESSIONS: dict[str, dict[str, object]] = {}
+
 _DM_TEST_PLATFORM_META: dict[str, dict[str, str]] = {
     "facebook": {
         "platform": "facebook",
@@ -2673,12 +2749,59 @@ _DM_TEST_PLATFORM_META: dict[str, dict[str, str]] = {
 }
 
 
+def _is_live_portfolio_dm_conv_id(conv_id: str) -> bool:
+    cid = str(conv_id or "").strip()
+    return (
+        cid.startswith("fb_live_")
+        or cid.startswith("ig_live_")
+        or cid.startswith("wa_live_dm_")
+        or cid.startswith("wa_live_")
+    )
+
+
+def _thread_has_own_reply_after_last_user(messages: list) -> bool:
+    if not isinstance(messages, list) or not messages:
+        return False
+    last_user_idx = -1
+    for idx, item in enumerate(messages):
+        if isinstance(item, dict) and not bool(item.get("is_own")):
+            last_user_idx = idx
+    if last_user_idx == -1:
+        return any(isinstance(item, dict) and bool(item.get("is_own")) for item in messages)
+    for item in messages[last_user_idx + 1 :]:
+        if isinstance(item, dict) and bool(item.get("is_own")):
+            return True
+    return False
+
+
+def _save_dm_session_cache(
+    conv_id: str,
+    messages: list,
+    platform: str,
+    account_id: str,
+    account_name: str,
+) -> None:
+    if not conv_id:
+        return
+    msg_copy = list(messages)
+    entry = {
+        "messages": msg_copy,
+        "platform": platform,
+        "account_id": account_id,
+        "account_name": account_name,
+        "updated_at": time.time(),
+    }
+    _PORTFOLIO_MESSAGES_THREAD_CACHE[conv_id] = dict(entry)
+    _DM_TEST_SESSIONS[conv_id] = dict(entry)
+
+
 @app.post("/api/glennbot/dm-test/send")
 async def glennbot_dm_test_send(request: Request):
     """
     Accepts platform ('facebook', 'instagram', 'whatsapp'), conversation_id, participant_name, and message,
     forwards to GlennBot's /api/messages/portfolio_live_dm (syncing Conversations.xlsx Sheet2 + Script.xlsx Sheet1),
-    and caches the thread locally for instant retrieval.
+    polls GET /api/messages/{conv_id}/thread up to 6 times (every 1.2s) if the AI reply is still generating
+    on upstream GlennBot, and updates _PORTFOLIO_MESSAGES_THREAD_CACHE and _DM_TEST_SESSIONS.
     """
     try:
         body = await request.json()
@@ -2689,23 +2812,26 @@ async def glennbot_dm_test_send(request: Request):
 
     raw_plat = str(body.get("platform") or "facebook").strip().lower()
     meta = _DM_TEST_PLATFORM_META.get(raw_plat, _DM_TEST_PLATFORM_META["facebook"])
-    conv_id = str(body.get("conversation_id") or "").strip()
+    conv_id = str(body.get("conversation_id") or body.get("session_id") or "").strip()
     if not conv_id:
         conv_id = f"{meta['conv_prefix']}{int(time.time() * 1000)}"
-    account_id = str(body.get("account_id") or meta["account_id"]).strip()
+    target_acc_id = str(body.get("account_id") or meta["account_id"]).strip()
     account_name = str(body.get("account_name") or meta["account_name"]).strip()
     participant_name = str(body.get("participant_name") or "Portfolio Client").strip() or "Portfolio Client"
     message_text = str(body.get("message") or "").strip()
 
     forward_payload = {
         "conversation_id": conv_id,
-        "account_id": account_id,
+        "account_id": target_acc_id,
         "account_name": account_name,
         "platform": meta["platform"],
         "participant_name": participant_name,
         "message": message_text,
     }
     session_token = await get_glennbot_auto_session_token()
+    upstream_data: dict | None = None
+    upstream_msgs: list = []
+
     try:
         async with httpx.AsyncClient(timeout=45.0, follow_redirects=True) as client:
             resp = await client.post(
@@ -2714,54 +2840,115 @@ async def glennbot_dm_test_send(request: Request):
                 headers=get_glennbot_headers(session_token),
                 cookies={"gb_auth_session": session_token},
             )
+            if resp.status_code in (401, 403):
+                session_token = await get_glennbot_auto_session_token(force_refresh=True)
+                resp = await client.post(
+                    f"{GLENNBOT_BASE_URL}/api/messages/portfolio_live_dm",
+                    json=forward_payload,
+                    headers=get_glennbot_headers(session_token),
+                    cookies={"gb_auth_session": session_token},
+                )
             if resp.status_code == 200:
-                data = resp.json()
-                if isinstance(data, dict) and isinstance(data.get("messages"), list):
-                    _PORTFOLIO_MESSAGES_THREAD_CACHE[conv_id] = {
-                        "messages": list(data["messages"]),
-                        "platform": meta["platform"],
-                        "account_id": account_id,
-                        "account_name": account_name,
-                    }
-                return JSONResponse(content=data, status_code=200)
+                parsed = resp.json()
+                if isinstance(parsed, dict):
+                    upstream_data = parsed
+                    if isinstance(parsed.get("messages"), list):
+                        upstream_msgs = list(parsed["messages"])
+                        _save_dm_session_cache(
+                            conv_id,
+                            upstream_msgs,
+                            meta["platform"],
+                            target_acc_id,
+                            account_name,
+                        )
+
+            # If upstream returned before the asynchronous Gemini AI workflow finished appending is_own=True,
+            # poll GET /api/messages/{conv_id}/thread up to 6 times (every 1.2s) to capture the real GlennBot AI reply.
+            if upstream_data is not None and not _thread_has_own_reply_after_last_user(upstream_msgs):
+                for _ in range(6):
+                    await asyncio.sleep(1.2)
+                    poll_ts = int(time.time() * 1000)
+                    poll_url = (
+                        f"{GLENNBOT_BASE_URL}/api/messages/{conv_id}/thread"
+                        f"?account_id={target_acc_id}&force=false&_ts={poll_ts}"
+                    )
+                    try:
+                        poll_resp = await client.get(
+                            poll_url,
+                            headers={
+                                **get_glennbot_headers(session_token),
+                                "Cache-Control": "no-cache, no-store",
+                                "Pragma": "no-cache",
+                            },
+                            cookies={"gb_auth_session": session_token},
+                            timeout=15.0,
+                        )
+                        if poll_resp.status_code == 200:
+                            poll_json = poll_resp.json()
+                            if isinstance(poll_json, dict) and isinstance(poll_json.get("messages"), list):
+                                polled_msgs = list(poll_json["messages"])
+                                if len(polled_msgs) >= len(upstream_msgs):
+                                    upstream_msgs = polled_msgs
+                                    upstream_data["messages"] = upstream_msgs
+                                    _save_dm_session_cache(
+                                        conv_id,
+                                        upstream_msgs,
+                                        meta["platform"],
+                                        target_acc_id,
+                                        account_name,
+                                    )
+                                if _thread_has_own_reply_after_last_user(upstream_msgs):
+                                    break
+                    except Exception:
+                        pass
+
+            if upstream_data is not None and _thread_has_own_reply_after_last_user(upstream_msgs):
+                return JSONResponse(content=upstream_data, status_code=200)
     except Exception:
         pass
 
     now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-    existing_msgs = list((_PORTFOLIO_MESSAGES_THREAD_CACHE.get(conv_id) or {}).get("messages") or [])
-    user_msg = {
-        "id": f"msg_{int(time.time() * 1000)}_u",
-        "is_own": False,
-        "sender_name": participant_name,
-        "message": message_text,
-        "timestamp": now_iso,
-    }
-    ai_msg = {
-        "id": f"msg_{int(time.time() * 1000)}_ai",
-        "is_own": True,
-        "sender_name": account_name,
-        "message": (
-            f"Hi {participant_name}! Thanks for messaging {account_name} via {meta['platform'].title()}. "
-            "I'm GlennBot (powered by Gemini 3.5 Flash & synced with Conversations.xlsx Sheet2 + Script.xlsx). "
-            "How can I help you with AI automations, webhooks, or custom web apps today?"
-        ),
-        "timestamp": now_iso,
-    }
-    updated_msgs = [*existing_msgs, user_msg, ai_msg]
-    _PORTFOLIO_MESSAGES_THREAD_CACHE[conv_id] = {
-        "messages": updated_msgs,
-        "platform": meta["platform"],
-        "account_id": account_id,
-        "account_name": account_name,
-    }
+    existing_msgs = (
+        upstream_msgs
+        if upstream_msgs
+        else list((_PORTFOLIO_MESSAGES_THREAD_CACHE.get(conv_id) or {}).get("messages") or [])
+    )
+    if not any(
+        isinstance(m, dict) and not bool(m.get("is_own")) and str(m.get("message") or "").strip() == message_text
+        for m in existing_msgs
+    ):
+        existing_msgs.append(
+            {
+                "id": f"msg_{int(time.time() * 1000)}_u",
+                "is_own": False,
+                "sender_name": participant_name,
+                "message": message_text,
+                "timestamp": now_iso,
+            }
+        )
+    if not _thread_has_own_reply_after_last_user(existing_msgs):
+        existing_msgs.append(
+            {
+                "id": f"msg_{int(time.time() * 1000)}_ai",
+                "is_own": True,
+                "sender_name": account_name,
+                "message": (
+                    f"Hi {participant_name}! Thanks for messaging {account_name} via {meta['platform'].title()}. "
+                    "I'm GlennBot (powered by Gemini 3.5 Flash & synced with Conversations.xlsx Sheet2 + Script.xlsx). "
+                    "How can I help you with AI automations, webhooks, or custom web apps today?"
+                ),
+                "timestamp": now_iso,
+            }
+        )
+    _save_dm_session_cache(conv_id, existing_msgs, meta["platform"], target_acc_id, account_name)
     return JSONResponse(
         content={
             "status": "success",
             "conversation_id": conv_id,
             "platform": meta["platform"],
-            "account_id": account_id,
+            "account_id": target_acc_id,
             "account_name": account_name,
-            "messages": updated_msgs,
+            "messages": existing_msgs,
         },
         status_code=200,
     )
@@ -2771,20 +2958,71 @@ async def glennbot_dm_test_send(request: Request):
 async def glennbot_dm_test_state(request: Request):
     """
     Returns live DM state for Facebook, Instagram, or WhatsApp (+63 917 549 7760) sessions.
+    When session_id / conversation_id / conv_id is provided, also fetches
+    GET {GLENNBOT_BASE_URL}/api/messages/{session_id}/thread?account_id={acc_id}&force=false
+    to sync the latest is_own=True AI replies from GlennBot.
     """
     raw_plat = str(request.query_params.get("platform") or "facebook").strip().lower()
     meta = _DM_TEST_PLATFORM_META.get(raw_plat, _DM_TEST_PLATFORM_META["facebook"])
-    conv_id = str(request.query_params.get("conversation_id") or request.query_params.get("conv_id") or "").strip()
-    account_id = str(request.query_params.get("account_id") or meta["account_id"]).strip()
-    cached = _PORTFOLIO_MESSAGES_THREAD_CACHE.get(conv_id) or {}
+    session_id = str(
+        request.query_params.get("session_id")
+        or request.query_params.get("conversation_id")
+        or request.query_params.get("conv_id")
+        or ""
+    ).strip()
+    acc_id = str(request.query_params.get("account_id") or meta["account_id"]).strip()
+
+    cached = (
+        _PORTFOLIO_MESSAGES_THREAD_CACHE.get(session_id)
+        or _DM_TEST_SESSIONS.get(session_id)
+        or {}
+    )
+    cached_msgs = list(cached.get("messages") or [])
+
+    if session_id:
+        session_token = await get_glennbot_auto_session_token()
+        ts_ms = int(time.time() * 1000)
+        upstream_thread_url = (
+            f"{GLENNBOT_BASE_URL}/api/messages/{session_id}/thread"
+            f"?account_id={acc_id}&force=false&_ts={ts_ms}"
+        )
+        try:
+            async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+                resp = await client.get(
+                    upstream_thread_url,
+                    headers={
+                        **get_glennbot_headers(session_token),
+                        "Cache-Control": "no-cache, no-store",
+                        "Pragma": "no-cache",
+                    },
+                    cookies={"gb_auth_session": session_token},
+                )
+                if resp.status_code == 200:
+                    up_json = resp.json()
+                    if isinstance(up_json, dict) and isinstance(up_json.get("messages"), list):
+                        up_msgs = list(up_json["messages"])
+                        has_own = any(isinstance(m, dict) and bool(m.get("is_own")) for m in up_msgs)
+                        if len(up_msgs) >= len(cached_msgs) or has_own:
+                            cached_msgs = up_msgs
+                            _save_dm_session_cache(
+                                session_id,
+                                cached_msgs,
+                                meta["platform"],
+                                acc_id,
+                                meta["account_name"],
+                            )
+        except Exception:
+            pass
+
     return JSONResponse(
         content={
             "status": "success",
             "platform": meta["platform"],
-            "account_id": account_id,
+            "account_id": acc_id,
             "account_name": meta["account_name"],
-            "conversation_id": conv_id,
-            "messages": list(cached.get("messages") or []),
+            "session_id": session_id,
+            "conversation_id": session_id,
+            "messages": cached_msgs,
             "excel_sync": {
                 "conversations_workbook": "Conversations.xlsx",
                 "conversations_sheet": "Sheet2",
@@ -2910,6 +3148,12 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
     body_bytes = await request.body()
 
     target_url = f"{GLENNBOT_BASE_URL}/api/{path.lstrip('/')}"
+    is_message_thread_get = (
+        clean_path.startswith("messages/") and clean_path.endswith("/thread") and method_upper == "GET"
+    )
+    thread_conv_id_key = ""
+    thread_acc_param = "6af0b109818eb5c88d1e87a6"
+
     if clean_path == "comments" and method_upper == "GET":
         req_active_rec = (request.query_params.get("active_record_id") or "").strip()
         if req_active_rec in SHOWCASE_POST_CONFIGS:
@@ -2946,31 +3190,16 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
             asyncio.create_task(_bg_force_sync_showcase())
 
         target_url = f"{GLENNBOT_BASE_URL}/api/comments?active_record_id={upstream_rec_id}&_ts={ts_ms}"
-    elif clean_path.startswith("messages/") and clean_path.endswith("/thread") and method_upper == "GET":
+    elif is_message_thread_get:
         parts = clean_path.split("/")
-        conv_id_key = parts[1] if len(parts) >= 3 else ""
-        acc_param = (request.query_params.get("account_id") or "6af0b109818eb5c88d1e87a6").strip()
+        thread_conv_id_key = parts[1] if len(parts) >= 3 else ""
+        thread_acc_param = (request.query_params.get("account_id") or "6af0b109818eb5c88d1e87a6").strip()
         ts_ms = int(time.time() * 1000)
-        if (
-            conv_id_key.startswith("fb_live_")
-            or conv_id_key.startswith("wa_live_dm_")
-            or conv_id_key.startswith("ig_live_")
-        ):
-            cached_live = _PORTFOLIO_MESSAGES_THREAD_CACHE.get(conv_id_key)
-            if isinstance(cached_live, dict) and isinstance(cached_live.get("messages"), list):
-                return JSONResponse(
-                    content={
-                        "status": "success",
-                        "conversation_id": conv_id_key,
-                        "account_id": acc_param,
-                        "messages": list(cached_live["messages"]),
-                    },
-                    status_code=200,
-                    headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"},
-                )
-            target_url = f"{target_url}?account_id={acc_param}&force=false&_ts={ts_ms}"
+        if _is_live_portfolio_dm_conv_id(thread_conv_id_key):
+            # Always query upstream GlennBot first (do NOT short-circuit to stale cache!)
+            target_url = f"{target_url}?account_id={thread_acc_param}&force=false&_ts={ts_ms}"
         else:
-            cache_entry = _PORTFOLIO_MESSAGES_THREAD_CACHE.setdefault(conv_id_key, {})
+            cache_entry = _PORTFOLIO_MESSAGES_THREAD_CACHE.setdefault(thread_conv_id_key, {})
             last_force_ts = float(cache_entry.get("last_force_ts") or 0.0)
             has_cached_msgs = bool(cache_entry.get("messages"))
             if time.time() - last_force_ts >= 15.0:
@@ -2980,7 +3209,7 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
                     try:
                         await asyncio.sleep(1.5)
                         async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as bg_client:
-                            bg_url = f"{GLENNBOT_BASE_URL}/api/messages/{conv_id_key}/thread?account_id={acc_param}&force=true&_ts={ts_ms}"
+                            bg_url = f"{GLENNBOT_BASE_URL}/api/messages/{thread_conv_id_key}/thread?account_id={thread_acc_param}&force=true&_ts={ts_ms}"
                             bg_resp = await bg_client.get(
                                 bg_url,
                                 headers={
@@ -3000,7 +3229,7 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
                 asyncio.create_task(_bg_force_sync_msg_thread())
 
             target_url = (
-                f"{target_url}?account_id={acc_param}&force={'false' if has_cached_msgs else 'true'}&_ts={ts_ms}"
+                f"{target_url}?account_id={thread_acc_param}&force={'false' if has_cached_msgs else 'true'}&_ts={ts_ms}"
             )
     elif request.url.query:
         target_url = f"{target_url}?{request.url.query}"
@@ -3018,9 +3247,11 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
         if val:
             forward_headers[hdr] = val
 
-    # Use a responsive timeout for account discovery endpoints and a generous timeout for live AI DM generation / reply deletion
+    # Use a responsive timeout for account discovery endpoints, 15.0s for message thread polling, and 45.0s for live AI DM generation
     if clean_path in ("social/accounts", "connected_accounts"):
         req_timeout = 8.0
+    elif is_message_thread_get:
+        req_timeout = 15.0
     elif clean_path in ("messages/portfolio_live_dm", "comments/delete_reply"):
         req_timeout = 45.0
     else:
@@ -3050,12 +3281,19 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
                     content=body_bytes if body_bytes else None,
                 )
 
-            if resp.status_code == 404 and clean_path.startswith("messages/") and clean_path.endswith("/thread"):
-                parts = clean_path.split("/")
-                conv_id_404 = parts[1] if len(parts) >= 3 else ""
-                cached_404 = (_PORTFOLIO_MESSAGES_THREAD_CACHE.get(conv_id_404) or {}).get("messages") or []
+            if is_message_thread_get and resp.status_code != 200:
+                cached_fallback = (
+                    (_PORTFOLIO_MESSAGES_THREAD_CACHE.get(thread_conv_id_key) or {}).get("messages")
+                    or (_DM_TEST_SESSIONS.get(thread_conv_id_key) or {}).get("messages")
+                    or []
+                )
                 return JSONResponse(
-                    content={"status": "success", "conversation_id": conv_id_404, "messages": list(cached_404)},
+                    content={
+                        "status": "success",
+                        "conversation_id": thread_conv_id_key,
+                        "account_id": thread_acc_param,
+                        "messages": list(cached_fallback),
+                    },
                     status_code=200,
                     headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"},
                 )
@@ -3093,6 +3331,22 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
                 media_type=content_type,
             )
     except Exception:
+        if is_message_thread_get:
+            cached_fallback = (
+                (_PORTFOLIO_MESSAGES_THREAD_CACHE.get(thread_conv_id_key) or {}).get("messages")
+                or (_DM_TEST_SESSIONS.get(thread_conv_id_key) or {}).get("messages")
+                or []
+            )
+            return JSONResponse(
+                content={
+                    "status": "success",
+                    "conversation_id": thread_conv_id_key,
+                    "account_id": thread_acc_param,
+                    "messages": list(cached_fallback),
+                },
+                status_code=200,
+                headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"},
+            )
         if method_upper == "GET" and clean_path == "social/accounts":
             return JSONResponse(content=_filter_social_accounts_payload({}), status_code=200)
         if method_upper == "GET" and clean_path == "connected_accounts":

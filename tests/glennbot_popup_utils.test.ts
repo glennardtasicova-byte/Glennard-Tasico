@@ -611,6 +611,12 @@ test("SYS-02 Send a DM Idea B (Interactive In-Portfolio Facebook Messenger Clien
   assert.equal(waSplitCfg.platform, "whatsapp");
   assert.equal(waSplitCfg.page_header, "Glennard Tasico (+63 917 549 7760)");
   assert.equal(waSplitCfg.account_id, "6adda70399e7b30829e8859c");
+
+  const waShortPrefixCfg = buildDmSplitWorkspaceConfig(
+    "whatsapp",
+    "wa_live_custom123"
+  );
+  assert.equal(waShortPrefixCfg.sessionConvId, "wa_live_custom123");
 });
 
 

@@ -555,9 +555,13 @@ window.openMaximizedWhatsAppDirect = () =>
 
 let activeDmSplitPlatform = "facebook";
 let activeDmSessionConvId = "";
+let activeDmClientConvId = "";
 let activeDmSessionConvKey = "";
+let activeDmAccountId = "6af0b109818eb5c88d1e87a6";
 let dmClientMessages = [];
+let activeDmClientMessages = [];
 let dmClientWaitingForAi = false;
+let dmClientAwaitingAiReply = false;
 let dmClientPollTimer = null;
 let dmClientSendingInFlight = false;
 
@@ -611,12 +615,14 @@ function formatDmBubbleTime(tsValue) {
 }
 
 function setDmTypingIndicatorVisible(isVisible) {
-  dmClientWaitingForAi = Boolean(isVisible);
+  const nextState = Boolean(isVisible);
+  dmClientWaitingForAi = nextState;
+  dmClientAwaitingAiReply = nextState;
   const typingEl = document.getElementById("gb-dm-typing-indicator");
   if (typingEl) {
-    typingEl.hidden = !dmClientWaitingForAi;
+    typingEl.hidden = !nextState;
   }
-  if (dmClientWaitingForAi) {
+  if (nextState) {
     scrollDmClientChatToBottom();
   }
 }
@@ -627,7 +633,31 @@ function scrollDmClientChatToBottom() {
   scrollEl.scrollTop = scrollEl.scrollHeight;
 }
 
-function renderDmClientMessages(messagesList = dmClientMessages) {
+function hasOwnReplyAfterLastUserMessage(messagesList) {
+  if (!Array.isArray(messagesList) || messagesList.length === 0) return false;
+  let lastUserIdx = -1;
+  for (let i = 0; i < messagesList.length; i += 1) {
+    const m = messagesList[i];
+    if (m && !m.is_own) {
+      lastUserIdx = i;
+    }
+  }
+  if (lastUserIdx === -1) {
+    return messagesList.some((m) => Boolean(m && m.is_own));
+  }
+  for (let j = lastUserIdx + 1; j < messagesList.length; j += 1) {
+    const m = messagesList[j];
+    if (m && m.is_own && String(m.message || m.text || m.content || "").trim()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function renderDmClientBubbles(messagesList = dmClientMessages, showTyping) {
+  if (typeof showTyping === "boolean") {
+    setDmTypingIndicatorVisible(showTyping);
+  }
   const listEl = document.getElementById("gb-dm-client-messages-list");
   if (!listEl) return;
   const items = Array.isArray(messagesList) ? messagesList : [];
@@ -686,6 +716,11 @@ function renderDmClientMessages(messagesList = dmClientMessages) {
 
   listEl.innerHTML = html;
 }
+function renderDmClientMessages(messagesList = dmClientMessages, showTyping) {
+  return renderDmClientBubbles(messagesList, showTyping);
+}
+window.renderDmClientBubbles = renderDmClientBubbles;
+window.renderDmClientMessages = renderDmClientMessages;
 
 function notifyRightDashboardIframeLiveDmUpdate() {
   const cfg =
@@ -728,16 +763,27 @@ function applyServerThreadMessages(serverMessages) {
     message: String(m.message || m.text || m.content || ""),
     timestamp: m.timestamp || m.created_at || new Date().toISOString(),
   }));
-
-  renderDmClientMessages(dmClientMessages);
+  activeDmClientMessages = dmClientMessages;
 
   const newOwnCount = dmClientMessages.filter((m) => m && m.is_own).length;
   const lastMsg = dmClientMessages[dmClientMessages.length - 1];
-  if (newOwnCount > prevOwnCount || (lastMsg && lastMsg.is_own)) {
-    setDmTypingIndicatorVisible(false);
+  const ownReplyArrived =
+    newOwnCount > prevOwnCount ||
+    Boolean(lastMsg && lastMsg.is_own) ||
+    hasOwnReplyAfterLastUserMessage(dmClientMessages);
+
+  if (ownReplyArrived) {
+    dmClientAwaitingAiReply = false;
+    dmClientWaitingForAi = false;
+    renderDmClientBubbles(activeDmClientMessages, false);
+    scrollDmClientChatToBottom();
+    notifyRightDashboardIframeLiveDmUpdate();
+    return;
   }
 
-  if (dmClientMessages.length !== previousCount || newOwnCount > prevOwnCount) {
+  renderDmClientBubbles(activeDmClientMessages);
+
+  if (dmClientMessages.length !== previousCount) {
     scrollDmClientChatToBottom();
     notifyRightDashboardIframeLiveDmUpdate();
   }
@@ -748,7 +794,9 @@ async function pollDmClientThread() {
   if (!modal || modal.hidden || !activeDmSessionConvId) return;
 
   const cfg = DM_SPLIT_PLATFORMS[activeDmSplitPlatform] || DM_SPLIT_PLATFORMS.facebook;
-  const pollUrl = `/api/messages/${encodeURIComponent(activeDmSessionConvId)}/thread?account_id=${encodeURIComponent(cfg.accountId)}&platform=${encodeURIComponent(cfg.key)}&force=false`;
+  activeDmClientConvId = activeDmSessionConvId;
+  activeDmAccountId = cfg.accountId;
+  const pollUrl = `/api/messages/${encodeURIComponent(activeDmClientConvId)}/thread?account_id=${encodeURIComponent(activeDmAccountId)}&platform=${encodeURIComponent(cfg.key)}&force=false&_ts=${Date.now()}`;
 
   try {
     const res = await fetch(pollUrl, {
@@ -788,7 +836,12 @@ async function sendPortfolioLiveDmMessage(rawText) {
   if (!activeDmSessionConvId) {
     const generated = generateNewDmSessionIds(cfg.accountId, cfg.key);
     activeDmSessionConvId = generated.sessionConvId;
+    activeDmClientConvId = generated.sessionConvId;
     activeDmSessionConvKey = generated.sessionConvKey;
+    activeDmAccountId = generated.accountId;
+  } else {
+    activeDmClientConvId = activeDmSessionConvId;
+    activeDmAccountId = cfg.accountId;
   }
 
   const visitorInput = document.getElementById("gb-dm-visitor-name-input");
@@ -811,8 +864,9 @@ async function sendPortfolioLiveDmMessage(rawText) {
     timestamp: new Date().toISOString(),
   };
   dmClientMessages = [...dmClientMessages, optimisticMsg];
-  renderDmClientMessages(dmClientMessages);
-  setDmTypingIndicatorVisible(true);
+  activeDmClientMessages = dmClientMessages;
+  dmClientAwaitingAiReply = true;
+  renderDmClientBubbles(activeDmClientMessages, true);
   scrollDmClientChatToBottom();
 
   const sendBtn = document.getElementById("gb-dm-client-send-btn");
@@ -838,6 +892,10 @@ async function sendPortfolioLiveDmMessage(rawText) {
       const data = await res.json();
       if (data && Array.isArray(data.messages)) {
         applyServerThreadMessages(data.messages);
+        if (hasOwnReplyAfterLastUserMessage(data.messages)) {
+          dmClientAwaitingAiReply = false;
+          renderDmClientBubbles(activeDmClientMessages, false);
+        }
       } else {
         await pollDmClientThread();
       }
@@ -853,6 +911,7 @@ async function sendPortfolioLiveDmMessage(rawText) {
   }
 }
 window.sendPortfolioLiveDmMessage = sendPortfolioLiveDmMessage;
+window.sendLiveClientDmMessage = sendPortfolioLiveDmMessage;
 
 function submitDmClientComposer() {
   const msgInput = document.getElementById("gb-dm-client-message-input");
@@ -879,10 +938,13 @@ function updateDmSplitWorkspaceDOM(
   if (generateFreshSession || !activeDmSessionConvId) {
     const generated = generateNewDmSessionIds(cfg.accountId, platKey);
     activeDmSessionConvId = generated.sessionConvId;
+    activeDmClientConvId = generated.sessionConvId;
     activeDmSessionConvKey = generated.sessionConvKey;
+    activeDmAccountId = generated.accountId;
     dmClientMessages = [];
-    renderDmClientMessages([]);
-    setDmTypingIndicatorVisible(false);
+    activeDmClientMessages = [];
+    dmClientAwaitingAiReply = false;
+    renderDmClientBubbles([], false);
   }
 
   const fbBtn = document.getElementById("gb-dm-split-toggle-facebook");

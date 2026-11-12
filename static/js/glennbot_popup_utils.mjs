@@ -697,6 +697,27 @@ export function buildPortfolioLiveDmPayload(
   };
 }
 
+export function hasOwnReplyAfterLastUserMessage(messagesList = []) {
+  if (!Array.isArray(messagesList) || messagesList.length === 0) return false;
+  let lastUserIdx = -1;
+  for (let i = 0; i < messagesList.length; i += 1) {
+    const m = messagesList[i];
+    if (m && !m.is_own) {
+      lastUserIdx = i;
+    }
+  }
+  if (lastUserIdx === -1) {
+    return messagesList.some((m) => Boolean(m && m.is_own));
+  }
+  for (let j = lastUserIdx + 1; j < messagesList.length; j += 1) {
+    const m = messagesList[j];
+    if (m && m.is_own && String(m.message || m.text || m.content || "").trim()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function buildDmSplitWorkspaceConfig(
   platform = "facebook",
   sessionConvId = null,
@@ -708,6 +729,7 @@ export function buildDmSplitWorkspaceConfig(
     typeof sessionConvId === "string" &&
     (sessionConvId.trim().startsWith("fb_live_") ||
       sessionConvId.trim().startsWith("wa_live_dm_") ||
+      sessionConvId.trim().startsWith("wa_live_") ||
       sessionConvId.trim().startsWith("ig_live_"))
       ? sessionConvId.trim()
       : generateLiveDmSessionIds(null, Date.now(), cfg.account_id, cleanPlat).sessionConvId;
