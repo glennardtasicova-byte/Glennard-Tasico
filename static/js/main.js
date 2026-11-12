@@ -338,18 +338,26 @@ window.closeCommentPlatformChooser = closeCommentPlatformChooser;
 const DM_SPLIT_PLATFORMS = {
   facebook: {
     key: "facebook",
+    label: "Facebook Messenger",
     platformLabel: "Facebook",
+    pageName: "GlennBot Automations",
     pageHeader: "GlennBot Automations",
     pageSubtitle:
       "Facebook Messenger • 24h Meta Window + Gemini 3.5 Flash Active",
+    handle: "GlennBot Automations • Facebook Page",
     accountId: "6af0b109818eb5c88d1e87a6",
     accountName: "GlennBot Automations",
+    externalUrl: "https://www.facebook.com/messages/t/1340688402467466",
+    externalBtnText: "Open Facebook Messenger ↗",
+    placeholder: "Write a message to GlennBot Automations...",
     defaultVisitorName: "Portfolio Client",
     visitorNamePlaceholder: "Your Name (e.g. Alex)",
     newBlankChatLabel: "🔄 New Blank Chat",
     typingIndicatorText:
       "GlennBot Automations is typing via Gemini 3.5 Flash...",
     composerPlaceholder: "Write a message to GlennBot Automations...",
+    clientViewPill: "Facebook Messenger (Client View)",
+    iconClass: "fab fa-facebook-messenger",
     liveDmPostEndpoint: "/api/messages/portfolio_live_dm",
     upstreamLiveDmPostEndpoint:
       "https://glennbotautomations.onrender.com/api/messages/portfolio_live_dm",
@@ -370,29 +378,123 @@ const DM_SPLIT_PLATFORMS = {
       "Magkano ang rate mo at paano mag-inquire?",
     ],
   },
+  instagram: {
+    key: "instagram",
+    label: "Instagram Direct",
+    platformLabel: "Instagram",
+    pageName: "@glennard.tasico.va",
+    pageHeader: "@glennard.tasico.va",
+    pageSubtitle:
+      "Instagram Direct • 24h Meta Window + Gemini 3.5 Flash Active",
+    handle: "@glennard.tasico.va • Instagram Direct",
+    accountId: "6ad9e9b2e5d470e468e58d87",
+    accountName: "@glennard.tasico.va",
+    externalUrl: "https://www.instagram.com/direct/t/18131808028702166/",
+    externalBtnText: "Open Instagram (@glennard.tasico.va) ↗",
+    placeholder: "Message @glennard.tasico.va on Instagram...",
+    defaultVisitorName: "Portfolio Client",
+    visitorNamePlaceholder: "Your Name (e.g. Alex)",
+    newBlankChatLabel: "🔄 New Blank Chat",
+    typingIndicatorText:
+      "@glennard.tasico.va is typing via Gemini 3.5 Flash...",
+    composerPlaceholder: "Message @glennard.tasico.va on Instagram...",
+    clientViewPill: "Instagram Direct (Client View)",
+    iconClass: "fab fa-instagram",
+    liveDmPostEndpoint: "/api/messages/portfolio_live_dm",
+    upstreamLiveDmPostEndpoint:
+      "https://glennbotautomations.onrender.com/api/messages/portfolio_live_dm",
+    pollIntervalMs: 2500,
+    statusBarText:
+      "🟢 LIVE INSTAGRAM DM SESSION • Synced in Real Time with Conversations.xlsx (Sheet2)",
+    refreshBtnLabel: "🔄 Refresh Live Chat",
+    baseProxyDashboardUrl:
+      "/glennbot-popout?popout_mode=message_thread&platform=instagram&account_id=6ad9e9b2e5d470e468e58d87&account_name=%40glennard.tasico.va",
+    baseUpstreamDashboardUrl:
+      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=instagram&account_id=6ad9e9b2e5d470e468e58d87&account_name=%40glennard.tasico.va",
+    directMessengerUrl: "https://www.instagram.com/direct/t/18131808028702166/",
+    directMessengerWindowName: "GlennBotDirectInstagramDmFullView",
+    dashboardWindowName: "GlennBotMessageThread_IG",
+    quickStarterHints: [
+      "Hi GlennBot! What automation services do you offer?",
+      "How can your Python & AI workflows help my business save time?",
+      "Magkano ang rate mo at paano mag-inquire?",
+    ],
+  },
+  whatsapp: {
+    key: "whatsapp",
+    label: "WhatsApp Messenger",
+    platformLabel: "WhatsApp",
+    pageName: "Glennard Tasico (+63 917 549 7760)",
+    pageHeader: "Glennard Tasico (+63 917 549 7760)",
+    pageSubtitle: "+63 917 549 7760 • WhatsApp Direct",
+    handle: "+63 917 549 7760 • WhatsApp Direct",
+    accountId: "6adda70399e7b30829e8859c",
+    accountName: "Glennard Tasico (+63 917 549 7760)",
+    externalUrl: "https://wa.me/639175497760",
+    externalBtnText: "Open WhatsApp (+63 917 549 7760) ↗",
+    placeholder: "Message Glennard Tasico (+63 917 549 7760) on WhatsApp...",
+    defaultVisitorName: "Portfolio Client",
+    visitorNamePlaceholder: "Your Name (e.g. Alex)",
+    newBlankChatLabel: "🔄 New Blank Chat",
+    typingIndicatorText:
+      "Glennard Tasico (+63 917 549 7760) is typing via Gemini 3.5 Flash...",
+    composerPlaceholder:
+      "Message Glennard Tasico (+63 917 549 7760) on WhatsApp...",
+    clientViewPill: "WhatsApp Messenger (Client View)",
+    iconClass: "fab fa-whatsapp",
+    liveDmPostEndpoint: "/api/messages/portfolio_live_dm",
+    upstreamLiveDmPostEndpoint:
+      "https://glennbotautomations.onrender.com/api/messages/portfolio_live_dm",
+    pollIntervalMs: 2500,
+    statusBarText:
+      "🟢 LIVE WHATSAPP SESSION (+63 917 549 7760) • Synced in Real Time with Conversations.xlsx (Sheet2)",
+    refreshBtnLabel: "🔄 Refresh Live Chat",
+    baseProxyDashboardUrl:
+      "/glennbot-popout?popout_mode=message_thread&platform=whatsapp&account_id=6adda70399e7b30829e8859c&account_name=Glennard+Tasico+%28%2B63+917+549+7760%29",
+    baseUpstreamDashboardUrl:
+      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=whatsapp&account_id=6adda70399e7b30829e8859c&account_name=Glennard+Tasico+%28%2B63+917+549+7760%29",
+    directMessengerUrl: "https://wa.me/639175497760",
+    directMessengerWindowName: "GlennBotDirectWhatsAppDmFullView",
+    dashboardWindowName: "GlennBotMessageThread_WA",
+    quickStarterHints: [
+      "Hi Glennard! Can you build webhooks & automations?",
+      "Magkano po magpagawa ng web app at AI chatbot?",
+      "I'd like to discuss an Automation project",
+    ],
+  },
 };
 window.DM_SPLIT_PLATFORMS = DM_SPLIT_PLATFORMS;
 
 const DIRECT_SOCIAL_DM_URLS = {
   facebook: "https://www.facebook.com/messages/t/1340688402467466",
   instagram: "https://www.instagram.com/direct/t/18131808028702166/",
+  whatsapp: "https://wa.me/639175497760",
 };
 window.DIRECT_SOCIAL_DM_URLS = DIRECT_SOCIAL_DM_URLS;
 
 let directSocialDmWinRefs = {
   facebook: null,
   instagram: null,
+  whatsapp: null,
 };
 
-function openMaximizedDirectSocialDm(platform = "facebook") {
+function openMaximizedDirectSocialDm(platform = "facebook", customUrl = null) {
+  const rawPlat = String(platform || "facebook").toLowerCase();
   const platKey =
-    String(platform || "facebook").toLowerCase() === "instagram"
+    rawPlat === "instagram"
       ? "instagram"
+      : rawPlat === "whatsapp"
+      ? "whatsapp"
       : "facebook";
-  const targetUrl = DIRECT_SOCIAL_DM_URLS[platKey];
+  const targetUrl =
+    typeof customUrl === "string" && customUrl.trim()
+      ? customUrl.trim()
+      : DIRECT_SOCIAL_DM_URLS[platKey];
   const winName =
     platKey === "instagram"
       ? "GlennBotDirectInstagramDmFullView"
+      : platKey === "whatsapp"
+      ? "GlennBotDirectWhatsAppDmFullView"
       : "GlennBotDirectFacebookMessengerFullView";
 
   const availW =
@@ -448,6 +550,8 @@ window.openMaximizedFacebookMessengerDirect = () =>
   openMaximizedDirectSocialDm("facebook");
 window.openMaximizedInstagramDirect = () =>
   openMaximizedDirectSocialDm("instagram");
+window.openMaximizedWhatsAppDirect = () =>
+  openMaximizedDirectSocialDm("whatsapp");
 
 let activeDmSplitPlatform = "facebook";
 let activeDmSessionConvId = "";
@@ -457,8 +561,18 @@ let dmClientWaitingForAi = false;
 let dmClientPollTimer = null;
 let dmClientSendingInFlight = false;
 
-function generateNewDmSessionIds(accountId = "6af0b109818eb5c88d1e87a6") {
-  const sessionConvId = `fb_live_${Math.random().toString(36).slice(2, 9)}_${Date.now().toString(36)}`;
+function generateNewDmSessionIds(
+  accountId = "6af0b109818eb5c88d1e87a6",
+  platform = activeDmSplitPlatform
+) {
+  const cleanPlat = String(platform || "facebook").toLowerCase();
+  const prefix =
+    cleanPlat === "whatsapp"
+      ? "wa_live_dm"
+      : cleanPlat === "instagram"
+      ? "ig_live"
+      : "fb_live";
+  const sessionConvId = `${prefix}_${Math.random().toString(36).slice(2, 9)}_${Date.now().toString(36)}`;
   const cleanAccId = String(accountId || "6af0b109818eb5c88d1e87a6").trim();
   const sessionConvKey = `${cleanAccId}_${sessionConvId}`;
   return {
@@ -522,6 +636,8 @@ function renderDmClientMessages(messagesList = dmClientMessages) {
     return;
   }
 
+  const cfg =
+    DM_SPLIT_PLATFORMS[activeDmSplitPlatform] || DM_SPLIT_PLATFORMS.facebook;
   const visitorInput = document.getElementById("gb-dm-visitor-name-input");
   const fallbackVisitorName =
     (visitorInput && visitorInput.value ? visitorInput.value.trim() : "") ||
@@ -541,7 +657,7 @@ function renderDmClientMessages(messagesList = dmClientMessages) {
             </div>
             <div class="gb-dm-msg-content">
               <div class="gb-dm-msg-meta">
-                <span class="gb-dm-msg-author-badge">GlennBot Automations</span>
+                <span class="gb-dm-msg-author-badge">${escapeDmHtml(cfg.accountName || "GlennBot Automations")}</span>
                 <span class="gb-dm-msg-ai-tag">Gemini 3.5 Flash</span>
                 <span class="gb-dm-msg-time">${escapeDmHtml(timeLabel)}</span>
               </div>
@@ -572,6 +688,8 @@ function renderDmClientMessages(messagesList = dmClientMessages) {
 }
 
 function notifyRightDashboardIframeLiveDmUpdate() {
+  const cfg =
+    DM_SPLIT_PLATFORMS[activeDmSplitPlatform] || DM_SPLIT_PLATFORMS.facebook;
   const iframe = document.getElementById("gb-dm-split-iframe");
   if (iframe && iframe.contentWindow) {
     try {
@@ -580,7 +698,8 @@ function notifyRightDashboardIframeLiveDmUpdate() {
           type: "gb_live_dm_updated",
           conv_id: activeDmSessionConvId,
           conv_key: activeDmSessionConvKey,
-          account_id: "6af0b109818eb5c88d1e87a6",
+          account_id: cfg.accountId,
+          platform: cfg.key,
         },
         "*"
       );
@@ -598,12 +717,14 @@ function applyServerThreadMessages(serverMessages) {
     return;
   }
 
+  const cfg =
+    DM_SPLIT_PLATFORMS[activeDmSplitPlatform] || DM_SPLIT_PLATFORMS.facebook;
   dmClientMessages = serverMessages.map((m, idx) => ({
     id: m.id || m.message_id || `srv_${idx}`,
     is_own: Boolean(m.is_own),
     sender_name:
       m.sender_name ||
-      (m.is_own ? "GlennBot Automations" : "Portfolio Client"),
+      (m.is_own ? cfg.accountName || "GlennBot Automations" : "Portfolio Client"),
     message: String(m.message || m.text || m.content || ""),
     timestamp: m.timestamp || m.created_at || new Date().toISOString(),
   }));
@@ -627,7 +748,7 @@ async function pollDmClientThread() {
   if (!modal || modal.hidden || !activeDmSessionConvId) return;
 
   const cfg = DM_SPLIT_PLATFORMS[activeDmSplitPlatform] || DM_SPLIT_PLATFORMS.facebook;
-  const pollUrl = `/api/messages/${encodeURIComponent(activeDmSessionConvId)}/thread?account_id=${encodeURIComponent(cfg.accountId)}&force=false`;
+  const pollUrl = `/api/messages/${encodeURIComponent(activeDmSessionConvId)}/thread?account_id=${encodeURIComponent(cfg.accountId)}&platform=${encodeURIComponent(cfg.key)}&force=false`;
 
   try {
     const res = await fetch(pollUrl, {
@@ -663,13 +784,13 @@ async function sendPortfolioLiveDmMessage(rawText) {
   const messageText = String(rawText || "").trim();
   if (!messageText || dmClientSendingInFlight) return;
 
+  const cfg = DM_SPLIT_PLATFORMS[activeDmSplitPlatform] || DM_SPLIT_PLATFORMS.facebook;
   if (!activeDmSessionConvId) {
-    const generated = generateNewDmSessionIds();
+    const generated = generateNewDmSessionIds(cfg.accountId, cfg.key);
     activeDmSessionConvId = generated.sessionConvId;
     activeDmSessionConvKey = generated.sessionConvKey;
   }
 
-  const cfg = DM_SPLIT_PLATFORMS[activeDmSplitPlatform] || DM_SPLIT_PLATFORMS.facebook;
   const visitorInput = document.getElementById("gb-dm-visitor-name-input");
   const visitorName =
     (visitorInput && visitorInput.value ? visitorInput.value.trim() : "") ||
@@ -702,7 +823,7 @@ async function sendPortfolioLiveDmMessage(rawText) {
     conversation_id: activeDmSessionConvId,
     account_id: cfg.accountId,
     account_name: cfg.accountName,
-    platform: "facebook",
+    platform: cfg.key || "facebook",
     participant_name: visitorName || "Portfolio Client",
     message: messageText,
   };
@@ -756,7 +877,7 @@ function updateDmSplitWorkspaceDOM(
   const cfg = DM_SPLIT_PLATFORMS[platKey] || DM_SPLIT_PLATFORMS.facebook;
 
   if (generateFreshSession || !activeDmSessionConvId) {
-    const generated = generateNewDmSessionIds(cfg.accountId);
+    const generated = generateNewDmSessionIds(cfg.accountId, platKey);
     activeDmSessionConvId = generated.sessionConvId;
     activeDmSessionConvKey = generated.sessionConvKey;
     dmClientMessages = [];
@@ -766,12 +887,53 @@ function updateDmSplitWorkspaceDOM(
 
   const fbBtn = document.getElementById("gb-dm-split-toggle-facebook");
   if (fbBtn) fbBtn.classList.toggle("is-active", platKey === "facebook");
+  const igBtn = document.getElementById("gb-dm-split-tab-instagram");
+  if (igBtn) igBtn.classList.toggle("is-active", platKey === "instagram");
+  const waBtn = document.getElementById("gb-dm-split-tab-whatsapp");
+  if (waBtn) waBtn.classList.toggle("is-active", platKey === "whatsapp");
 
   const pageTitleEl = document.getElementById("gb-dm-page-title");
   if (pageTitleEl) pageTitleEl.textContent = cfg.pageHeader;
 
   const pageSubtitleEl = document.getElementById("gb-dm-page-subtitle");
   if (pageSubtitleEl) pageSubtitleEl.textContent = cfg.pageSubtitle;
+
+  const clientViewPillEl = document.querySelector(".gb-dm-client-view-pill");
+  if (clientViewPillEl && cfg.clientViewPill) {
+    clientViewPillEl.textContent = cfg.clientViewPill;
+  }
+
+  const msgInputEl = document.getElementById("gb-dm-client-message-input");
+  if (msgInputEl) {
+    msgInputEl.placeholder =
+      cfg.placeholder || cfg.composerPlaceholder || "Write a message to GlennBot Automations...";
+  }
+
+  const typingTextEl = document.getElementById("gb-dm-typing-text");
+  if (typingTextEl && cfg.typingIndicatorText) {
+    typingTextEl.textContent = cfg.typingIndicatorText;
+  }
+
+  const pillsListEl = document.getElementById("gb-dm-starter-pills-list");
+  if (pillsListEl && Array.isArray(cfg.quickStarterHints)) {
+    const icons = ["💬", "⚡", "💼"];
+    pillsListEl.innerHTML = cfg.quickStarterHints
+      .map(
+        (hint, idx) => `
+          <button
+            type="button"
+            class="gb-dm-starter-pill"
+            data-hint-text="${escapeDmHtml(hint)}"
+            onclick="sendPortfolioLiveDmMessage(this.getAttribute('data-hint-text'));"
+          >
+            <span class="gb-dm-starter-pill-icon">${icons[idx % icons.length]}</span>
+            <span class="gb-dm-starter-pill-text">"${escapeDmHtml(hint)}"</span>
+            <span class="gb-dm-starter-pill-send">Send &rarr;</span>
+          </button>
+        `
+      )
+      .join("");
+  }
 
   const statusTextEl = document.getElementById("gb-dm-live-status-text");
   if (statusTextEl) statusTextEl.textContent = cfg.statusBarText;
@@ -783,6 +945,7 @@ function updateDmSplitWorkspaceDOM(
   if (clientCard) {
     clientCard.setAttribute("data-session-conv-id", activeDmSessionConvId);
     clientCard.setAttribute("data-session-conv-key", activeDmSessionConvKey);
+    clientCard.setAttribute("data-platform", platKey);
     clientCard.setAttribute(
       "data-thread-poll-url",
       `https://glennbotautomations.onrender.com/api/messages/${encodeURIComponent(activeDmSessionConvId)}/thread?account_id=${encodeURIComponent(cfg.accountId)}&force=false`
@@ -815,11 +978,12 @@ function openDmSplitWorkspace(platform = "facebook") {
       ? String(platform).toLowerCase()
       : "facebook";
   closeDmPlatformChooser();
+  closeWhatsAppInteractiveDmPopup();
 
   const modal = document.getElementById("gb-dm-split-workspace-modal");
   if (!modal) {
     const cfg = DM_SPLIT_PLATFORMS[platKey] || DM_SPLIT_PLATFORMS.facebook;
-    const generated = generateNewDmSessionIds(cfg.accountId);
+    const generated = generateNewDmSessionIds(cfg.accountId, platKey);
     activeDmSessionConvId = generated.sessionConvId;
     activeDmSessionConvKey = generated.sessionConvKey;
     return openGlennBotCustomPopup(
@@ -865,7 +1029,7 @@ function refreshDmSplitIframe() {
   const iframe = document.getElementById("gb-dm-split-iframe");
   const btn = document.getElementById("gb-dm-refresh-live-chat-btn");
   if (!activeDmSessionConvId) {
-    const generated = generateNewDmSessionIds(cfg.accountId);
+    const generated = generateNewDmSessionIds(cfg.accountId, cfg.key);
     activeDmSessionConvId = generated.sessionConvId;
     activeDmSessionConvKey = generated.sessionConvKey;
   }
@@ -927,6 +1091,92 @@ function closeDmPlatformChooser() {
   if (chooser) chooser.hidden = true;
 }
 window.closeDmPlatformChooser = closeDmPlatformChooser;
+
+function openWhatsAppInteractiveDmPopup() {
+  closeDmPlatformChooser();
+  const waModal = document.getElementById("gb-whatsapp-direct-modal");
+  if (!waModal) {
+    return openMaximizedDirectSocialDm("whatsapp");
+  }
+  waModal.hidden = false;
+  const inputEl = document.getElementById("gb-wa-popup-message-input");
+  if (inputEl && !inputEl.value.trim()) {
+    inputEl.value = "Hi Glennard! Can you build webhooks & automations?";
+  }
+  if (!waModal.dataset.boundWaListeners) {
+    waModal.dataset.boundWaListeners = "true";
+    waModal.addEventListener("click", (e) => {
+      if (e.target === waModal) closeWhatsAppInteractiveDmPopup();
+    });
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !waModal.hidden) {
+        e.stopPropagation();
+        closeWhatsAppInteractiveDmPopup();
+      }
+    });
+  }
+}
+window.openWhatsAppInteractiveDmPopup = openWhatsAppInteractiveDmPopup;
+
+function closeWhatsAppInteractiveDmPopup() {
+  const waModal = document.getElementById("gb-whatsapp-direct-modal");
+  if (waModal) waModal.hidden = true;
+}
+window.closeWhatsAppInteractiveDmPopup = closeWhatsAppInteractiveDmPopup;
+
+function selectWhatsAppStarterChip(chipText) {
+  const inputEl = document.getElementById("gb-wa-popup-message-input");
+  if (!inputEl) return;
+  inputEl.value = String(chipText || "").trim();
+  inputEl.focus();
+}
+window.selectWhatsAppStarterChip = selectWhatsAppStarterChip;
+
+async function copyWhatsAppNumber() {
+  const phoneText = "+63 917 549 7760";
+  const labelEl = document.getElementById("gb-wa-copy-btn-label");
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(phoneText);
+    }
+  } catch (_) {}
+  if (labelEl) {
+    const prev = labelEl.textContent;
+    labelEl.textContent = "✓ Copied +63 917 549 7760!";
+    window.setTimeout(() => {
+      labelEl.textContent = prev || "📋 Copy Number";
+    }, 2000);
+  }
+  return phoneText;
+}
+window.copyWhatsAppNumber = copyWhatsAppNumber;
+
+function launchExternalWhatsAppPopup() {
+  const inputEl = document.getElementById("gb-wa-popup-message-input");
+  const rawMessage = inputEl && inputEl.value ? inputEl.value.trim() : "";
+  const baseWaUrl = DIRECT_SOCIAL_DM_URLS.whatsapp || "https://wa.me/639175497760";
+  const finalUrl = rawMessage
+    ? `${baseWaUrl}?text=${encodeURIComponent(rawMessage)}`
+    : baseWaUrl;
+  closeWhatsAppInteractiveDmPopup();
+  return openMaximizedDirectSocialDm("whatsapp", finalUrl);
+}
+window.launchExternalWhatsAppPopup = launchExternalWhatsAppPopup;
+
+function startLiveWhatsAppChatFromPopup() {
+  const inputEl = document.getElementById("gb-wa-popup-message-input");
+  const rawMessage =
+    (inputEl && inputEl.value ? inputEl.value.trim() : "") ||
+    "Hi Glennard! Can you build webhooks & automations?";
+  closeWhatsAppInteractiveDmPopup();
+  openDmSplitWorkspace("whatsapp");
+  const splitInputEl = document.getElementById("gb-dm-client-message-input");
+  if (splitInputEl) {
+    splitInputEl.value = rawMessage;
+  }
+  sendPortfolioLiveDmMessage(rawMessage);
+}
+window.startLiveWhatsAppChatFromPopup = startLiveWhatsAppChatFromPopup;
 
 (function () {
   const STORAGE_KEY = "glenn_portfolio_theme";

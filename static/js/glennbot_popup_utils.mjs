@@ -453,7 +453,8 @@ export function buildShowcaseCommentLoadingCardHtml(platformOrRecordId = "facebo
 export function generateLiveDmSessionIds(
   randomToken = null,
   timestampMs = Date.now(),
-  accountId = "6af0b109818eb5c88d1e87a6"
+  accountId = "6af0b109818eb5c88d1e87a6",
+  platform = "facebook"
 ) {
   const randPart =
     typeof randomToken === "string" && randomToken.trim()
@@ -462,7 +463,14 @@ export function generateLiveDmSessionIds(
   const tsNum = Math.trunc(Number(timestampMs) || Date.now());
   const tsPart = tsNum.toString(36);
   const cleanAccId = String(accountId || "6af0b109818eb5c88d1e87a6").trim();
-  const sessionConvId = `fb_live_${randPart}_${tsPart}`;
+  const cleanPlat = String(platform || "facebook").trim().toLowerCase();
+  const prefix =
+    cleanPlat === "whatsapp"
+      ? "wa_live_dm"
+      : cleanPlat === "instagram"
+      ? "ig_live"
+      : "fb_live";
+  const sessionConvId = `${prefix}_${randPart}_${tsPart}`;
   const sessionConvKey = `${cleanAccId}_${sessionConvId}`;
   return {
     sessionConvId,
@@ -472,6 +480,10 @@ export function generateLiveDmSessionIds(
 }
 
 export const SYS02_DM_SHOWCASE_CONFIG = {
+  whatsappUrl: "https://wa.me/639175497760",
+  whatsappPhone: "+63 917 549 7760",
+  whatsappAccountName: "Glennard Tasico (+63 917 549 7760)",
+  chooserOptions: ["facebook", "instagram", "whatsapp", "mock_chat"],
   facebook: {
     platform: "facebook",
     platform_label: "Facebook",
@@ -483,6 +495,8 @@ export const SYS02_DM_SHOWCASE_CONFIG = {
     direct_messenger_window_name: "GlennBotDirectFacebookMessengerFullView",
     direct_instagram_url: "https://www.instagram.com/direct/t/18131808028702166/",
     direct_instagram_window_name: "GlennBotDirectInstagramDmFullView",
+    direct_whatsapp_url: "https://wa.me/639175497760",
+    direct_whatsapp_window_name: "GlennBotDirectWhatsAppDmFullView",
     chooser_options: [
       {
         id: "gb-choose-fb-dm-btn",
@@ -497,6 +511,14 @@ export const SYS02_DM_SHOWCASE_CONFIG = {
         badge: "Direct Instagram DM",
         action: "openMaximizedDirectSocialDm('instagram')",
         url: "https://www.instagram.com/direct/t/18131808028702166/",
+      },
+      {
+        id: "gb-choose-wa-dm-btn",
+        title: "WhatsApp",
+        subtitle: "Glennard Tasico • +63 917 549 7760",
+        badge: "Open Chat ↗",
+        action: "openWhatsAppInteractiveDmPopup()",
+        url: "https://wa.me/639175497760",
       },
       {
         id: "gb-choose-mock-chat-dm-btn",
@@ -528,16 +550,96 @@ export const SYS02_DM_SHOWCASE_CONFIG = {
       "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations",
     popup_window_name: "GlennBotMessageThread_FB",
   },
+  instagram: {
+    platform: "instagram",
+    platform_label: "Instagram Direct",
+    page_header: "@glennard.tasico.va",
+    page_subtitle: "Instagram Direct • 24h Meta Window + Gemini 3.5 Flash Active",
+    account_id: "6ad9e9b2e5d470e468e58d87",
+    account_name: "@glennard.tasico.va",
+    direct_instagram_url: "https://www.instagram.com/direct/t/18131808028702166/",
+    direct_instagram_window_name: "GlennBotDirectInstagramDmFullView",
+    default_visitor_name: "Portfolio Client",
+    visitor_name_placeholder: "Your Name (e.g. Alex)",
+    new_blank_chat_label: "🔄 New Blank Chat",
+    typing_indicator_text: "@glennard.tasico.va is typing via Gemini 3.5 Flash...",
+    composer_placeholder: "Message @glennard.tasico.va on Instagram...",
+    live_dm_post_endpoint: "/api/messages/portfolio_live_dm",
+    upstream_live_dm_post_endpoint:
+      "https://glennbotautomations.onrender.com/api/messages/portfolio_live_dm",
+    poll_interval_ms: 2500,
+    quick_starter_hints: [
+      "Hi GlennBot! What automation services do you offer?",
+      "How can your Python & AI workflows help my business save time?",
+      "Magkano ang rate mo at paano mag-inquire?",
+    ],
+    status_bar_text:
+      "🟢 LIVE INSTAGRAM DM SESSION • Synced in Real Time with Conversations.xlsx (Sheet2)",
+    refresh_btn_label: "🔄 Refresh Live Chat",
+    base_popup_url:
+      "/glennbot-popout?popout_mode=message_thread&platform=instagram&account_id=6ad9e9b2e5d470e468e58d87&account_name=%40glennard.tasico.va",
+    base_upstream_url:
+      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=instagram&account_id=6ad9e9b2e5d470e468e58d87&account_name=%40glennard.tasico.va",
+    popup_window_name: "GlennBotMessageThread_IG",
+  },
+  whatsapp: {
+    platform: "whatsapp",
+    platform_label: "WhatsApp Messenger",
+    page_header: "Glennard Tasico (+63 917 549 7760)",
+    page_subtitle: "+63 917 549 7760 • WhatsApp Direct",
+    account_id: "6adda70399e7b30829e8859c",
+    account_name: "Glennard Tasico (+63 917 549 7760)",
+    phone: "+63 917 549 7760",
+    direct_whatsapp_url: "https://wa.me/639175497760",
+    direct_whatsapp_window_name: "GlennBotDirectWhatsAppDmFullView",
+    external_btn_text: "Open WhatsApp (+63 917 549 7760) ↗",
+    default_visitor_name: "Portfolio Client",
+    visitor_name_placeholder: "Your Name (e.g. Alex)",
+    new_blank_chat_label: "🔄 New Blank Chat",
+    typing_indicator_text: "Glennard Tasico (+63 917 549 7760) is typing via Gemini 3.5 Flash...",
+    composer_placeholder: "Message Glennard Tasico (+63 917 549 7760) on WhatsApp...",
+    live_dm_post_endpoint: "/api/messages/portfolio_live_dm",
+    upstream_live_dm_post_endpoint:
+      "https://glennbotautomations.onrender.com/api/messages/portfolio_live_dm",
+    poll_interval_ms: 2500,
+    quick_starter_hints: [
+      "Hi Glennard! Can you build webhooks & automations?",
+      "Magkano po magpagawa ng web app at AI chatbot?",
+      "I'd like to discuss an Automation project",
+    ],
+    status_bar_text:
+      "🟢 LIVE WHATSAPP SESSION (+63 917 549 7760) • Synced in Real Time with Conversations.xlsx (Sheet2)",
+    refresh_btn_label: "🔄 Refresh Live Chat",
+    base_popup_url:
+      "/glennbot-popout?popout_mode=message_thread&platform=whatsapp&account_id=6adda70399e7b30829e8859c&account_name=Glennard+Tasico+%28%2B63+917+549+7760%29",
+    base_upstream_url:
+      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=whatsapp&account_id=6adda70399e7b30829e8859c&account_name=Glennard+Tasico+%28%2B63+917+549+7760%29",
+    popup_window_name: "GlennBotMessageThread_WA",
+  },
 };
+
+export function resolveDirectSocialDmTargetUrl(platform = "facebook") {
+  const cleanPlat = String(platform || "facebook").trim().toLowerCase();
+  if (cleanPlat === "whatsapp") {
+    return "https://wa.me/639175497760";
+  }
+  if (cleanPlat === "instagram") {
+    return "https://www.instagram.com/direct/t/18131808028702166/";
+  }
+  return "https://www.facebook.com/messages/t/1340688402467466";
+}
 
 export function computeMaximizedDirectMessengerFeatures(
   availW = 1920,
   availH = 1080,
   platform = "facebook"
 ) {
+  const rawPlat = String(platform || "facebook").trim().toLowerCase();
   const platKey =
-    String(platform || "facebook").trim().toLowerCase() === "instagram"
+    rawPlat === "instagram"
       ? "instagram"
+      : rawPlat === "whatsapp"
+      ? "whatsapp"
       : "facebook";
   const safeW = Number(availW) > 0 ? Math.trunc(Number(availW)) : 1920;
   const safeH = Number(availH) > 0 ? Math.trunc(Number(availH)) : 1080;
@@ -557,13 +659,12 @@ export function computeMaximizedDirectMessengerFeatures(
   ].join(",");
   return {
     platform: platKey,
-    targetUrl:
-      platKey === "instagram"
-        ? "https://www.instagram.com/direct/t/18131808028702166/"
-        : "https://www.facebook.com/messages/t/1340688402467466",
+    targetUrl: resolveDirectSocialDmTargetUrl(platKey),
     windowName:
       platKey === "instagram"
         ? "GlennBotDirectInstagramDmFullView"
+        : platKey === "whatsapp"
+        ? "GlennBotDirectWhatsAppDmFullView"
         : "GlennBotDirectFacebookMessengerFullView",
     availW: safeW,
     availH: safeH,
@@ -575,17 +676,22 @@ export function buildPortfolioLiveDmPayload(
   sessionConvId,
   messageText,
   visitorName = "Portfolio Client",
-  accountId = "6af0b109818eb5c88d1e87a6"
+  accountId = "6af0b109818eb5c88d1e87a6",
+  platform = "facebook",
+  accountName = "GlennBot Automations"
 ) {
   const cleanConvId = String(sessionConvId || "").trim();
-  const cleanAccId = String(accountId || "6af0b109818eb5c88d1e87a6").trim();
+  const cleanPlat = String(platform || "facebook").trim().toLowerCase() || "facebook";
+  const cfg = SYS02_DM_SHOWCASE_CONFIG[cleanPlat] || SYS02_DM_SHOWCASE_CONFIG.facebook;
+  const cleanAccId = String(accountId || cfg.account_id || "6af0b109818eb5c88d1e87a6").trim();
+  const cleanAccName = String(accountName || cfg.account_name || "GlennBot Automations").trim();
   const cleanVisitor = String(visitorName || "").trim() || "Portfolio Client";
   const cleanMsg = String(messageText || "").trim();
   return {
     conversation_id: cleanConvId,
     account_id: cleanAccId,
-    account_name: "GlennBot Automations",
-    platform: "facebook",
+    account_name: cleanAccName,
+    platform: cleanPlat,
     participant_name: cleanVisitor,
     message: cleanMsg,
   };
@@ -599,9 +705,12 @@ export function buildDmSplitWorkspaceConfig(
   const cleanPlat = String(platform || "facebook").trim().toLowerCase();
   const cfg = SYS02_DM_SHOWCASE_CONFIG[cleanPlat] || SYS02_DM_SHOWCASE_CONFIG.facebook;
   const resolvedConvId =
-    typeof sessionConvId === "string" && sessionConvId.trim().startsWith("fb_live_")
+    typeof sessionConvId === "string" &&
+    (sessionConvId.trim().startsWith("fb_live_") ||
+      sessionConvId.trim().startsWith("wa_live_dm_") ||
+      sessionConvId.trim().startsWith("ig_live_"))
       ? sessionConvId.trim()
-      : generateLiveDmSessionIds(null, Date.now(), cfg.account_id).sessionConvId;
+      : generateLiveDmSessionIds(null, Date.now(), cfg.account_id, cleanPlat).sessionConvId;
   const sessionConvKey = `${cfg.account_id}_${resolvedConvId}`;
   const refreshSuffix =
     refreshTs !== null && refreshTs !== undefined

@@ -20,6 +20,7 @@ import {
   formatInlineMarkdown,
   generateLiveDmSessionIds,
   resolveCalendarProxyIntercept,
+  resolveDirectSocialDmTargetUrl,
 } from "../static/js/glennbot_popup_utils.mjs";
 
 test("SYS-01 defines the 3 auto-authenticated /glennbot-popout Expanded View URLs and upstream URLs", () => {
@@ -496,6 +497,34 @@ test("SYS-02 Send a DM Idea B (Interactive In-Portfolio Facebook Messenger Clien
   assert.ok(msgStyleTag.includes("#view-messages"));
 
   assert.equal(
+    SYS02_DM_SHOWCASE_CONFIG.whatsappUrl,
+    "https://wa.me/639175497760"
+  );
+  assert.equal(SYS02_DM_SHOWCASE_CONFIG.whatsappPhone, "+63 917 549 7760");
+  assert.equal(
+    SYS02_DM_SHOWCASE_CONFIG.whatsappAccountName,
+    "Glennard Tasico (+63 917 549 7760)"
+  );
+  assert.deepEqual(SYS02_DM_SHOWCASE_CONFIG.chooserOptions, [
+    "facebook",
+    "instagram",
+    "whatsapp",
+    "mock_chat",
+  ]);
+  assert.equal(
+    resolveDirectSocialDmTargetUrl("facebook"),
+    "https://www.facebook.com/messages/t/1340688402467466"
+  );
+  assert.equal(
+    resolveDirectSocialDmTargetUrl("instagram"),
+    "https://www.instagram.com/direct/t/18131808028702166/"
+  );
+  assert.equal(
+    resolveDirectSocialDmTargetUrl("whatsapp"),
+    "https://wa.me/639175497760"
+  );
+
+  assert.equal(
     SYS02_DM_SHOWCASE_CONFIG.facebook.direct_messenger_url,
     "https://www.facebook.com/messages/t/1340688402467466"
   );
@@ -503,7 +532,11 @@ test("SYS-02 Send a DM Idea B (Interactive In-Portfolio Facebook Messenger Clien
     SYS02_DM_SHOWCASE_CONFIG.facebook.direct_instagram_url,
     "https://www.instagram.com/direct/t/18131808028702166/"
   );
-  assert.equal(SYS02_DM_SHOWCASE_CONFIG.facebook.chooser_options.length, 3);
+  assert.equal(
+    SYS02_DM_SHOWCASE_CONFIG.facebook.direct_whatsapp_url,
+    "https://wa.me/639175497760"
+  );
+  assert.equal(SYS02_DM_SHOWCASE_CONFIG.facebook.chooser_options.length, 4);
   assert.deepEqual(SYS02_DM_SHOWCASE_CONFIG.facebook.chooser_options[0], {
     id: "gb-choose-fb-dm-btn",
     title: "Facebook (GlennBot Automations)",
@@ -519,6 +552,14 @@ test("SYS-02 Send a DM Idea B (Interactive In-Portfolio Facebook Messenger Clien
     url: "https://www.instagram.com/direct/t/18131808028702166/",
   });
   assert.deepEqual(SYS02_DM_SHOWCASE_CONFIG.facebook.chooser_options[2], {
+    id: "gb-choose-wa-dm-btn",
+    title: "WhatsApp",
+    subtitle: "Glennard Tasico • +63 917 549 7760",
+    badge: "Open Chat ↗",
+    action: "openWhatsAppInteractiveDmPopup()",
+    url: "https://wa.me/639175497760",
+  });
+  assert.deepEqual(SYS02_DM_SHOWCASE_CONFIG.facebook.chooser_options[3], {
     id: "gb-choose-mock-chat-dm-btn",
     title: "Mock Chat Test",
     badge: "Interactive Split-Screen Sandbox",
@@ -546,6 +587,30 @@ test("SYS-02 Send a DM Idea B (Interactive In-Portfolio Facebook Messenger Clien
     maxIg.features,
     "width=1920,height=1080,left=0,top=0,screenX=0,screenY=0,resizable=yes,scrollbars=yes,status=yes,toolbar=no,menubar=no,location=yes"
   );
+
+  const maxWa = computeMaximizedDirectMessengerFeatures(1920, 1080, "whatsapp");
+  assert.equal(maxWa.targetUrl, "https://wa.me/639175497760");
+  assert.equal(maxWa.windowName, "GlennBotDirectWhatsAppDmFullView");
+  assert.equal(
+    maxWa.features,
+    "width=1920,height=1080,left=0,top=0,screenX=0,screenY=0,resizable=yes,scrollbars=yes,status=yes,toolbar=no,menubar=no,location=yes"
+  );
+
+  const waSessionIds = generateLiveDmSessionIds(
+    "wa98765",
+    1712345678901,
+    "6adda70399e7b30829e8859c",
+    "whatsapp"
+  );
+  assert.ok(waSessionIds.sessionConvId.startsWith("wa_live_dm_wa98765_"));
+  assert.equal(waSessionIds.accountId, "6adda70399e7b30829e8859c");
+  const waSplitCfg = buildDmSplitWorkspaceConfig(
+    "whatsapp",
+    waSessionIds.sessionConvId
+  );
+  assert.equal(waSplitCfg.platform, "whatsapp");
+  assert.equal(waSplitCfg.page_header, "Glennard Tasico (+63 917 549 7760)");
+  assert.equal(waSplitCfg.account_id, "6adda70399e7b30829e8859c");
 });
 
 

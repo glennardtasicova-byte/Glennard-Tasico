@@ -1157,14 +1157,14 @@
     </div>
   </div>
 
-  <!-- Live DM Platform Chooser Modal Popover (Starting with Facebook Messenger for GlennBot Automations) -->
+  <!-- Live DM Platform Chooser Modal Popover (4 Choices: Facebook, Instagram, WhatsApp, Mock Chat Test) -->
   <div id="gb-dm-platform-chooser-modal" class="gb-comment-chooser-backdrop" role="dialog" aria-modal="true" aria-labelledby="gb-dm-chooser-title" hidden>
     <div class="gb-comment-chooser-dialog" onclick="event.stopPropagation();">
       <div class="gb-comment-chooser-header">
         <div>
           <span class="gb-comment-chooser-eyebrow">SYS-02 &bull; Live Gemini 3.5 Flash AI Messenger Chatbot</span>
           <h3 id="gb-dm-chooser-title" class="gb-comment-chooser-title">✉️ Send a DM to GlennBot Automations</h3>
-          <p class="gb-comment-chooser-subtitle">Select an official <strong>GlennBot Automations</strong> messaging channel to launch the 1-Step Direct Message Split-Screen Showcase:</p>
+          <p class="gb-comment-chooser-subtitle">Choose how you want to message <strong>GlennBot Automations</strong> — via Facebook, Instagram, WhatsApp (<strong>+63 917 549 7760</strong>), or our interactive Mock Chat Test:</p>
         </div>
         <button type="button" class="gb-comment-chooser-close" onclick="closeDmPlatformChooser();" aria-label="Close DM platform chooser">
           <span>&times;</span>
@@ -1211,6 +1211,25 @@
 
         <button
           type="button"
+          id="gb-choose-wa-dm-btn"
+          class="gb-comment-choice-card gb-comment-choice-wa gb-dm-chooser-wa"
+          onclick="openWhatsAppInteractiveDmPopup()"
+        >
+          <div class="gb-comment-choice-icon gb-comment-choice-icon-wa gb-dm-chooser-wa">
+            <i class="fab fa-whatsapp"></i>
+          </div>
+          <div class="gb-comment-choice-body">
+            <div class="gb-comment-choice-top">
+              <strong class="gb-comment-choice-name">WhatsApp</strong>
+              <span class="gb-comment-choice-badge gb-comment-choice-badge-wa">Open Chat &#8599;</span>
+            </div>
+            <p class="gb-comment-choice-desc"><strong>Glennard Tasico &bull; +63 917 549 7760</strong> &mdash; Opens the interactive WhatsApp Direct window where you can chat live via Gemini 3.5 Flash + Conversations.xlsx (Sheet2) or launch WhatsApp App / Web.</p>
+          </div>
+          <span class="gb-comment-choice-arrow" aria-hidden="true">&rarr;</span>
+        </button>
+
+        <button
+          type="button"
           id="gb-choose-mock-chat-dm-btn"
           class="gb-comment-choice-card gb-comment-choice-mock"
           onclick="event.stopPropagation(); closeDmPlatformChooser(); openDmSplitWorkspace('facebook');"
@@ -1231,7 +1250,116 @@
     </div>
   </div>
 
-  <!-- 2-Column Side-by-Side Live DM Showcase Modal (Idea B: Left Interactive In-Portfolio Facebook Messenger Client Window + Right Live GlennBot Dashboard) -->
+  <!-- Interactive WhatsApp Direct Chat Popup Modal (Glennard Tasico • +63 917 549 7760) -->
+  <div id="gb-whatsapp-direct-modal" class="gb-comment-chooser-backdrop gb-wa-direct-backdrop" role="dialog" aria-modal="true" aria-labelledby="gb-wa-direct-title" hidden>
+    <div class="gb-wa-direct-dialog" onclick="event.stopPropagation();">
+      <!-- WhatsApp Header -->
+      <div class="gb-wa-direct-header">
+        <div class="gb-wa-direct-identity">
+          <div class="gb-wa-direct-emblem" aria-hidden="true">
+            <i class="fab fa-whatsapp"></i>
+            <span class="gb-wa-online-dot"></span>
+          </div>
+          <div class="gb-wa-direct-meta">
+            <div class="gb-wa-direct-name-row">
+              <h3 id="gb-wa-direct-title" class="gb-wa-direct-name">Glennard Tasico</h3>
+              <span class="gb-wa-verified-badge" title="Verified WhatsApp Business Automation">✓ Verified</span>
+            </div>
+            <div class="gb-wa-direct-phone-row">
+              <span id="gb-wa-phone-display" class="gb-wa-phone-number">+63 917 549 7760</span>
+              <button
+                type="button"
+                id="gb-wa-copy-phone-btn"
+                class="gb-wa-copy-btn"
+                onclick="copyWhatsAppNumber()"
+                aria-label="Copy WhatsApp phone number +63 917 549 7760"
+              >
+                <span id="gb-wa-copy-btn-label">📋 Copy Number</span>
+              </button>
+            </div>
+            <p class="gb-wa-direct-status">
+              <span class="gb-wa-status-indicator"></span>
+              Online &bull; Powered by GlennBot Automations (Conversations.xlsx Sheet2 + Script.xlsx)
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="gb-comment-chooser-close gb-wa-direct-close"
+          onclick="closeWhatsAppInteractiveDmPopup()"
+          aria-label="Close WhatsApp Direct Popup"
+        >
+          <span>&times;</span>
+        </button>
+      </div>
+
+      <!-- Quick-Start Message Composer -->
+      <div class="gb-wa-direct-body">
+        <div class="gb-wa-starter-section">
+          <span class="gb-wa-section-label">⚡ Quick-Start WhatsApp Messages (Click a chip or type your own below):</span>
+          <div class="gb-wa-starter-chips">
+            <button
+              type="button"
+              class="gb-wa-starter-chip"
+              data-wa-chip="Hi Glennard! Can you build webhooks & automations?"
+              onclick="selectWhatsAppStarterChip(this.getAttribute('data-wa-chip'))"
+            >
+              <span>💬 "Hi Glennard! Can you build webhooks &amp; automations?"</span>
+            </button>
+            <button
+              type="button"
+              class="gb-wa-starter-chip"
+              data-wa-chip="Magkano po magpagawa ng web app at AI chatbot?"
+              onclick="selectWhatsAppStarterChip(this.getAttribute('data-wa-chip'))"
+            >
+              <span>🤖 "Magkano po magpagawa ng web app at AI chatbot?"</span>
+            </button>
+            <button
+              type="button"
+              class="gb-wa-starter-chip"
+              data-wa-chip="I'd like to discuss an Automation project"
+              onclick="selectWhatsAppStarterChip(this.getAttribute('data-wa-chip'))"
+            >
+              <span>🚀 "I'd like to discuss an Automation project"</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="gb-wa-composer-field">
+          <label for="gb-wa-popup-message-input" class="gb-wa-section-label">Your Message to Glennard Tasico (+63 917 549 7760):</label>
+          <textarea
+            id="gb-wa-popup-message-input"
+            class="gb-wa-message-textarea"
+            rows="3"
+            placeholder="Message Glennard Tasico (+63 917 549 7760) on WhatsApp..."
+          >Hi Glennard! Can you build webhooks &amp; automations?</textarea>
+        </div>
+
+        <!-- Two Primary Interactive Actions -->
+        <div class="gb-wa-actions-stack">
+          <button
+            type="button"
+            id="gb-wa-popup-live-chat-btn"
+            class="gb-wa-btn-primary"
+            onclick="startLiveWhatsAppChatFromPopup()"
+          >
+            <span>💬 Chat Live Here (Instant WhatsApp AI Reply)</span>
+          </button>
+
+          <button
+            type="button"
+            id="gb-wa-popup-launch-external-btn"
+            class="gb-wa-btn-secondary"
+            onclick="launchExternalWhatsAppPopup()"
+          >
+            <span>📱 Open in WhatsApp App / Web (+63 917 549 7760) &#8599;</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2-Column Side-by-Side Live DM Showcase Modal (Idea B: Left Interactive In-Portfolio Messenger Client Window + Right Live GlennBot Dashboard) -->
   <div id="gb-dm-split-workspace-modal" class="gb-split-workspace-backdrop" role="dialog" aria-modal="true" aria-labelledby="gb-dm-split-workspace-title" hidden>
     <div class="gb-split-workspace-dialog w-[98.5vw] max-w-[1900px] h-[92vh]" onclick="event.stopPropagation();">
       <!-- Top Header Bar -->
@@ -1242,7 +1370,7 @@
         </div>
 
         <div class="gb-split-header-controls">
-          <!-- Platform Switcher Toggle (Facebook: GlennBot Automations) -->
+          <!-- Platform Switcher Toggle (Facebook, Instagram, WhatsApp) -->
           <div class="gb-split-platform-switcher" role="group" aria-label="Select Live DM Platform">
             <button
               type="button"
@@ -1253,6 +1381,26 @@
             >
               <i class="fab fa-facebook"></i>
               <span>Facebook (GlennBot Automations)</span>
+            </button>
+            <button
+              type="button"
+              id="gb-dm-split-tab-instagram"
+              class="gb-split-platform-btn"
+              data-dm-platform="instagram"
+              onclick="switchDmSplitPlatform('instagram');"
+            >
+              <i class="fab fa-instagram"></i>
+              <span>Instagram (@glennard.tasico.va)</span>
+            </button>
+            <button
+              type="button"
+              id="gb-dm-split-tab-whatsapp"
+              class="gb-split-platform-btn"
+              data-dm-platform="whatsapp"
+              onclick="switchDmSplitPlatform('whatsapp');"
+            >
+              <i class="fab fa-whatsapp"></i>
+              <span>WhatsApp (+63 917 549 7760)</span>
             </button>
           </div>
 

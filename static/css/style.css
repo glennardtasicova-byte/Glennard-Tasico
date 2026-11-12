@@ -6146,5 +6146,361 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   }
 }
 
+/* ==========================================================================
+   WhatsApp Platform Choice & Interactive WhatsApp Direct Popup Modal
+   (Glennard Tasico • +63 917 549 7760)
+   ========================================================================== */
+.fa-whatsapp::before {
+  content: "📱";
+  font-size: 0.95em;
+}
+
+.gb-comment-choice-icon-wa,
+.gb-comment-choice-icon.gb-dm-chooser-wa {
+  background: rgba(37, 211, 102, 0.18);
+  border: 1px solid rgba(37, 211, 102, 0.55);
+  color: #25d366;
+}
+
+.gb-comment-choice-card.gb-dm-chooser-wa:hover {
+  border-color: #25d366;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.38), 0 0 18px rgba(37, 211, 102, 0.32);
+}
+
+.gb-comment-choice-badge-wa {
+  background: rgba(37, 211, 102, 0.18);
+  border-color: rgba(37, 211, 102, 0.52);
+  color: #4ade80;
+}
+
+[data-theme="light"] .gb-comment-choice-badge-wa {
+  background: #dcfce7;
+  border-color: #22c55e;
+  color: #15803d;
+}
+
+.gb-wa-direct-backdrop {
+  z-index: 165;
+}
+
+.gb-wa-direct-dialog {
+  width: 94vw;
+  max-width: 590px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #071b16 0%, #06121b 100%);
+  border: 1px solid rgba(37, 211, 102, 0.45);
+  box-shadow: 0 28px 68px rgba(0, 0, 0, 0.72), 0 0 32px rgba(37, 211, 102, 0.22);
+  color: #f8fafc;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+[data-theme="light"] .gb-wa-direct-dialog {
+  background: #ffffff;
+  border-color: #22c55e;
+  box-shadow: 0 22px 54px rgba(15, 23, 42, 0.2);
+  color: #0f172a;
+}
+
+.gb-wa-direct-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 20px;
+  background: linear-gradient(90deg, rgba(6, 78, 59, 0.85) 0%, rgba(15, 23, 42, 0.94) 100%);
+  border-bottom: 1px solid rgba(37, 211, 102, 0.35);
+}
+
+[data-theme="light"] .gb-wa-direct-header {
+  background: linear-gradient(90deg, #dcfce7 0%, #f0fdf4 100%);
+  border-bottom-color: #86efac;
+}
+
+.gb-wa-direct-identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  min-width: 0;
+}
+
+.gb-wa-direct-emblem {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  flex-shrink: 0;
+  box-shadow: 0 6px 16px rgba(37, 211, 102, 0.38);
+}
+
+.gb-wa-online-dot {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  background: #25d366;
+  border: 2px solid #071b16;
+  box-shadow: 0 0 8px #25d366;
+}
+
+.gb-wa-direct-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.gb-wa-direct-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gb-wa-direct-name {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+[data-theme="light"] .gb-wa-direct-name {
+  color: #064e3b;
+}
+
+.gb-wa-verified-badge {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(37, 211, 102, 0.2);
+  border: 1px solid rgba(37, 211, 102, 0.5);
+  color: #4ade80;
+}
+
+[data-theme="light"] .gb-wa-verified-badge {
+  background: #bbf7d0;
+  border-color: #16a34a;
+  color: #14532d;
+}
+
+.gb-wa-direct-phone-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.gb-wa-phone-number {
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #86efac;
+}
+
+[data-theme="light"] .gb-wa-phone-number {
+  color: #15803d;
+}
+
+.gb-wa-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 7px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #d1fae5;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.gb-wa-copy-btn:hover {
+  background: rgba(37, 211, 102, 0.25);
+  border-color: #25d366;
+  color: #ffffff;
+}
+
+[data-theme="light"] .gb-wa-copy-btn {
+  color: #065f46;
+  background: #ffffff;
+  border-color: #10b981;
+}
+
+.gb-wa-direct-status {
+  margin: 0;
+  font-size: 0.73rem;
+  line-height: 1.4;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+[data-theme="light"] .gb-wa-direct-status {
+  color: #334155;
+}
+
+.gb-wa-status-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #25d366;
+  box-shadow: 0 0 6px #25d366;
+  flex-shrink: 0;
+}
+
+.gb-wa-direct-body {
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.gb-wa-starter-section,
+.gb-wa-composer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gb-wa-section-label {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #4ade80;
+}
+
+[data-theme="light"] .gb-wa-section-label {
+  color: #15803d;
+}
+
+.gb-wa-starter-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.gb-wa-starter-chip {
+  width: 100%;
+  text-align: left;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(37, 211, 102, 0.35);
+  color: #e2e8f0;
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.gb-wa-starter-chip:hover {
+  background: rgba(6, 78, 59, 0.65);
+  border-color: #25d366;
+  transform: translateY(-1px);
+}
+
+[data-theme="light"] .gb-wa-starter-chip {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #0f172a;
+}
+
+.gb-wa-message-textarea {
+  width: 100%;
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: rgba(2, 6, 23, 0.88);
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  color: #f8fafc;
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  resize: vertical;
+  outline: none;
+}
+
+.gb-wa-message-textarea:focus {
+  border-color: #25d366;
+  box-shadow: 0 0 0 2px rgba(37, 211, 102, 0.22);
+}
+
+[data-theme="light"] .gb-wa-message-textarea {
+  background: #ffffff;
+  border-color: #22c55e;
+  color: #0f172a;
+}
+
+.gb-wa-actions-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.gb-wa-btn-primary {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 11px;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #022c22;
+  background: linear-gradient(90deg, #25d366 0%, #34d399 100%);
+  border: 1px solid #4ade80;
+  box-shadow: 0 6px 18px rgba(37, 211, 102, 0.32);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.gb-wa-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 22px rgba(37, 211, 102, 0.45);
+  filter: brightness(1.05);
+}
+
+.gb-wa-btn-secondary {
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: 11px;
+  font-family: var(--font-sans);
+  font-size: 0.81rem;
+  font-weight: 700;
+  color: #d1fae5;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(37, 211, 102, 0.48);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.gb-wa-btn-secondary:hover {
+  background: rgba(6, 78, 59, 0.65);
+  border-color: #25d366;
+  color: #ffffff;
+}
+
+[data-theme="light"] .gb-wa-btn-secondary {
+  color: #065f46;
+  background: #f0fdf4;
+  border-color: #16a34a;
+}
+
+
 
 
