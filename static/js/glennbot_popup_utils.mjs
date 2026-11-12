@@ -108,6 +108,7 @@ export function buildInstantPopoutStyleTag(targetTab = "scheduler", popoutMode =
     `  button[onclick*="insertQuickReply("],`,
     `  button[onclick*="deletePostNotificationCard("],`,
     `  button[onclick*="deleteSingleCommentNotification("],`,
+    `  button[onclick*="deleteSingleCommentReply("],`,
     `  button[onclick*="toggleHideComment("] {`,
     `    display: none !important;`,
     `    visibility: hidden !important;`,
@@ -629,7 +630,13 @@ export const SYS02_SAVVY_FINDS_COMMENT_DEMO = {
   ttPostId: "7706791793546906901",
   ttPermalink: "https://www.tiktok.com/@glennbot.automation/photo/7706791793546906901",
   blockedSyntheticCommentIds: ["1175872974773981_1794243091445"],
-  blockedSyntheticCommentTexts: ["may gusto ako itanong pwede ba?"],
+  blockedSyntheticCommentTexts: [
+    "may gusto ako itanong pwede ba?",
+    "@glenn tasico thank you so much for the kind words! i really appreciate your support, and i'm thrilled to hear you're enjoying glennbot automations. let me know if you ever need anything!",
+  ],
+  blockedSyntheticCommentSubstrings: [
+    "@glenn tasico thank you so much for the kind words!",
+  ],
   commentId: "122118104811500702_1150007564513023",
   igCommentId: "18198560143393683",
   ttCommentId: "7706797468532458260",
@@ -694,6 +701,13 @@ function isSyntheticBlockedEntry(obj) {
     .trim()
     .toLowerCase();
   if (SYS02_SAVVY_FINDS_COMMENT_DEMO.blockedSyntheticCommentTexts.includes(msg)) return true;
+  if (
+    SYS02_SAVVY_FINDS_COMMENT_DEMO.blockedSyntheticCommentSubstrings.some((sub) =>
+      msg.includes(sub)
+    )
+  ) {
+    return true;
+  }
   return false;
 }
 

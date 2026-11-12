@@ -901,6 +901,7 @@ def _build_session_injector_snippet(
         "  button[onclick*=\"insertQuickReply(\"],\n"
         "  button[onclick*=\"deletePostNotificationCard(\"],\n"
         "  button[onclick*=\"deleteSingleCommentNotification(\"],\n"
+        "  button[onclick*=\"deleteSingleCommentReply(\"],\n"
         "  button[onclick*=\"toggleHideComment(\"] {\n"
         "    display: none !important;\n"
         "    visibility: hidden !important;\n"
@@ -1201,6 +1202,7 @@ def _build_calendar_lock_body_script() -> str:
         "var SAVVY_CAPTION=SHARED_SHOWCASE_CAPTION;"
         "var BLOCKED_SYNTHETIC_CIDS={'1175872974773981_1794243091445':true};"
         "var BLOCKED_SYNTHETIC_TEXT='may gusto ako itanong pwede ba?';"
+        "var BLOCKED_GHOST_REPLY_SUBSTR='@glenn tasico thank you so much for the kind words!';"
         "var HIDDEN_COMPOSER_SELECTORS=["
         "'#comment-detail-panel > div > div.bg-slate-900\\\\/90.rounded-xl.p-3',"
         "'#reply-target-label',"
@@ -1210,6 +1212,7 @@ def _build_calendar_lock_body_script() -> str:
         "'button[onclick*=\"insertQuickReply(\"]',"
         "'button[onclick*=\"deletePostNotificationCard(\"]',"
         "'button[onclick*=\"deleteSingleCommentNotification(\"]',"
+        "'button[onclick*=\"deleteSingleCommentReply(\"]',"
         "'button[onclick*=\"toggleHideComment(\"]'"
         "].join(',');"
         "function _openDockedRightSocialWindow(url,plat){"
@@ -1257,7 +1260,7 @@ def _build_calendar_lock_body_script() -> str:
         "var cid=String(obj.comment_id||obj.id||'').trim();"
         "if(cid&&BLOCKED_SYNTHETIC_CIDS[cid])return true;"
         "var msg=String(obj.message||obj.comment_text||obj.text||'').trim().toLowerCase();"
-        "if(msg===BLOCKED_SYNTHETIC_TEXT)return true;"
+        "if(msg===BLOCKED_SYNTHETIC_TEXT||msg.indexOf(BLOCKED_GHOST_REPLY_SUBSTR)!==-1)return true;"
         "return false;"
         "}"
         "function _matchShowcaseConfigForComment(c){"
@@ -1478,7 +1481,6 @@ def _build_calendar_lock_body_script() -> str:
         "function _normalizeVisitorRepliesOnClient(){"
         "_ensureShowcaseLivePostDetailsCache();"
         "if(typeof commentsList==='undefined'||!Array.isArray(commentsList))return;"
-        "window.__gbLastGoodShowcaseComments=window.__gbLastGoodShowcaseComments||{};"
         "for(var i=commentsList.length-1;i>=0;i--){"
         "if(_isBlockedSyntheticEntry(commentsList[i])){commentsList.splice(i,1);}"
         "}"
@@ -1492,31 +1494,11 @@ def _build_calendar_lock_body_script() -> str:
         "c.comment_permalink=cfg.permalink_url;"
         "c.external_post_id=cfg.external_post_id;"
         "c.post_type=cfg.post_type;"
-        "var rawCap=String(c.post_caption||c.caption||'').trim();"
-        "if(!rawCap||rawCap.toLowerCase()==='previous post'||rawCap.indexOf('Previous Post')!==-1){"
         "c.post_caption=cfg.caption;"
         "c.caption=cfg.caption;"
-        "}else{"
-        "c.post_caption=cfg.caption;"
-        "c.caption=cfg.caption;"
-        "}"
         "c.can_reply=true;"
         "if(Array.isArray(c.replies)){"
         "c.replies=c.replies.filter(function(r){return !_isBlockedSyntheticEntry(r);});"
-        "}"
-        "});"
-        "Object.keys(SHOWCASE_POSTS).forEach(function(recKey){"
-        "var curForRec=commentsList.filter(function(c){return c&&c.record_id===recKey;});"
-        "if(curForRec.length>0){"
-        "window.__gbLastGoodShowcaseComments[recKey]=curForRec.slice();"
-        "}else if(Array.isArray(window.__gbLastGoodShowcaseComments[recKey])&&window.__gbLastGoodShowcaseComments[recKey].length>0){"
-        "var existingIds={};"
-        "commentsList.forEach(function(c){if(c&&c.comment_id)existingIds[c.comment_id]=true;});"
-        "window.__gbLastGoodShowcaseComments[recKey].forEach(function(cachedC){"
-        "if(cachedC&&cachedC.comment_id&&!existingIds[cachedC.comment_id]){"
-        "commentsList.push(cachedC);"
-        "}"
-        "});"
         "}"
         "});"
         "}"
@@ -2416,7 +2398,13 @@ SAVVY_FINDS_FB_POST_ID = "122118104811500702"
 SAVVY_FINDS_CANONICAL_RECORD_ID = "post_ext_dc6a96869a"
 SAVVY_FINDS_PERMALINK = "https://www.facebook.com/61595021080265/posts/122118104811500702/"
 SYNTHETIC_BLOCKED_COMMENT_IDS = {"1175872974773981_1794243091445"}
-SYNTHETIC_BLOCKED_COMMENT_TEXTS = {"may gusto ako itanong pwede ba?"}
+SYNTHETIC_BLOCKED_COMMENT_TEXTS = {
+    "may gusto ako itanong pwede ba?",
+    "@glenn tasico thank you so much for the kind words! i really appreciate your support, and i'm thrilled to hear you're enjoying glennbot automations. let me know if you ever need anything!",
+}
+SYNTHETIC_BLOCKED_COMMENT_SUBSTRINGS = (
+    "@glenn tasico thank you so much for the kind words!",
+)
 
 _SAVVY_FINDS_RECORD_ID = SAVVY_FINDS_CANONICAL_RECORD_ID
 _SAVVY_FINDS_ZERNIO_POST_ID = "61595021080265_122118104811500702"
@@ -2440,6 +2428,8 @@ def _is_synthetic_blocked_comment(obj: dict) -> bool:
         return True
     msg = str(obj.get("message") or obj.get("comment_text") or obj.get("text") or "").strip().lower()
     if msg in SYNTHETIC_BLOCKED_COMMENT_TEXTS:
+        return True
+    if any(sub in msg for sub in SYNTHETIC_BLOCKED_COMMENT_SUBSTRINGS):
         return True
     return False
 
@@ -2559,18 +2549,10 @@ def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> di
         by_rec_cache = _PORTFOLIO_COMMENTS_LAST_GOOD_CACHE.setdefault("by_record", {})
         for rec_key in SHOWCASE_POST_CONFIGS:
             rec_items = [c for c in kept if isinstance(c, dict) and c.get("record_id") == rec_key]
-            if rec_items:
-                by_rec_cache[rec_key] = rec_items
-            elif by_rec_cache.get(rec_key):
-                for cached_c in by_rec_cache[rec_key]:
-                    cached_cid = str(cached_c.get("comment_id") or "").strip()
-                    if cached_cid and cached_cid not in seen_cids:
-                        seen_cids.add(cached_cid)
-                        kept.append(cached_c)
+            by_rec_cache[rec_key] = rec_items
 
         data["comments"] = kept
-        if kept:
-            _PORTFOLIO_COMMENTS_LAST_GOOD_CACHE["payload"] = dict(data)
+        _PORTFOLIO_COMMENTS_LAST_GOOD_CACHE["payload"] = dict(data)
         return data
 
     if clean_path == "messages/conversations":
@@ -2718,6 +2700,10 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
             status_code=403,
         )
 
+    if clean_path == "comments/delete_reply" or clean_path.startswith("comments/delete_reply/"):
+        _PORTFOLIO_COMMENTS_LAST_GOOD_CACHE["by_record"] = {}
+        _PORTFOLIO_COMMENTS_LAST_GOOD_CACHE["payload"] = None
+
     # Fast cached response for GlennBot Automations Facebook & Instagram sample posts live_details
     if method_upper == "GET" and clean_path.startswith("posts/") and clean_path.endswith("/live_details"):
         parts = clean_path.split("/")
@@ -2779,7 +2765,7 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
             async def _bg_force_sync_showcase() -> None:
                 try:
                     await asyncio.sleep(2.0)
-                    async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as bg_client:
+                    async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as bg_client:
                         for showcase_rec in ordered_recs:
                             bg_url = f"{GLENNBOT_BASE_URL}/api/comments?force=true&active_record_id={showcase_rec}&_ts={ts_ms}"
                             await bg_client.get(
@@ -2853,10 +2839,10 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
         if val:
             forward_headers[hdr] = val
 
-    # Use a responsive timeout for account discovery endpoints and a generous timeout for live AI DM generation
+    # Use a responsive timeout for account discovery endpoints and a generous timeout for live AI DM generation / reply deletion
     if clean_path in ("social/accounts", "connected_accounts"):
         req_timeout = 8.0
-    elif clean_path == "messages/portfolio_live_dm":
+    elif clean_path in ("messages/portfolio_live_dm", "comments/delete_reply"):
         req_timeout = 45.0
     else:
         req_timeout = GLENNBOT_TIMEOUT_SECONDS

@@ -337,6 +337,11 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
       can_reply: false,
       replies: [
         { id: "1175872974773981_1794243091445", message: "may gusto ako itanong pwede ba?" },
+        {
+          id: "122118104811500702_ghost",
+          message:
+            "@Glenn Tasico Thank you so much for the kind words! I really appreciate your support, and I'm thrilled to hear you're enjoying GlennBot Automations. Let me know if you ever need anything!",
+        },
         { id: "122118104811500702_1024646813991583", message: "Loud and clear!" },
       ],
     },
