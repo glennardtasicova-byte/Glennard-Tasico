@@ -2038,90 +2038,206 @@ def delete_scheduled_post(record_id: str):
         title: "Unified Omnichannel Inbox & Smart Auto-Responder",
         tagline: "AI Intent Classification, Priority Scoring & Instant Multi-Channel Reply Engine",
         pipelineNodes: [
-          { label: "Inbound", title: "SMS / SMTP / Social DM", accent: false },
-          { label: "AI Classifier", title: "Intent & Priority Triage", accent: true },
-          { label: "Action", title: "TextBee SMS + CRM Sync", accent: false },
+          {
+            label: "INBOUND",
+            title: "Comments (FB/IG/TikTok) • DMs (FB/IG/WA) • Gmail OAuth • SMS",
+            accent: false,
+          },
+          {
+            label: "AI CLASSIFIER",
+            title: "Gemini AI Intent Triage & n8n Webhook Router",
+            accent: true,
+          },
+          {
+            label: "ACTION",
+            title: "Auto-Reply (Comment / DM / Email / SMS) + CRM Sync",
+            accent: false,
+          },
         ],
         bottleneck:
-          "Client inquiries and urgent supplier alerts were scattered across WhatsApp/SMS, Email threads, and Facebook/Instagram DMs—causing delayed response times and missed high-value leads outside business hours.",
+          "Client inquiries, social post comments, direct messages, and urgent supplier alerts were fragmented across Facebook, Instagram, TikTok, WhatsApp, Gmail, and SMS—causing delayed response times, manual copy-pasting, and missed high-intent leads outside business hours.",
         solution:
-          "Built a real-time FastAPI webhook aggregator that normalizes inbound messages from TextBee SMS, IMAP/SMTP Email, and Social DMs, runs instant Gemini AI intent & urgency classification, drafts a context-aware reply, and upserts the lead in Supabase PostgreSQL.",
+          "Engineered a unified FastAPI + n8n omnichannel triage and auto-responder engine (`glennbot_automations/routers/omnichannel_triage_router.py`) powered by **Google Gemini 3.5 Flash**. It ingests real-time webhooks across **Social Comments (FB/IG/TikTok)**, **Omnichannel DMs (Messenger/IG/WhatsApp)**, **Composio Gmail OAuth (`glennard.tasico.va@gmail.com`)**, and **TextBee SMS**, scores lead urgency (`0-100`), dispatches context-aware replies on the originating channel, and syncs conversations to **PostgreSQL & Cloudinary**.",
         architectureSteps: [
-          "Inbound webhook received from TextBee SMS Gateway, IMAP/SMTP, or FB/IG DM",
-          "FastAPI normalizes sender metadata and runs Gemini AI Intent & Priority Scorer",
-          "High-priority leads trigger instant n8n escalation + Supabase CRM record upsert",
-          "Smart Auto-Responder dispatches context-aware reply across the originating channel",
+          "**Social Comment Auto-Responder**: Captures FB, IG, and TikTok post comments via webhook, replies publicly in-thread, and dispatches a follow-up Private DM.",
+          "**Omnichannel Direct Messaging**: Consolidates Facebook Messenger, Instagram DM, and WhatsApp Business threads into a real-time split-screen inbox with sub-second AI replies.",
+          "**Smart Email Hub (`glennard.tasico.va@gmail.com`)**: Uses Composio OAuth2 (Gmail / Microsoft 365) & IMAP/SMTP to classify inbound client inquiries, draft rich HTML responses, and log Sent items.",
+          "**SMS Gateway & CRM Persistence**: Routes urgent alerts via TextBee SMS and syncs lead profiles to PostgreSQL & Cloudinary.",
         ],
         metrics: [
-          { value: "< 2.5s", label: "AI Triage Latency" },
-          { value: "100% Captured", label: "Inbound Lead Routing" },
-          { value: "Unified Hub", label: "SMS • Email • Social" },
+          { value: "< 2.5s", label: "Gemini AI Triage Latency" },
+          { value: "4 Pipelines", label: "Comments • DMs • Email • SMS" },
+          { value: "100% Synced", label: "PostgreSQL & Cloudinary" },
         ],
-        sourceFile: "glennbot_automations/routers/omnichannel_inbox.py",
-        sourceCode: `from fastapi import APIRouter, Depends, Header
-from pydantic import BaseModel
-from sqlalchemy.orm import Session
+        sourceFile: "glennbot_automations/routers/omnichannel_triage_router.py",
+        sourceCode: `# glennbot_automations/routers/omnichannel_triage_router.py
+from typing import Literal, Optional
+from fastapi import APIRouter, Header
+from pydantic import BaseModel, Field
+from sqlalchemy import text
 from google import genai
 import httpx
 
+from core.database import db_engine
+from services.cloudinary_vault import archive_omnichannel_transcript
+
 router = APIRouter(prefix="/api/v1/inbox", tags=["Omnichannel Inbox & AI Triage"])
 
-class InboundMessagePayload(BaseModel):
-    channel: str
+class OmnichannelInboundPayload(BaseModel):
+    channel: Literal["social_comment", "social_dm", "email_oauth", "sms_gateway"]
     sender: str
     message: str
+    post_id: Optional[str] = None
+    subject: Optional[str] = "Client Inquiry via GlennBot Omnichannel Hub"
+
+class TriageDecision(BaseModel):
+    intent: str = Field(description="Detected client or operations intent")
+    urgency_score: int = Field(ge=0, le=100, description="Priority score from 0 to 100")
+    reply_text: str = Field(description="Context-aware reply grounded on Glenn's knowledge base")
+
+CHANNEL_DISPATCH_ENDPOINTS = {
+    "social_comment": "/api/v1/comments/reply + /api/v1/comments/send-dm",
+    "social_dm": "/api/v1/messages/send",
+    "email_oauth": "/api/v1/emails/send",
+    "sms_gateway": "/api/v1/sms/send",
+}
 
 @router.post("/triage")
-async def triage_inbound_message(
-    payload: InboundMessagePayload,
+async def triage_inbound_omnichannel_event(
+    payload: OmnichannelInboundPayload,
     x_api_key: str = Header(..., alias="X-API-Key"),
 ):
-    client = genai.Client()
-    triage_prompt = (
-        f"Classify intent, urgency score (0-100), and draft a concise reply "
-        f"for this {payload.channel} message from {payload.sender}: {payload.message}"
+    # 1. Structured Gemini AI Intent Triage, Urgency Scoring (0-100) & Grounded Reply
+    ai_client = genai.Client()
+    prompt = (
+        f"Channel: {payload.channel} | Sender: {payload.sender}\\n"
+        f"Inbound Message: {payload.message}\\n"
+        "Classify intent, compute urgency_score (0-100), and draft a helpful reply "
+        "grounded on Glennard Tasico's AI Automation & Web Engineering knowledge base."
     )
-    analysis = client.models.generate_content(
+    ai_resp = ai_client.models.generate_content(
         model="gemini-2.5-flash",
-        contents=triage_prompt,
+        contents=prompt,
+        config={"response_mime_type": "application/json", "response_schema": TriageDecision},
     )
+    decision: TriageDecision = ai_resp.parsed
 
-    # Dispatch SMS notification via TextBee Gateway & sync to Supabase CRM
-    async with httpx.AsyncClient(timeout=10.0) as http:
-        await http.post(
-            "https://api.textbee.dev/api/v1/gateway/send-sms",
-            headers={"x-api-key": x_api_key},
-            json={"recipient": payload.sender, "message": analysis.text[:320]},
+    # 2. Dispatch Automated Reply Back Through the Originating Channel
+    async with httpx.AsyncClient(timeout=15.0) as http:
+        if payload.channel == "social_comment":
+            # Zernio API: Public in-thread comment reply + follow-up Private DM
+            await http.post(
+                "https://glennbotautomations.onrender.com/api/v1/comments/reply",
+                headers={"X-API-Key": x_api_key},
+                json={"post_id": payload.post_id, "recipient": payload.sender, "message": decision.reply_text},
+            )
+            await http.post(
+                "https://glennbotautomations.onrender.com/api/v1/comments/send-dm",
+                headers={"X-API-Key": x_api_key},
+                json={"recipient": payload.sender, "message": decision.reply_text},
+            )
+        elif payload.channel == "social_dm":
+            # FB Messenger / Instagram Direct / WhatsApp Business API
+            await http.post(
+                "https://glennbotautomations.onrender.com/api/v1/messages/send",
+                headers={"X-API-Key": x_api_key},
+                json={"recipient": payload.sender, "message": decision.reply_text},
+            )
+        elif payload.channel == "email_oauth":
+            # Composio GMAIL_SEND_EMAIL from glennard.tasico.va@gmail.com
+            await http.post(
+                "https://glennbotautomations.onrender.com/api/v1/emails/send",
+                headers={"X-API-Key": x_api_key},
+                json={
+                    "action": "GMAIL_SEND_EMAIL",
+                    "from_email": "glennard.tasico.va@gmail.com",
+                    "to_email": payload.sender,
+                    "subject": f"Re: {payload.subject}",
+                    "html_body": decision.reply_text,
+                },
+            )
+        elif payload.channel == "sms_gateway":
+            # TextBee Android SMS Gateway
+            await http.post(
+                "https://glennbotautomations.onrender.com/api/v1/sms/send",
+                headers={"X-API-Key": x_api_key},
+                json={"recipient": payload.sender, "message": decision.reply_text[:320]},
+            )
+
+    # 3. Persist Conversation State & Lead Profile to PostgreSQL & Cloudinary
+    cloud_url = archive_omnichannel_transcript(payload.channel, payload.sender, decision.reply_text)
+    with db_engine.begin() as conn:
+        conn.execute(
+            text("""
+                INSERT INTO glennbot_omnichannel_leads
+                (channel, sender, intent, urgency_score, reply_text, transcript_url)
+                VALUES (:channel, :sender, :intent, :score, :reply, :url)
+            """),
+            {
+                "channel": payload.channel,
+                "sender": payload.sender,
+                "intent": decision.intent,
+                "score": decision.urgency_score,
+                "reply": decision.reply_text,
+                "url": cloud_url,
+            },
         )
 
     return {
-        "status": "TRIAGED_AND_ROUTED",
+        "status": "TRIAGED_AND_DISPATCHED",
         "channel": payload.channel,
-        "smart_reply": analysis.text,
+        "dispatched_via": CHANNEL_DISPATCH_ENDPOINTS[payload.channel],
+        "urgency_score": decision.urgency_score,
+        "intent": decision.intent,
+        "draft_response": decision.reply_text,
+        "storage": "PostgreSQL + Cloudinary Synced",
     }`,
+        channelPresets: {
+          "Omnichannel DM (Messenger / IG / WhatsApp)": {
+            sender: "fb_user_glenn_client (@glenn.enterprise)",
+            message:
+              "Hi Glenn! Can you build an automated WhatsApp + Messenger AI responder connected to n8n for our e-commerce store?",
+          },
+          "Social Comment (Facebook / Instagram / TikTok)": {
+            sender: "@agency_founder_io (Facebook / IG Post Comment)",
+            message:
+              "Solid automation setup! How do you connect Gemini AI to auto-reply to comments and send a Private DM?",
+          },
+          "Email Hub (Composio Gmail OAuth / SMTP)": {
+            sender: "ops-director@enterprise-client.io",
+            message:
+              "Hi Glenn, we need an automated pipeline that triages incoming client emails via Gmail OAuth and syncs qualified leads to PostgreSQL.",
+          },
+          "TextBee SMS Gateway": {
+            sender: "+63 917 555 0198",
+            message:
+              "URGENT: Supplier capacity threshold reached on Line 2. Please trigger the n8n escalation workflow and confirm receipt.",
+          },
+        },
         widgetFields: [
           {
             name: "channel",
             label: "Inbound Source Channel",
             type: "select",
             options: [
-              "WhatsApp / TextBee SMS",
-              "Enterprise Email (IMAP/SMTP)",
-              "Facebook / Instagram DM",
+              "Omnichannel DM (Messenger / IG / WhatsApp)",
+              "Social Comment (Facebook / Instagram / TikTok)",
+              "Email Hub (Composio Gmail OAuth / SMTP)",
+              "TextBee SMS Gateway",
             ],
           },
           {
             name: "sender",
             label: "Sender Handle / Contact",
             type: "text",
-            value: "ops-director@enterprise-client.io",
+            value: "fb_user_glenn_client (@glenn.enterprise)",
           },
           {
             name: "message",
             label: "Inbound Client / Supplier Message",
             type: "textarea",
             value:
-              "Hi Glenn, we need an automated pipeline that syncs our incoming supplier quality sheets to PostgreSQL and alerts our team on WhatsApp.",
+              "Hi Glenn! Can you build an automated WhatsApp + Messenger AI responder connected to n8n for our e-commerce store?",
           },
         ],
       },
@@ -2699,6 +2815,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
           </div>
           <pre class="code-viewer-pre"><code>${escapeHtml(proj.sourceCode)}</code></pre>
         </div>
+        ${projectId === "omnichannel-inbox" ? caseFooterHtml : ""}
       `;
 
       const copyBtn = document.getElementById("modal-copy-code-btn");
@@ -2772,6 +2889,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
             <pre id="widget-json-output" class="widget-json-pre">Click "Execute Live API Request" to send a real POST payload to the FastAPI backend...</pre>
           </div>
         </div>
+        ${projectId === "omnichannel-inbox" ? caseFooterHtml : ""}
       `;
 
       const form = document.getElementById("live-api-widget-form");
@@ -2814,6 +2932,22 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
       }
 
       if (form) {
+        if (proj.channelPresets) {
+          const channelSelect = form.querySelector('select[name="channel"]');
+          const senderInput = form.querySelector('input[name="sender"]');
+          const messageInput = form.querySelector('textarea[name="message"]');
+          if (channelSelect) {
+            channelSelect.addEventListener("change", () => {
+              const preset = proj.channelPresets[channelSelect.value];
+              if (preset) {
+                if (senderInput) senderInput.value = preset.sender;
+                if (messageInput) messageInput.value = preset.message;
+              }
+              executeDemoRequest();
+            });
+          }
+        }
+
         form.addEventListener("submit", (e) => {
           e.preventDefault();
           executeDemoRequest();

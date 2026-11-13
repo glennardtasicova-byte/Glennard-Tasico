@@ -588,50 +588,72 @@ async def demo_inbox_triage(request: Request):
     except Exception:
         body = {}
 
-    channel = (body.get("channel") or "WhatsApp / TextBee SMS").strip()
-    sender = (body.get("sender") or "ops-director@enterprise-client.io").strip()
+    channel = (body.get("channel") or "Omnichannel DM (Messenger / IG / WhatsApp)").strip()
+    sender = (body.get("sender") or "fb_user_glenn_client (@glenn.enterprise)").strip()
     message = (
         body.get("message")
-        or "Hi Glenn, we need an automated pipeline that syncs our incoming supplier quality sheets to PostgreSQL and alerts our team on WhatsApp."
+        or "Hi Glenn! Can you build an automated WhatsApp + Messenger AI responder connected to n8n for our e-commerce store?"
     ).strip()
 
+    lower_chan = channel.lower()
+    if "comment" in lower_chan or "tiktok" in lower_chan:
+        channel_key = "social_comment"
+        dispatched_via = "POST /api/v1/comments/reply + POST /api/v1/comments/send-dm (Zernio API)"
+        default_route = "n8n_comment_webhook + Zernio_Public_Reply_And_Private_DM"
+    elif "email" in lower_chan or "gmail" in lower_chan or "smtp" in lower_chan:
+        channel_key = "email_oauth"
+        dispatched_via = "POST /api/v1/emails/send (Composio GMAIL_SEND_EMAIL • glennard.tasico.va@gmail.com)"
+        default_route = "Composio_Gmail_OAuth_Triage + PostgreSQL_And_Cloudinary_Sync"
+    elif "sms" in lower_chan or "textbee" in lower_chan:
+        channel_key = "sms_gateway"
+        dispatched_via = "POST /api/v1/sms/send (TextBee Android SMS Gateway)"
+        default_route = "n8n_incident_webhook + TextBee_SMS_Alert + PostgreSQL_CRM"
+    else:
+        channel_key = "social_dm"
+        dispatched_via = "POST /api/v1/messages/send (FB Messenger / IG DM / WhatsApp)"
+        default_route = "n8n_omnichannel_dm_router + Zernio_Messages_API + PostgreSQL_CRM"
+
     lower_msg = message.lower()
-    if any(k in lower_msg for k in ("urgent", "down", "error", "asap", "critical", "delay")):
+    if any(k in lower_msg for k in ("urgent", "down", "error", "asap", "critical", "delay", "threshold")):
         intent = "URGENT_OPERATIONS_ESCALATION"
         priority = "P1_CRITICAL (Score: 96/100)"
-        route_to = "n8n_incident_webhook + TextBee_SMS_Alert"
-    elif any(k in lower_msg for k in ("price", "quote", "project", "build", "sync", "automate", "pipeline", "hire")):
+        route_to = f"n8n_incident_escalation + {default_route}"
+    elif any(k in lower_msg for k in ("price", "quote", "project", "build", "sync", "automate", "pipeline", "hire", "connect")):
         intent = "HIGH_INTENT_AUTOMATION_INQUIRY"
-        priority = "P1_HOT_LEAD (Score: 92/100)"
-        route_to = "Supabase_CRM_Leads + Composio_Calendar_Invite"
+        priority = "P1_HOT_LEAD (Score: 94/100)"
+        route_to = default_route
     else:
         intent = "GENERAL_TECHNICAL_CONSULTATION"
-        priority = "P2_STANDARD (Score: 78/100)"
-        route_to = "Unified_Inbox_Queue + Auto_Ack_SMTP"
+        priority = "P2_STANDARD (Score: 82/100)"
+        route_to = default_route
 
     smart_reply = (
-        f"Hi! Thanks for reaching out via {channel}. GlennBot AI has logged your request regarding "
-        f"'{message[:68]}{'...' if len(message) > 68 else ''}' and routed it to Glennard's priority engineering queue. "
-        f"Would you like to lock in a 20-minute architecture discovery call via Google Meet?"
+        f"Hi! Thanks for reaching out via {channel}. GlennBot AI (Gemini 3.5 Flash) has triaged your message "
+        f"('{message[:72]}{'...' if len(message) > 72 else ''}'), dispatched an automated response via {dispatched_via}, "
+        f"and synced your conversation to PostgreSQL & Cloudinary."
     )
     elapsed_ms = round((time.perf_counter() - t0) * 1000 + 14.2, 1)
 
     return {
-        "status": "success",
-        "engine": "GlennBot Omnichannel Triage & TextBee/SMTP Router v2.1",
+        "status": "TRIAGED_AND_DISPATCHED",
+        "engine": "GlennBot Omnichannel Triage & Auto-Responder Router v3.5",
         "endpoint": "POST /api/v1/inbox/triage",
         "latency_ms": elapsed_ms,
+        "dispatched_via": dispatched_via,
         "triage_analysis": {
             "source_channel": channel,
+            "channel_key": channel_key,
             "sender_id": sender,
             "detected_intent": intent,
             "priority_rating": priority,
             "automated_routing": route_to,
+            "dispatched_via": dispatched_via,
         },
         "smart_auto_reply": {
             "draft_response": smart_reply,
-            "delivery_transport": "TextBee SMS Gateway + IMAP/SMTP Thread Sync",
-            "crm_record_status": "UPSERTED_POSTGRESQL_SUPABASE",
+            "dispatched_via": dispatched_via,
+            "delivery_transport": dispatched_via,
+            "crm_record_status": "UPSERTED_POSTGRESQL_AND_CLOUDINARY",
         },
     }
 

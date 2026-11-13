@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   SYS01_EXPANDED_VIEWS,
   SYS01_PROJECT_SPEC,
+  SYS02_PROJECT_SPEC,
   SYS02_SAVVY_FINDS_COMMENT_DEMO,
   SYS02_DM_SHOWCASE_CONFIG,
   SYS02_EMAIL_CHATBOT_CONFIG,
@@ -26,6 +27,7 @@ import {
   generateLiveDmSessionIds,
   resolveCalendarProxyIntercept,
   resolveDirectSocialDmTargetUrl,
+  resolveSys02ChannelPreset,
 } from "../static/js/glennbot_popup_utils.mjs";
 
 test("SYS-01 defines the 3 auto-authenticated /glennbot-popout Expanded View URLs and upstream URLs", () => {
@@ -727,9 +729,52 @@ test("SYS-02 Email Hub Dashboard Portfolio Demo Mode locks account to glennard.t
   );
 });
 
+test("SYS-02 Unified Omnichannel Inbox architecture spec, 4 channel presets, and dispatched_via routing", () => {
+  assert.deepEqual(SYS02_PROJECT_SPEC.stackPills, [
+    "FastAPI",
+    "Gemini 3.5 Flash",
+    "n8n Webhooks",
+    "Zernio Social API",
+    "Composio Gmail OAuth",
+    "TextBee SMS",
+    "PostgreSQL & Cloudinary",
+  ]);
+  assert.equal(
+    SYS02_PROJECT_SPEC.sourceFile,
+    "glennbot_automations/routers/omnichannel_triage_router.py"
+  );
+  assert.equal(
+    SYS02_PROJECT_SPEC.pipelineNodes[0].title,
+    "Comments (FB/IG/TikTok) • DMs (FB/IG/WA) • Gmail OAuth • SMS"
+  );
+  assert.equal(
+    SYS02_PROJECT_SPEC.pipelineNodes[1].title,
+    "Gemini AI Intent Triage & n8n Webhook Router"
+  );
+  assert.equal(
+    SYS02_PROJECT_SPEC.pipelineNodes[2].title,
+    "Auto-Reply (Comment / DM / Email / SMS) + CRM Sync"
+  );
+  assert.deepEqual(SYS02_PROJECT_SPEC.channelOptions, [
+    "Omnichannel DM (Messenger / IG / WhatsApp)",
+    "Social Comment (Facebook / Instagram / TikTok)",
+    "Email Hub (Composio Gmail OAuth / SMTP)",
+    "TextBee SMS Gateway",
+  ]);
 
+  const dmPreset = resolveSys02ChannelPreset("Omnichannel DM (Messenger / IG / WhatsApp)");
+  assert.equal(dmPreset.sender, "fb_user_glenn_client (@glenn.enterprise)");
+  assert.ok(dmPreset.dispatched_via.includes("/api/v1/messages/send"));
 
+  const commentPreset = resolveSys02ChannelPreset("Social Comment (Facebook / Instagram / TikTok)");
+  assert.equal(commentPreset.sender, "@agency_founder_io (Facebook / IG Post Comment)");
+  assert.ok(commentPreset.dispatched_via.includes("/api/v1/comments/reply"));
 
+  const emailPreset = resolveSys02ChannelPreset("Email Hub (Composio Gmail OAuth / SMTP)");
+  assert.equal(emailPreset.sender, "ops-director@enterprise-client.io");
+  assert.ok(emailPreset.dispatched_via.includes("/api/v1/emails/send"));
 
-
-
+  const smsPreset = resolveSys02ChannelPreset("TextBee SMS Gateway");
+  assert.equal(smsPreset.sender, "+63 917 555 0198");
+  assert.ok(smsPreset.dispatched_via.includes("/api/v1/sms/send"));
+});

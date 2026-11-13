@@ -2804,9 +2804,18 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   font-size: 0.76rem;
   line-height: 1.55;
   color: #34d399;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+#modal-panel-source-code .modal-case-footer-sys02,
+#modal-panel-live-widget .modal-case-footer-sys02 {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-card);
 }
 
 [data-theme="light"] .widget-json-pre {

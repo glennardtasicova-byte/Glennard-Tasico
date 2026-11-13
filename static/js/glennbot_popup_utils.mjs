@@ -1115,6 +1115,98 @@ export function enforceEmailSentFolderUrl(rawUrl = "/api/email/messages") {
   return `${parsed.pathname}${parsed.search}`;
 }
 
+export const SYS02_PROJECT_SPEC = {
+  sysId: "SYS-02",
+  title: "Unified Omnichannel Inbox & Smart Auto-Responder",
+  endpoint: "POST /api/v1/inbox/triage",
+  sourceFile: "glennbot_automations/routers/omnichannel_triage_router.py",
+  stackPills: [
+    "FastAPI",
+    "Gemini 3.5 Flash",
+    "n8n Webhooks",
+    "Zernio Social API",
+    "Composio Gmail OAuth",
+    "TextBee SMS",
+    "PostgreSQL & Cloudinary",
+  ],
+  pipelineNodes: [
+    {
+      label: "INBOUND",
+      title: "Comments (FB/IG/TikTok) • DMs (FB/IG/WA) • Gmail OAuth • SMS",
+      accent: false,
+    },
+    {
+      label: "AI CLASSIFIER",
+      title: "Gemini AI Intent Triage & n8n Webhook Router",
+      accent: true,
+    },
+    {
+      label: "ACTION",
+      title: "Auto-Reply (Comment / DM / Email / SMS) + CRM Sync",
+      accent: false,
+    },
+  ],
+  channelOptions: [
+    "Omnichannel DM (Messenger / IG / WhatsApp)",
+    "Social Comment (Facebook / Instagram / TikTok)",
+    "Email Hub (Composio Gmail OAuth / SMTP)",
+    "TextBee SMS Gateway",
+  ],
+  channelPresets: {
+    "Omnichannel DM (Messenger / IG / WhatsApp)": {
+      channelKey: "social_dm",
+      sender: "fb_user_glenn_client (@glenn.enterprise)",
+      message:
+        "Hi Glenn! Can you build an automated WhatsApp + Messenger AI responder connected to n8n for our e-commerce store?",
+      dispatched_via: "POST /api/v1/messages/send (FB Messenger / IG DM / WhatsApp)",
+    },
+    "Social Comment (Facebook / Instagram / TikTok)": {
+      channelKey: "social_comment",
+      sender: "@agency_founder_io (Facebook / IG Post Comment)",
+      message:
+        "Solid automation setup! How do you connect Gemini AI to auto-reply to comments and send a Private DM?",
+      dispatched_via:
+        "POST /api/v1/comments/reply + POST /api/v1/comments/send-dm (Zernio API)",
+    },
+    "Email Hub (Composio Gmail OAuth / SMTP)": {
+      channelKey: "email_oauth",
+      sender: "ops-director@enterprise-client.io",
+      message:
+        "Hi Glenn, we need an automated pipeline that triages incoming client emails via Gmail OAuth and syncs qualified leads to PostgreSQL.",
+      dispatched_via:
+        "POST /api/v1/emails/send (Composio GMAIL_SEND_EMAIL • glennard.tasico.va@gmail.com)",
+    },
+    "TextBee SMS Gateway": {
+      channelKey: "sms_gateway",
+      sender: "+63 917 555 0198",
+      message:
+        "URGENT: Supplier capacity threshold reached on Line 2. Please trigger the n8n escalation workflow and confirm receipt.",
+      dispatched_via: "POST /api/v1/sms/send (TextBee Android SMS Gateway)",
+    },
+  },
+  footerButtons: ["💬 Post a Comment", "✉️ Send a DM", "📧 Send an Email"],
+};
 
-
-
+export function resolveSys02ChannelPreset(channelLabel = "") {
+  const raw = String(channelLabel || "").trim();
+  if (SYS02_PROJECT_SPEC.channelPresets[raw]) {
+    return SYS02_PROJECT_SPEC.channelPresets[raw];
+  }
+  const lower = raw.toLowerCase();
+  if (lower.includes("comment") || lower.includes("tiktok")) {
+    return SYS02_PROJECT_SPEC.channelPresets[
+      "Social Comment (Facebook / Instagram / TikTok)"
+    ];
+  }
+  if (lower.includes("email") || lower.includes("gmail") || lower.includes("smtp")) {
+    return SYS02_PROJECT_SPEC.channelPresets[
+      "Email Hub (Composio Gmail OAuth / SMTP)"
+    ];
+  }
+  if (lower.includes("sms") || lower.includes("textbee")) {
+    return SYS02_PROJECT_SPEC.channelPresets["TextBee SMS Gateway"];
+  }
+  return SYS02_PROJECT_SPEC.channelPresets[
+    "Omnichannel DM (Messenger / IG / WhatsApp)"
+  ];
+}
