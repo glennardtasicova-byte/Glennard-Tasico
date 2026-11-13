@@ -917,7 +917,7 @@ def _build_session_injector_snippet(
     )
 
     email_demo_lock_css = (
-        "  /* Portfolio Demo Mode: Lock Email Hub to glennard.tasico.va@gmail.com (Gmail), Sent folder only, and hide Connect/Disconnect/Compose/Sync controls */\n"
+        "  /* Portfolio Demo Mode: Lock Email Hub to glennard.tasico.va@gmail.com (Gmail), Sent folder only, and hide Connect/Disconnect/Compose/Sync/Reply controls */\n"
         "  #email-plat-card-microsoft,\n"
         "  #email-plat-card-imap,\n"
         "  #btn-show-all-email-platforms,\n"
@@ -935,6 +935,36 @@ def _build_session_injector_snippet(
         "  #compose-email-modal,\n"
         "  #btn-email-sync,\n"
         "  #btn-sync-email-sent,\n"
+        "  #email-reader-pane > div:has(#email-quick-reply-input),\n"
+        "  #email-reader-pane > div:has(#norm-mode-btn-reply),\n"
+        "  #expanded-email-modal-content > div:has(#expanded-email-reply-input),\n"
+        "  #expanded-email-modal-content > div:has(#exp-mode-btn-reply),\n"
+        "  #norm-mode-btn-reply,\n"
+        "  #norm-mode-btn-reply_all,\n"
+        "  #norm-mode-btn-forward,\n"
+        "  #exp-mode-btn-reply,\n"
+        "  #exp-mode-btn-reply_all,\n"
+        "  #exp-mode-btn-forward,\n"
+        "  button[onclick*=\"setEmailReplyActionMode(\"],\n"
+        "  button[onclick*=\"toggleEmailReplyCcRow(\"],\n"
+        "  button[onclick*=\"reply-email-file-input\"],\n"
+        "  button[onclick*=\"expanded-reply-email-file-input\"],\n"
+        "  #email-quick-reply-mode-label,\n"
+        "  #expanded-email-reply-mode-label,\n"
+        "  #email-quick-reply-to,\n"
+        "  #email-quick-reply-cc-row,\n"
+        "  #email-quick-reply-cc,\n"
+        "  #expanded-email-reply-to,\n"
+        "  #expanded-email-reply-cc-row,\n"
+        "  #expanded-email-reply-cc,\n"
+        "  #reply-email-attachments-list,\n"
+        "  #expanded-reply-email-attachments-list,\n"
+        "  #email-quick-reply-input,\n"
+        "  #expanded-email-reply-input,\n"
+        "  #btn-send-email-reply,\n"
+        "  #btn-send-expanded-email-reply,\n"
+        "  button[onclick*=\"sendReplyToSelectedEmail(\"],\n"
+        "  button[onclick*=\"sendReplyFromExpandedModal(\"],\n"
         "  button[onclick*=\"openConnectAccountsModal('gmail')\"],\n"
         "  button[onclick*=\"openConnectAccountsModal(\\\"gmail\\\")\"],\n"
         "  button[onclick*=\"startEmailOAuthPopup(\"],\n"
@@ -943,6 +973,12 @@ def _build_session_injector_snippet(
         "    display: none !important;\n"
         "    visibility: hidden !important;\n"
         "    opacity: 0 !important;\n"
+        "    height: 0 !important;\n"
+        "    max-height: 0 !important;\n"
+        "    padding: 0 !important;\n"
+        "    margin: 0 !important;\n"
+        "    border: 0 !important;\n"
+        "    overflow: hidden !important;\n"
         "    pointer-events: none !important;\n"
         "  }\n"
     )
@@ -1780,6 +1816,8 @@ def _build_calendar_lock_body_script() -> str:
         "window.disconnectEmailAccount=function(){};"
         "window.openImapConnectModal=function(){};"
         "window.openComposeEmailModal=function(){};"
+        "window.sendReplyToSelectedEmail=function(){};"
+        "window.sendReplyFromExpandedModal=function(){};"
         "if(typeof emailAccountsList!=='undefined'&&Array.isArray(emailAccountsList)){"
         "var keptAccs=emailAccountsList.filter(function(a){return a&&String(a.email_address||a.email||a.name||'').trim().toLowerCase()===LOCKED_EMAIL_ADDRESS;});"
         "if(keptAccs.length===0){"
@@ -1831,7 +1869,7 @@ def _build_calendar_lock_body_script() -> str:
         "}"
         "var emailRoot=document.getElementById('view-email');"
         "if(!emailRoot)return;"
-        "['email-plat-card-microsoft','email-plat-card-imap','btn-show-all-email-platforms','email-folder-btn-inbox','email-folder-btn-drafts','email-folder-btn-spam','email-folder-btn-trash','btn-connect-email-top','btn-connect-gmail-card','btn-connect-microsoft-card','btn-connect-imap-card','btn-email-compose-top','btn-email-sync','btn-sync-email-sent','compose-email-modal'].forEach(function(id){"
+        "['email-plat-card-microsoft','email-plat-card-imap','btn-show-all-email-platforms','email-folder-btn-inbox','email-folder-btn-drafts','email-folder-btn-spam','email-folder-btn-trash','btn-connect-email-top','btn-connect-gmail-card','btn-connect-microsoft-card','btn-connect-imap-card','btn-email-compose-top','btn-email-sync','btn-sync-email-sent','compose-email-modal','norm-mode-btn-reply','norm-mode-btn-reply_all','norm-mode-btn-forward','exp-mode-btn-reply','exp-mode-btn-reply_all','exp-mode-btn-forward','email-quick-reply-mode-label','expanded-email-reply-mode-label','email-quick-reply-to','email-quick-reply-cc-row','email-quick-reply-cc','expanded-email-reply-to','expanded-email-reply-cc-row','expanded-email-reply-cc','reply-email-attachments-list','expanded-reply-email-attachments-list','email-quick-reply-input','expanded-email-reply-input','btn-send-email-reply','btn-send-expanded-email-reply'].forEach(function(id){"
         "var el=document.getElementById(id);"
         "if(el&&!el.classList.contains('hidden')){el.classList.add('hidden');el.style.setProperty('display','none','important');}"
         "});"
@@ -3454,6 +3492,15 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
             content={
                 "status": "error",
                 "message": "Email & account connection/disconnection is disabled in Portfolio Demo Mode.",
+            },
+            status_code=403,
+        )
+
+    if method_upper == "POST" and (clean_path == "email/reply" or clean_path.startswith("email/reply/")):
+        return JSONResponse(
+            content={
+                "status": "error",
+                "message": "Replying from the Email Hub reader is disabled in Portfolio Demo Mode.",
             },
             status_code=403,
         )

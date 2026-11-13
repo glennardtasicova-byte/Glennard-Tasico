@@ -668,24 +668,36 @@ test("SYS-02 AI Email Chatbot Popup Modal (#gb-email-direct-modal) config, promp
   );
 });
 
-test("SYS-02 Email Hub Dashboard Portfolio Demo Mode locks account to glennard.tasico.va@gmail.com, enforces folder=sent, and hides non-Gmail/non-Sent/OAuth/Compose/Sync buttons", () => {
-  const emailCss = buildInstantPopoutStyleTag("email");
-  assert.ok(emailCss.includes("#email-plat-card-microsoft"));
-  assert.ok(emailCss.includes("#email-plat-card-imap"));
-  assert.ok(emailCss.includes("#btn-show-all-email-platforms"));
-  assert.ok(emailCss.includes('#email-top-platform-filter option:not([value="gmail"])'));
-  assert.ok(emailCss.includes("#email-folder-btn-inbox"));
-  assert.ok(emailCss.includes("#email-folder-btn-drafts"));
-  assert.ok(emailCss.includes("#email-folder-btn-spam"));
-  assert.ok(emailCss.includes("#email-folder-btn-trash"));
-  assert.ok(emailCss.includes("#btn-email-compose-top"));
-  assert.ok(emailCss.includes('button[onclick*="openComposeEmailModal"]'));
-  assert.ok(emailCss.includes("#compose-email-modal"));
-  assert.ok(emailCss.includes("#btn-email-sync"));
-  assert.ok(emailCss.includes("#btn-sync-email-sent"));
-  assert.ok(emailCss.includes("button[onclick*=\"openConnectAccountsModal('gmail')\"]"));
-  assert.ok(emailCss.includes('button[onclick*="startEmailOAuthPopup("]'));
-  assert.ok(emailCss.includes('button[onclick*="disconnectEmailAccount("]'));
+test("SYS-02 Email Hub Dashboard Portfolio Demo Mode locks account to glennard.tasico.va@gmail.com, enforces folder=sent, and hides non-Gmail/non-Sent/OAuth/Compose/Sync/Reply controls", () => {
+  for (const emailCss of [
+    buildInstantPopoutStyleTag("email"),
+    buildInstantPopoutStyleTag("email", "email_view"),
+  ]) {
+    assert.ok(emailCss.includes("#email-plat-card-microsoft"));
+    assert.ok(emailCss.includes("#email-plat-card-imap"));
+    assert.ok(emailCss.includes("#btn-show-all-email-platforms"));
+    assert.ok(emailCss.includes('#email-top-platform-filter option:not([value="gmail"])'));
+    assert.ok(emailCss.includes("#email-folder-btn-inbox"));
+    assert.ok(emailCss.includes("#email-folder-btn-drafts"));
+    assert.ok(emailCss.includes("#email-folder-btn-spam"));
+    assert.ok(emailCss.includes("#email-folder-btn-trash"));
+    assert.ok(emailCss.includes("#btn-email-compose-top"));
+    assert.ok(emailCss.includes('button[onclick*="openComposeEmailModal"]'));
+    assert.ok(emailCss.includes("#compose-email-modal"));
+    assert.ok(emailCss.includes("#btn-email-sync"));
+    assert.ok(emailCss.includes("#btn-sync-email-sent"));
+    assert.ok(emailCss.includes("#email-reader-pane > div:has(#email-quick-reply-input)"));
+    assert.ok(emailCss.includes("#expanded-email-modal-content > div:has(#expanded-email-reply-input)"));
+    assert.ok(emailCss.includes("#norm-mode-btn-reply"));
+    assert.ok(emailCss.includes("#exp-mode-btn-reply"));
+    assert.ok(emailCss.includes("#email-quick-reply-input"));
+    assert.ok(emailCss.includes("#expanded-email-reply-input"));
+    assert.ok(emailCss.includes("#btn-send-email-reply"));
+    assert.ok(emailCss.includes("#btn-send-expanded-email-reply"));
+    assert.ok(emailCss.includes("button[onclick*=\"openConnectAccountsModal('gmail')\"]"));
+    assert.ok(emailCss.includes('button[onclick*="startEmailOAuthPopup("]'));
+    assert.ok(emailCss.includes('button[onclick*="disconnectEmailAccount("]'));
+  }
 
   const filteredAccounts = filterPortfolioEmailAccounts({
     accounts: [
