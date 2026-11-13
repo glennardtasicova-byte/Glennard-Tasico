@@ -122,6 +122,31 @@ export function buildInstantPopoutStyleTag(targetTab = "scheduler", popoutMode =
     `    pointer-events: none !important;`,
     `  }`,
   ].join("\n");
+  const emailDemoLockCss = [
+    `  /* Portfolio Demo Mode: Lock Email Hub to glennard.tasico.va@gmail.com (Gmail), Sent folder only, and hide Connect/Disconnect controls */`,
+    `  #email-plat-card-microsoft,`,
+    `  #email-plat-card-imap,`,
+    `  #btn-show-all-email-platforms,`,
+    `  #email-top-platform-filter option:not([value="gmail"]),`,
+    `  #email-folder-btn-inbox,`,
+    `  #email-folder-btn-drafts,`,
+    `  #email-folder-btn-spam,`,
+    `  #email-folder-btn-trash,`,
+    `  #btn-connect-email-top,`,
+    `  #btn-connect-gmail-card,`,
+    `  #btn-connect-microsoft-card,`,
+    `  #btn-connect-imap-card,`,
+    `  button[onclick*="openConnectAccountsModal('gmail')"],`,
+    `  button[onclick*="openConnectAccountsModal(\\"gmail\\")"],`,
+    `  button[onclick*="startEmailOAuthPopup("],`,
+    `  button[onclick*="disconnectEmailAccount("],`,
+    `  button[onclick*="openImapConnectModal("] {`,
+    `    display: none !important;`,
+    `    visibility: hidden !important;`,
+    `    opacity: 0 !important;`,
+    `    pointer-events: none !important;`,
+    `  }`,
+  ].join("\n");
   return [
     `<style id="gb-portfolio-cal-lock">`,
     `  #cal-subtab-composio,`,
@@ -130,6 +155,7 @@ export function buildInstantPopoutStyleTag(targetTab = "scheduler", popoutMode =
     `    display: none !important;`,
     `  }`,
     composerHideCss,
+    emailDemoLockCss,
     `</style>`,
     `<style id="gb-instant-popout-css">`,
     `  /* Immediately hide login gate and full dashboard homepage chrome */`,
@@ -152,6 +178,7 @@ export function buildInstantPopoutStyleTag(targetTab = "scheduler", popoutMode =
     `    display: none !important;`,
     `  }`,
     composerHideCss,
+    emailDemoLockCss,
     `  /* Immediately show the Expanded Focus Window top bar */`,
     `  #gb-popout-window-bar {`,
     `    display: flex !important;`,
@@ -984,5 +1011,64 @@ export function buildGlennBotMailtoUrl(
     cleanSubject
   )}&body=${encodeURIComponent(cleanBody)}`;
 }
+
+export function filterPortfolioEmailAccounts(rawPayload = {}) {
+  const src = rawPayload && typeof rawPayload === "object" ? rawPayload : {};
+  const list = Array.isArray(src.accounts) ? src.accounts : [];
+  const targetEmail = SYS02_EMAIL_CHATBOT_CONFIG.targetEmail.toLowerCase();
+  const matched = list.find((item) => {
+    if (!item || typeof item !== "object") return false;
+    const addr = String(
+      item.email_address || item.email || item.username || item.name || ""
+    )
+      .trim()
+      .toLowerCase();
+    return addr === targetEmail;
+  });
+
+  const normalized = matched
+    ? {
+        ...matched,
+        id: String(matched.id || matched.account_id || "gmail_glennard_tasico_va"),
+        account_id: String(matched.account_id || matched.id || "gmail_glennard_tasico_va"),
+        platform: "gmail",
+        provider: "gmail",
+        email_address: targetEmail,
+        email: targetEmail,
+        status: "connected",
+        connected: true,
+      }
+    : {
+        id: "gmail_glennard_tasico_va",
+        account_id: "gmail_glennard_tasico_va",
+        platform: "gmail",
+        provider: "gmail",
+        email_address: targetEmail,
+        email: targetEmail,
+        name: targetEmail,
+        display_name: "glennard.tasico.va@gmail.com (Gmail)",
+        status: "connected",
+        connected: true,
+      };
+
+  return {
+    ...src,
+    status: "success",
+    accounts: [normalized],
+    active_account_id: normalized.id,
+    total_connected: 1,
+  };
+}
+
+export function enforceEmailSentFolderUrl(rawUrl = "/api/email/messages") {
+  const str = String(rawUrl || "/api/email/messages").trim();
+  if (!str.includes("/api/email/messages")) return str;
+  const parsed = new URL(str, "http://localhost:3000");
+  parsed.searchParams.set("folder", "sent");
+  parsed.searchParams.set("email_address", SYS02_EMAIL_CHATBOT_CONFIG.targetEmail);
+  parsed.searchParams.set("platform", "gmail");
+  return `${parsed.pathname}${parsed.search}`;
+}
+
 
 

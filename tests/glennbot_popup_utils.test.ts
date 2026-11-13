@@ -18,7 +18,9 @@ import {
   computeCenteredPopupFeatures,
   computeMaximizedDirectMessengerFeatures,
   computeRightDockedPopupFeatures,
+  enforceEmailSentFolderUrl,
   filterPortfolioCommentsList,
+  filterPortfolioEmailAccounts,
   filterPortfolioSocialAccounts,
   formatInlineMarkdown,
   generateLiveDmSessionIds,
@@ -665,6 +667,49 @@ test("SYS-02 AI Email Chatbot Popup Modal (#gb-email-direct-modal) config, promp
     "mailto:glennard.tasico.va@gmail.com?subject=Inquiry%3A%20Custom%20Web%20App%20%26%20CRM%20Dashboard&body=Hi%20Glennard!%20Tell%20me%20more%20about%20your%20GlennBot%20Automations%20dashboard%20and%20custom%20web%20app%20projects."
   );
 });
+
+test("SYS-02 Email Hub Dashboard Portfolio Demo Mode locks account to glennard.tasico.va@gmail.com, enforces folder=sent, and hides non-Gmail/non-Sent/OAuth buttons", () => {
+  const emailCss = buildInstantPopoutStyleTag("email");
+  assert.ok(emailCss.includes("#email-plat-card-microsoft"));
+  assert.ok(emailCss.includes("#email-plat-card-imap"));
+  assert.ok(emailCss.includes("#btn-show-all-email-platforms"));
+  assert.ok(emailCss.includes('#email-top-platform-filter option:not([value="gmail"])'));
+  assert.ok(emailCss.includes("#email-folder-btn-inbox"));
+  assert.ok(emailCss.includes("#email-folder-btn-drafts"));
+  assert.ok(emailCss.includes("#email-folder-btn-spam"));
+  assert.ok(emailCss.includes("#email-folder-btn-trash"));
+  assert.ok(emailCss.includes("button[onclick*=\"openConnectAccountsModal('gmail')\"]"));
+  assert.ok(emailCss.includes('button[onclick*="startEmailOAuthPopup("]'));
+  assert.ok(emailCss.includes('button[onclick*="disconnectEmailAccount("]'));
+
+  const filteredAccounts = filterPortfolioEmailAccounts({
+    accounts: [
+      { id: "ms_1", email_address: "other@outlook.com", platform: "microsoft" },
+      { id: "gm_live_99", email_address: "GLENNARD.TASICO.VA@GMAIL.COM", platform: "gmail" },
+      { id: "imap_2", email_address: "admin@customdomain.com", platform: "imap" },
+    ],
+  });
+  assert.equal(filteredAccounts.accounts.length, 1);
+  assert.equal(filteredAccounts.accounts[0].email_address, "glennard.tasico.va@gmail.com");
+  assert.equal(filteredAccounts.accounts[0].platform, "gmail");
+  assert.equal(filteredAccounts.active_account_id, "gm_live_99");
+
+  const fallbackAccounts = filterPortfolioEmailAccounts({
+    accounts: [{ id: "other_1", email_address: "someone@yahoo.com", platform: "imap" }],
+  });
+  assert.equal(fallbackAccounts.accounts.length, 1);
+  assert.equal(fallbackAccounts.accounts[0].email_address, "glennard.tasico.va@gmail.com");
+  assert.equal(fallbackAccounts.active_account_id, "gmail_glennard_tasico_va");
+
+  const rewrittenInboxUrl = enforceEmailSentFolderUrl(
+    "/api/email/messages?folder=inbox&page=1"
+  );
+  assert.equal(
+    rewrittenInboxUrl,
+    "/api/email/messages?folder=sent&page=1&email_address=glennard.tasico.va%40gmail.com&platform=gmail"
+  );
+});
+
 
 
 

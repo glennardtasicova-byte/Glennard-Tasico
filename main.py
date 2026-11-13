@@ -765,7 +765,7 @@ _GLENNBOT_WORKSPACE_VIEW_META: dict[str, dict[str, str]] = {
     },
     "email": {
         "title": "Multi-Account Email Hub — Expanded View",
-        "subtitle": "Live IMAP/Gmail Inbox, Sent Folder & Instant Reply Workspace",
+        "subtitle": "Locked to glennard.tasico.va@gmail.com (Gmail) • Sent Items Only • Portfolio Demo Mode",
         "icon": "fa-envelope",
     },
     "files": {
@@ -916,6 +916,32 @@ def _build_session_injector_snippet(
         "  }\n"
     )
 
+    email_demo_lock_css = (
+        "  /* Portfolio Demo Mode: Lock Email Hub to glennard.tasico.va@gmail.com (Gmail), Sent folder only, and hide Connect/Disconnect controls */\n"
+        "  #email-plat-card-microsoft,\n"
+        "  #email-plat-card-imap,\n"
+        "  #btn-show-all-email-platforms,\n"
+        "  #email-top-platform-filter option:not([value=\"gmail\"]),\n"
+        "  #email-folder-btn-inbox,\n"
+        "  #email-folder-btn-drafts,\n"
+        "  #email-folder-btn-spam,\n"
+        "  #email-folder-btn-trash,\n"
+        "  #btn-connect-email-top,\n"
+        "  #btn-connect-gmail-card,\n"
+        "  #btn-connect-microsoft-card,\n"
+        "  #btn-connect-imap-card,\n"
+        "  button[onclick*=\"openConnectAccountsModal('gmail')\"],\n"
+        "  button[onclick*=\"openConnectAccountsModal(\\\"gmail\\\")\"],\n"
+        "  button[onclick*=\"startEmailOAuthPopup(\"],\n"
+        "  button[onclick*=\"disconnectEmailAccount(\"],\n"
+        "  button[onclick*=\"openImapConnectModal(\"] {\n"
+        "    display: none !important;\n"
+        "    visibility: hidden !important;\n"
+        "    opacity: 0 !important;\n"
+        "    pointer-events: none !important;\n"
+        "  }\n"
+    )
+
     instant_css = (
         "<style id=\"gb-portfolio-cal-lock\">\n"
         "  #cal-subtab-composio,\n"
@@ -931,6 +957,7 @@ def _build_session_injector_snippet(
         "    display: none !important;\n"
         "  }\n"
         f"{composer_hide_css}"
+        f"{email_demo_lock_css}"
         "</style>\n"
         "<style id=\"gb-instant-popout-css\">\n"
         "  /* Immediately hide login gate and full dashboard homepage chrome */\n"
@@ -953,6 +980,7 @@ def _build_session_injector_snippet(
         "    display: none !important;\n"
         "  }\n"
         f"{composer_hide_css}"
+        f"{email_demo_lock_css}"
         "  /* Immediately show the Expanded Focus Window top bar */\n"
         "  #gb-popout-window-bar {\n"
         "    display: flex !important;\n"
@@ -977,6 +1005,7 @@ def _build_session_injector_snippet(
         "    display: none !important;\n"
         "  }\n"
         f"{composer_hide_css}"
+        f"{email_demo_lock_css}"
         "</style>"
     )
 
@@ -1109,13 +1138,49 @@ def _apply_instant_popout_dom_transforms(
             1,
         )
 
-    # 4. Hide Composio Calendars & Meetings elements and Connect Accounts modal in raw HTML
-    for cal_id in ("cal-subtab-composio", "calendar-composio-toolbar", "schedule-meeting-modal", "connect-accounts-modal"):
+    # 4. Hide Composio Calendars & Meetings elements, Connect Accounts modal, and non-Gmail / non-Sent Email Hub controls in raw HTML
+    for cal_id in (
+        "cal-subtab-composio",
+        "calendar-composio-toolbar",
+        "schedule-meeting-modal",
+        "connect-accounts-modal",
+        "email-plat-card-microsoft",
+        "email-plat-card-imap",
+        "btn-show-all-email-platforms",
+        "email-folder-btn-inbox",
+        "email-folder-btn-drafts",
+        "email-folder-btn-spam",
+        "email-folder-btn-trash",
+        "btn-connect-email-top",
+        "btn-connect-gmail-card",
+        "btn-connect-microsoft-card",
+        "btn-connect-imap-card",
+    ):
         html_text = html_text.replace(
             f'id="{cal_id}" class="',
             f'id="{cal_id}" style="display:none!important" class="hidden ',
             1,
         )
+
+    # 5. Lock Email Hub top-level script state to activeEmailFolder = 'sent' and activeEmailPlatform = 'gmail'
+    html_text = html_text.replace(
+        "let activeEmailFolder = 'inbox';",
+        "let activeEmailFolder = 'sent';",
+        1,
+    )
+    html_text = html_text.replace(
+        "let activeEmailPlatform = 'all';",
+        "let activeEmailPlatform = 'gmail';",
+        1,
+    )
+    html_text = html_text.replace(
+        "Connect your Gmail, Microsoft, or IMAP/SMTP email on the left column to view its dedicated inbox here.",
+        "Loading sent emails for glennard.tasico.va@gmail.com...",
+    )
+    html_text = html_text.replace(
+        "Connect a Gmail, Microsoft, or IMAP account",
+        "Loading sent emails for glennard.tasico.va@gmail.com...",
+    )
 
     return html_text
 
@@ -1581,6 +1646,10 @@ def _build_calendar_lock_body_script() -> str:
         "window.openScheduleMeetingModal=function(){};"
         "window.startCalendarOAuthPopup=function(){};"
         "window.openConnectAccountsModal=function(){};"
+        "window.startEmailOAuthPopup=function(){};"
+        "window.disconnectEmailAccount=function(){};"
+        "window.openImapConnectModal=function(){};"
+        "_lockEmailHubDemoMode();"
         "var curResetDetail=window.resetCommentDetailPanel;"
         "if(typeof curResetDetail==='function'&&!curResetDetail._gbSavvyWrapped){"
         "var origResetDetail=curResetDetail;"
@@ -1692,6 +1761,175 @@ def _build_calendar_lock_body_script() -> str:
         "}"
         "_customizeSavvyFindsComposer();"
         "}"
+        "var LOCKED_EMAIL_ADDRESS='glennard.tasico.va@gmail.com';"
+        "var LOCKED_EMAIL_LABEL='glennard.tasico.va@gmail.com (Gmail)';"
+        "function _rewriteEmailMessagesUrlToSent(rawUrl){"
+        "var u=String(rawUrl||'');"
+        "if(u.indexOf('/api/email/messages')===-1)return u;"
+        "try{"
+        "var parsed=new URL(u,window.location.origin);"
+        "parsed.searchParams.set('folder','sent');"
+        "if(!parsed.searchParams.get('email_address'))parsed.searchParams.set('email_address',LOCKED_EMAIL_ADDRESS);"
+        "if(!parsed.searchParams.get('platform'))parsed.searchParams.set('platform','gmail');"
+        "return parsed.pathname+parsed.search;"
+        "}catch(_){"
+        "if(u.indexOf('folder=')!==-1){return u.replace(/folder=[^&]+/g,'folder=sent');}"
+        "return u+(u.indexOf('?')===-1?'?':'&')+'folder=sent&email_address='+encodeURIComponent(LOCKED_EMAIL_ADDRESS);"
+        "}"
+        "}"
+        "function _installEmailDemoFetchInterceptor(){"
+        "if(window.__gbEmailFetchIntercepted||typeof window.fetch!=='function')return;"
+        "window.__gbEmailFetchIntercepted=true;"
+        "var origFetch=window.fetch.bind(window);"
+        "window.fetch=async function(input,init){"
+        "var urlStr=(typeof input==='string')?input:(input&&input.url?String(input.url):'');"
+        "if(urlStr.indexOf('/api/email/messages')!==-1){"
+        "var rewritten=_rewriteEmailMessagesUrlToSent(urlStr);"
+        "input=(typeof input==='string')?rewritten:rewritten;"
+        "}"
+        "var resp=await origFetch(input,init);"
+        "if(urlStr.indexOf('/api/email/accounts')!==-1||urlStr.indexOf('/api/email/discover')!==-1){"
+        "try{"
+        "var cloned=resp.clone();"
+        "var data=await cloned.json();"
+        "if(data&&typeof data==='object'){"
+        "var rawAccs=Array.isArray(data.accounts)?data.accounts:[];"
+        "var matched=rawAccs.filter(function(a){return a&&String(a.email_address||a.email||a.name||'').trim().toLowerCase()===LOCKED_EMAIL_ADDRESS;});"
+        "if(matched.length===0){"
+        "matched=[{id:'gmail_glennard_tasico_va',account_id:'gmail_glennard_tasico_va',platform:'gmail',provider:'gmail',email_address:LOCKED_EMAIL_ADDRESS,email:LOCKED_EMAIL_ADDRESS,name:LOCKED_EMAIL_ADDRESS,status:'connected',connected:true}];"
+        "}else{"
+        "matched=matched.map(function(a){return Object.assign({},a,{platform:'gmail',provider:'gmail',email_address:LOCKED_EMAIL_ADDRESS,email:LOCKED_EMAIL_ADDRESS});});"
+        "}"
+        "data.accounts=matched;"
+        "data.active_account_id=String(matched[0].id||matched[0].account_id||'gmail_glennard_tasico_va');"
+        "window.activeEmailAccountId=data.active_account_id;"
+        "try{activeEmailAccountId=data.active_account_id;}catch(_e){}"
+        "return new Response(JSON.stringify(data),{status:resp.status,statusText:resp.statusText,headers:resp.headers});"
+        "}"
+        "}catch(_){}"
+        "}"
+        "return resp;"
+        "};"
+        "}"
+        "function _lockEmailHubDemoMode(){"
+        "_installEmailDemoFetchInterceptor();"
+        "window.activeEmailFolder='sent';"
+        "try{activeEmailFolder='sent';}catch(_){}"
+        "window.activeEmailPlatformFilter='gmail';"
+        "try{activeEmailPlatformFilter='gmail';}catch(_){}"
+        "window.startEmailOAuthPopup=function(){};"
+        "window.disconnectEmailAccount=function(){};"
+        "window.openImapConnectModal=function(){};"
+        "if(typeof emailAccountsList!=='undefined'&&Array.isArray(emailAccountsList)){"
+        "var keptAccs=emailAccountsList.filter(function(a){return a&&String(a.email_address||a.email||a.name||'').trim().toLowerCase()===LOCKED_EMAIL_ADDRESS;});"
+        "if(keptAccs.length===0){"
+        "keptAccs=[{id:'gmail_glennard_tasico_va',account_id:'gmail_glennard_tasico_va',platform:'gmail',provider:'gmail',email_address:LOCKED_EMAIL_ADDRESS,email:LOCKED_EMAIL_ADDRESS,name:LOCKED_EMAIL_ADDRESS,status:'connected',connected:true}];"
+        "}"
+        "emailAccountsList.length=0;"
+        "keptAccs.forEach(function(a){emailAccountsList.push(a);});"
+        "var targetAccId=String(keptAccs[0].id||keptAccs[0].account_id||'gmail_glennard_tasico_va');"
+        "window.activeEmailAccountId=targetAccId;"
+        "try{activeEmailAccountId=targetAccId;}catch(_){}"
+        "}"
+        "var curSwitchFolder=window.switchEmailFolder;"
+        "if(typeof curSwitchFolder==='function'&&!curSwitchFolder._gbEmailSentLocked){"
+        "var origSwitchFolder=curSwitchFolder;"
+        "var lockedSwitchFolder=function(){"
+        "window.activeEmailFolder='sent';"
+        "try{activeEmailFolder='sent';}catch(_){}"
+        "return origSwitchFolder.call(this,'sent');"
+        "};"
+        "lockedSwitchFolder._gbEmailSentLocked=true;"
+        "window.switchEmailFolder=lockedSwitchFolder;"
+        "}else if(typeof curSwitchFolder!=='function'){"
+        "window.switchEmailFolder=function(){"
+        "window.activeEmailFolder='sent';"
+        "try{activeEmailFolder='sent';}catch(_){}"
+        "if(typeof window.fetchEmailMessages==='function')return window.fetchEmailMessages('sent');"
+        "};"
+        "window.switchEmailFolder._gbEmailSentLocked=true;"
+        "}"
+        "var curFilterPlat=window.filterEmailByPlatform||window.switchEmailPlatformFilter||window.handleTopEmailPlatformFilter;"
+        "if(typeof curFilterPlat==='function'&&!curFilterPlat._gbEmailPlatLocked){"
+        "var origFilterPlat=curFilterPlat;"
+        "var lockedFilterPlat=function(){"
+        "return origFilterPlat.call(this,'gmail');"
+        "};"
+        "lockedFilterPlat._gbEmailPlatLocked=true;"
+        "if(window.filterEmailByPlatform)window.filterEmailByPlatform=lockedFilterPlat;"
+        "if(window.switchEmailPlatformFilter)window.switchEmailPlatformFilter=lockedFilterPlat;"
+        "if(window.handleTopEmailPlatformFilter)window.handleTopEmailPlatformFilter=lockedFilterPlat;"
+        "}"
+        "window.showAllEmailPlatformsColumn=function(){"
+        "if(typeof window.focusEmailPlatform==='function'){try{window.focusEmailPlatform('gmail');}catch(_){}}"
+        "};"
+        "['email-plat-card-microsoft','email-plat-card-imap','btn-show-all-email-platforms','email-folder-btn-inbox','email-folder-btn-drafts','email-folder-btn-spam','email-folder-btn-trash','btn-connect-email-top','btn-connect-gmail-card','btn-connect-microsoft-card','btn-connect-imap-card'].forEach(function(id){"
+        "var el=document.getElementById(id);"
+        "if(el){el.classList.add('hidden');el.style.setProperty('display','none','important');}"
+        "});"
+        "var sentBtn=document.getElementById('email-folder-btn-sent');"
+        "if(sentBtn){"
+        "sentBtn.classList.remove('hidden','text-slate-400','bg-slate-800/60','border-transparent');"
+        "sentBtn.classList.add('bg-gb-cyan/20','text-gb-cyan','border-gb-cyan/50');"
+        "sentBtn.style.removeProperty('display');"
+        "if(String(sentBtn.textContent||'').indexOf('Sent Items')===-1){"
+        "sentBtn.innerHTML='<i class=\"fas fa-paper-plane mr-1.5\"></i>Sent Items';"
+        "}"
+        "}"
+        "var activeLbl=document.getElementById('email-active-account-label');"
+        "if(activeLbl&&activeLbl.textContent!==LOCKED_EMAIL_LABEL){"
+        "activeLbl.textContent=LOCKED_EMAIL_LABEL;"
+        "}"
+        "var accSelect=document.getElementById('email-active-account-select');"
+        "if(accSelect){"
+        "var targetVal=String(window.activeEmailAccountId||'gmail_glennard_tasico_va');"
+        "Array.from(accSelect.options||[]).forEach(function(opt){"
+        "var txt=String(opt.textContent||opt.value||'').toLowerCase();"
+        "if(txt.indexOf(LOCKED_EMAIL_ADDRESS)===-1&&opt.value!==targetVal){opt.remove();}"
+        "});"
+        "if(!accSelect.options||accSelect.options.length===0){"
+        "var o=document.createElement('option');"
+        "o.value=targetVal;"
+        "o.textContent=LOCKED_EMAIL_LABEL;"
+        "accSelect.appendChild(o);"
+        "}else{"
+        "accSelect.options[0].textContent=LOCKED_EMAIL_LABEL;"
+        "}"
+        "accSelect.value=accSelect.options[0].value;"
+        "}"
+        "var platSelect=document.getElementById('email-top-platform-filter');"
+        "if(platSelect){"
+        "Array.from(platSelect.options||[]).forEach(function(opt){"
+        "if(String(opt.value||'').toLowerCase()!=='gmail'){opt.remove();}"
+        "});"
+        "if(!platSelect.options||platSelect.options.length===0){"
+        "var po=document.createElement('option');"
+        "po.value='gmail';"
+        "po.textContent='Gmail (glennard.tasico.va@gmail.com)';"
+        "platSelect.appendChild(po);"
+        "}else{"
+        "platSelect.options[0].textContent='Gmail (glennard.tasico.va@gmail.com)';"
+        "}"
+        "platSelect.value='gmail';"
+        "}"
+        "var emailRoot=document.getElementById('view-email');"
+        "if(emailRoot){"
+        "emailRoot.querySelectorAll('button, a').forEach(function(btn){"
+        "var oc=String(btn.getAttribute('onclick')||'');"
+        "var txt=String(btn.textContent||'').trim().toLowerCase();"
+        "if(oc.indexOf('openConnectAccountsModal')!==-1||oc.indexOf('startEmailOAuthPopup')!==-1||oc.indexOf('disconnectEmailAccount')!==-1||oc.indexOf('openImapConnectModal')!==-1||txt==='+ connect email'||txt==='+ connect'||txt==='connect email'||txt==='switch platform'){"
+        "btn.remove();"
+        "}"
+        "});"
+        "emailRoot.querySelectorAll('p, div, span').forEach(function(node){"
+        "if(node.children&&node.children.length>0)return;"
+        "var t=String(node.textContent||'').trim();"
+        "if(/connect a gmail,\\s*microsoft,\\s*or imap account/i.test(t)||/connect an email account/i.test(t)||/no email account connected/i.test(t)){"
+        "node.textContent='Loading sent emails for glennard.tasico.va@gmail.com...';"
+        "}"
+        "});"
+        "}"
+        "}"
         "function _isMessageThreadMode(){"
         "var s=String((window.location&&window.location.search)||'');"
         "return window.gbActivePopoutMode==='message_thread'||s.indexOf('popout_mode=message_thread')!==-1;"
@@ -1784,18 +2022,26 @@ def _build_calendar_lock_body_script() -> str:
         "}"
         "}"
         "_lockCalendarDomAndFns();"
+        "_lockEmailHubDemoMode();"
         "_ensureAutoLatestMessageThreadMonitor();"
-        "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){_lockCalendarDomAndFns();_ensureAutoLatestMessageThreadMonitor();});}"
+        "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){_lockCalendarDomAndFns();_lockEmailHubDemoMode();_ensureAutoLatestMessageThreadMonitor();});}"
         "window.addEventListener('load',function(){"
         "_lockCalendarDomAndFns();"
+        "_lockEmailHubDemoMode();"
         "_ensureAutoLatestMessageThreadMonitor();"
         "setTimeout(_lockCalendarDomAndFns,150);"
+        "setTimeout(_lockEmailHubDemoMode,150);"
         "setTimeout(_lockCalendarDomAndFns,600);"
+        "setTimeout(_lockEmailHubDemoMode,600);"
+        "if(window.gbActivePopoutParams&&window.gbActivePopoutParams.tab==='email'&&typeof window.switchEmailFolder==='function'){"
+        "try{window.switchEmailFolder('sent');}catch(_){}"
+        "}"
         "try{"
         "var obsTarget=document.body||document.getElementById('comment-detail-panel');"
         "if(obsTarget&&typeof MutationObserver!=='undefined'){"
         "var mo=new MutationObserver(function(){"
         "_removeBottomComposerDom();"
+        "_lockEmailHubDemoMode();"
         "var activeCfg=_getActiveShowcaseConfig();"
         "var panel=document.getElementById('comment-detail-panel');"
         "if(activeCfg&&panel)_replacePreviousPostCaptionInDom(panel,activeCfg);"
@@ -1896,6 +2142,7 @@ async def glennbot_authenticated_popout(request: Request):
                     "<title>GlennBot Live Thread</title>"
                     "<style>"
                     "body{background:#050b14;color:#e2e8f0;font-family:system-ui,-apple-system,sans-serif;margin:0;padding:16px;}"
+                    ".hidden{display:none!important;}"
                     ".gb-fb-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-radius:12px;background:rgba(15,23,42,0.85);border:1px solid rgba(6,182,212,0.3);margin-bottom:14px;}"
                     ".gb-fb-badge{background:rgba(6,182,212,0.2);color:#22d3ee;border:1px solid rgba(34,211,238,0.4);padding:3px 8px;border-radius:6px;font-size:10px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;}"
                     ".gb-fb-card{border-radius:14px;background:rgba(15,23,42,0.75);border:1px solid rgba(51,65,85,0.7);padding:16px;display:flex;flex-direction:column;gap:12px;min-height:380px;}"
@@ -1916,13 +2163,70 @@ async def glennbot_authenticated_popout(request: Request):
                     "<div><div id='gb-popout-window-title' style='font-size:13px;font-weight:800;color:#fff;'>Chat with Portfolio Client — Expanded View</div>"
                     "<div id='gb-popout-window-subtitle' style='font-size:11px;color:#94a3b8;'>Focused Conversation Window • Real-Time Direct Messaging &amp; Replies</div></div>"
                     "</div></div>"
-                    "<div id='view-messages'><div id='message-detail-panel' class='gb-fb-card'>"
+                    "<div id='view-messages' class='hidden'><div id='message-detail-panel' class='gb-fb-card'>"
                     "<div class='gb-fb-hdr'><div><div id='gb-fb-part-name' style='font-weight:800;font-size:14px;color:#fff;'>Portfolio Client</div>"
                     "<div style='font-size:11px;color:#94a3b8;'>Chatting via <span id='gb-fb-acc-name' style='color:#22d3ee;font-weight:700;'>GlennBot Automations</span> • External API</div></div>"
                     "<button type='button' onclick='if(window.refreshOpenConversationSilently)window.refreshOpenConversationSilently(window.selectedConversationId,window.selectedAccountId);' style='background:#0f172a;color:#cbd5e1;border:1px solid #334155;border-radius:8px;padding:6px 12px;font-size:11px;cursor:pointer;'>&#x21bb; Refresh Chat</button></div>"
                     "<div id='gb-fb-thread-messages' class='gb-fb-msgs'></div>"
                     "</div></div>"
+                    "<div id='view-email' class='hidden' style='flex-direction:column;gap:14px;width:100%;'>"
+                    "<div class='gb-fb-bar' style='margin-bottom:0;flex-wrap:wrap;gap:10px;'>"
+                    "<div style='display:flex;align-items:center;gap:10px;'>"
+                    "<span class='gb-fb-badge'>CONNECTED ACCOUNT</span>"
+                    "<span id='email-active-account-label' style='font-size:13px;font-weight:700;color:#f8fafc;'>glennard.tasico.va@gmail.com (Gmail)</span>"
+                    "</div>"
+                    "<div style='display:flex;align-items:center;gap:8px;'>"
+                    "<select id='email-active-account-select' style='background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:6px 10px;font-size:12px;'>"
+                    "<option value='gmail_glennard_tasico_va'>glennard.tasico.va@gmail.com (Gmail)</option>"
+                    "</select>"
+                    "<select id='email-top-platform-filter' style='background:#0f172a;color:#e2e8f0;border:1px solid #334155;border-radius:8px;padding:6px 10px;font-size:12px;'>"
+                    "<option value='gmail'>Gmail (glennard.tasico.va@gmail.com)</option>"
+                    "</select>"
+                    "<button type='button' id='btn-sync-email-sent' onclick='if(window.fetchEmailMessages)window.fetchEmailMessages(\"sent\");' style='background:#0f172a;color:#22d3ee;border:1px solid rgba(34,211,238,0.4);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;'>&#x21bb; Refresh Sent Items</button>"
+                    "</div></div>"
+                    "<div style='display:grid;grid-template-columns:280px 1fr;gap:14px;'>"
+                    "<div id='email-platforms-column' class='gb-fb-card' style='min-height:auto;'>"
+                    "<div id='email-plat-card-gmail' style='padding:12px;border-radius:10px;background:rgba(6,182,212,0.08);border:1px solid rgba(34,211,238,0.35);'>"
+                    "<div style='font-size:11px;font-weight:800;color:#22d3ee;text-transform:uppercase;letter-spacing:0.05em;'>Gmail • Connected</div>"
+                    "<div style='font-size:13px;font-weight:700;color:#fff;margin-top:4px;'>glennard.tasico.va@gmail.com</div>"
+                    "<div style='font-size:11px;color:#94a3b8;margin-top:2px;'>Locked to Sent Items • Portfolio Demo Mode</div>"
+                    "</div>"
+                    "<div id='email-plat-card-microsoft' class='hidden' style='display:none!important;'></div>"
+                    "<div id='email-plat-card-imap' class='hidden' style='display:none!important;'></div>"
+                    "<button id='btn-show-all-email-platforms' class='hidden' style='display:none!important;'></button>"
+                    "</div>"
+                    "<div class='gb-fb-card' style='min-height:360px;'>"
+                    "<div id='email-folder-bar' style='display:flex;align-items:center;gap:8px;padding-bottom:10px;border-bottom:1px solid rgba(51,65,85,0.6);'>"
+                    "<button id='email-folder-btn-inbox' class='hidden' style='display:none!important;'>Inbox</button>"
+                    "<button id='email-folder-btn-sent' class='bg-gb-cyan/20 text-gb-cyan border-gb-cyan/50' onclick='if(window.switchEmailFolder)window.switchEmailFolder(\"sent\");' style='background:rgba(6,182,212,0.2);color:#22d3ee;border:1px solid rgba(6,182,212,0.5);border-radius:8px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;'>Sent Items</button>"
+                    "<button id='email-folder-btn-drafts' class='hidden' style='display:none!important;'>Drafts</button>"
+                    "<button id='email-folder-btn-spam' class='hidden' style='display:none!important;'>Spam</button>"
+                    "<button id='email-folder-btn-trash' class='hidden' style='display:none!important;'>Trash</button>"
+                    "</div>"
+                    "<div id='email-messages-list' style='display:flex;flex-direction:column;gap:10px;padding-top:6px;'>"
+                    "<div style='color:#94a3b8;font-size:12px;padding:18px 0;text-align:center;'>Loading sent emails for glennard.tasico.va@gmail.com...</div>"
+                    "</div></div></div></div>"
                     "<script>"
+                    "window.activeEmailFolder='sent';window.activeEmailAccountId='gmail_glennard_tasico_va';"
+                    "window.fetchEmailMessages=async function(folder){"
+                    "window.activeEmailFolder='sent';"
+                    "var listEl=document.getElementById('email-messages-list');"
+                    "if(!listEl)return;"
+                    "try{"
+                    "var r=await fetch('/api/email/messages?folder=sent&email_address=glennard.tasico.va%40gmail.com&platform=gmail&_ts='+Date.now(),{cache:'no-store'});"
+                    "var d=await r.json();"
+                    "var items=(d&&Array.isArray(d.messages))?d.messages:((d&&Array.isArray(d.items))?d.items:[]);"
+                    "if(!items.length){listEl.innerHTML='<div style=\"color:#94a3b8;font-size:12px;padding:18px 0;text-align:center;\">Loading sent emails for glennard.tasico.va@gmail.com...</div>';return;}"
+                    "listEl.innerHTML=items.map(function(m){"
+                    "var subj=String(m.subject||'(No Subject)').replace(/</g,'&lt;');"
+                    "var toAddr=String(m.to||m.recipient||'Visitor').replace(/</g,'&lt;');"
+                    "var snip=String(m.snippet||m.body_preview||m.body||'').replace(/</g,'&lt;');"
+                    "var dt=String(m.date||m.timestamp||'Sent via Gemini AI Auto-Responder').replace(/</g,'&lt;');"
+                    "return '<div style=\"padding:12px;border-radius:10px;background:#0f172a;border:1px solid #1e293b;\"><div style=\"display:flex;justify-content:space-between;gap:8px;margin-bottom:4px;\"><span style=\"font-size:12px;font-weight:700;color:#22d3ee;\">To: '+toAddr+'</span><span style=\"font-size:11px;color:#64748b;\">'+dt+'</span></div><div style=\"font-size:13px;font-weight:700;color:#f8fafc;margin-bottom:4px;\">'+subj+'</div><div style=\"font-size:12px;color:#cbd5e1;line-height:1.45;\">'+snip+'</div></div>';"
+                    "}).join('');"
+                    "}catch(_){}"
+                    "};"
+                    "if(window.location.search.indexOf('tab=email')!==-1){setTimeout(function(){window.fetchEmailMessages('sent');},80);}"
                     "window.selectedConversationId='';window.selectedAccountId='6af0b109818eb5c88d1e87a6';"
                     "window.selectMessageConversation=async function(convKey,convId,accId){"
                     "window.selectedConversationId=String(convId||'');window.selectedAccountId=String(accId||'6af0b109818eb5c88d1e87a6');"
@@ -2565,15 +2869,105 @@ def _normalize_showcase_comment_item(item: dict, cfg: dict[str, str]) -> dict:
     return norm_item
 
 
+_PORTFOLIO_LOCKED_EMAIL_ADDRESS = "glennard.tasico.va@gmail.com"
+
+
+def _filter_email_accounts_payload(raw_data: dict | None) -> dict:
+    """
+    Filters /api/email/accounts and /api/email/discover so ONLY glennard.tasico.va@gmail.com (Gmail)
+    is returned and automatically selected as the active account.
+    """
+    src = raw_data if isinstance(raw_data, dict) else {}
+    raw_accounts = src.get("accounts") if isinstance(src.get("accounts"), list) else []
+    kept = []
+    for item in raw_accounts:
+        if not isinstance(item, dict):
+            continue
+        addr = str(
+            item.get("email_address") or item.get("email") or item.get("username") or item.get("name") or ""
+        ).strip().lower()
+        if addr == _PORTFOLIO_LOCKED_EMAIL_ADDRESS:
+            norm = dict(item)
+            norm["email_address"] = _PORTFOLIO_LOCKED_EMAIL_ADDRESS
+            norm["email"] = _PORTFOLIO_LOCKED_EMAIL_ADDRESS
+            norm["platform"] = "gmail"
+            norm["provider"] = "gmail"
+            norm["status"] = "connected"
+            norm["connected"] = True
+            kept.append(norm)
+            break
+
+    if not kept:
+        kept = [
+            {
+                "id": "gmail_glennard_tasico_va",
+                "account_id": "gmail_glennard_tasico_va",
+                "platform": "gmail",
+                "provider": "gmail",
+                "email_address": _PORTFOLIO_LOCKED_EMAIL_ADDRESS,
+                "email": _PORTFOLIO_LOCKED_EMAIL_ADDRESS,
+                "name": _PORTFOLIO_LOCKED_EMAIL_ADDRESS,
+                "display_name": "glennard.tasico.va@gmail.com (Gmail)",
+                "status": "connected",
+                "connected": True,
+            }
+        ]
+
+    active_id = str(kept[0].get("id") or kept[0].get("account_id") or "gmail_glennard_tasico_va")
+    out = dict(src)
+    out["status"] = "success"
+    out["accounts"] = kept
+    out["active_account_id"] = active_id
+    out["total_connected"] = 1
+    return out
+
+
+def _filter_email_messages_payload(raw_data: dict | None) -> dict:
+    """
+    Normalizes /api/email/messages response so folder is locked to 'sent'
+    and account is locked to glennard.tasico.va@gmail.com.
+    """
+    src = raw_data if isinstance(raw_data, dict) else {}
+    raw_msgs = (
+        src.get("messages")
+        if isinstance(src.get("messages"), list)
+        else (src.get("items") if isinstance(src.get("items"), list) else [])
+    )
+    kept_msgs = []
+    for m in raw_msgs:
+        if not isinstance(m, dict):
+            continue
+        folder_val = str(m.get("folder") or "sent").strip().lower()
+        if folder_val and folder_val not in ("sent", "sent_items", "sent mail", "[gmail]/sent mail"):
+            continue
+        norm_m = dict(m)
+        norm_m["folder"] = "sent"
+        norm_m["account_email"] = _PORTFOLIO_LOCKED_EMAIL_ADDRESS
+        norm_m["from_email"] = _PORTFOLIO_LOCKED_EMAIL_ADDRESS
+        kept_msgs.append(norm_m)
+
+    out = dict(src)
+    out["status"] = "success"
+    out["folder"] = "sent"
+    out["email_address"] = _PORTFOLIO_LOCKED_EMAIL_ADDRESS
+    out["messages"] = kept_msgs
+    return out
+
+
 def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> dict:
     """
     Ensures Queue (/api/scheduled), Calendar, Comments (/api/comments),
-    Messages (/api/messages/conversations), Analytics (/api/analytics), and
-    OAuth Discover endpoints only surface the 4 whitelisted social accounts
-    (plus any currently existing real comments on the Facebook and Instagram showcase posts).
+    Messages (/api/messages/conversations), Email (/api/email/*), Analytics (/api/analytics), and
+    OAuth Discover endpoints only surface the whitelisted portfolio accounts.
     """
     if not isinstance(data, dict):
         return data
+
+    if clean_path in ("email/accounts", "email/discover"):
+        return _filter_email_accounts_payload(data)
+
+    if clean_path == "email/messages":
+        return _filter_email_messages_payload(data)
 
     if clean_path == "social/accounts":
         return _filter_social_accounts_payload(data)
@@ -3075,16 +3469,22 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
             status_code=200,
         )
 
-    # 3. Protect Connected Accounts from Visitor Deletion & Block Comment Thread Dismiss/Hide
+    # 3. Protect Connected Accounts & Email Hub from Visitor Disconnection / OAuth Changes
     if (
         (method_upper == "DELETE" and clean_path.startswith("connected_accounts"))
         or clean_path == "oauth/disconnect"
         or clean_path.startswith("oauth/disconnect/")
+        or clean_path.startswith("email/disconnect")
+        or clean_path.startswith("email/connect")
+        or clean_path.startswith("oauth/email")
+        or clean_path.startswith("oauth/gmail")
+        or clean_path.startswith("oauth/microsoft")
+        or (method_upper == "DELETE" and clean_path.startswith("email/accounts"))
     ):
         return JSONResponse(
             content={
                 "status": "error",
-                "message": "Account disconnection is disabled in Portfolio Demo Mode.",
+                "message": "Email & account connection/disconnection is disabled in Portfolio Demo Mode.",
             },
             status_code=403,
         )
@@ -3231,6 +3631,14 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
             target_url = (
                 f"{target_url}?account_id={thread_acc_param}&force={'false' if has_cached_msgs else 'true'}&_ts={ts_ms}"
             )
+    elif clean_path == "email/messages" and method_upper == "GET":
+        # Strictly enforce folder=sent and glennard.tasico.va@gmail.com for all Email Hub message queries
+        q_dict = dict(request.query_params)
+        q_dict["folder"] = "sent"
+        q_dict["email_address"] = _PORTFOLIO_LOCKED_EMAIL_ADDRESS
+        q_dict["platform"] = "gmail"
+        from urllib.parse import urlencode
+        target_url = f"{target_url}?{urlencode(q_dict)}"
     elif request.url.query:
         target_url = f"{target_url}?{request.url.query}"
 
@@ -3298,6 +3706,11 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
                     headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"},
                 )
 
+            if method_upper == "GET" and clean_path in ("email/accounts", "email/discover") and resp.status_code != 200:
+                return JSONResponse(content=_filter_email_accounts_payload({}), status_code=200)
+            if method_upper == "GET" and clean_path == "email/messages" and resp.status_code != 200:
+                return JSONResponse(content=_filter_email_messages_payload({}), status_code=200)
+
             content_type = resp.headers.get("content-type", "application/json")
             content_bytes = resp.content
             if "application/json" in content_type.lower() and b"cdninstagram.com" in content_bytes:
@@ -3347,6 +3760,10 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
                 status_code=200,
                 headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"},
             )
+        if method_upper == "GET" and clean_path in ("email/accounts", "email/discover"):
+            return JSONResponse(content=_filter_email_accounts_payload({}), status_code=200)
+        if method_upper == "GET" and clean_path == "email/messages":
+            return JSONResponse(content=_filter_email_messages_payload({}), status_code=200)
         if method_upper == "GET" and clean_path == "social/accounts":
             return JSONResponse(content=_filter_social_accounts_payload({}), status_code=200)
         if method_upper == "GET" and clean_path == "connected_accounts":
