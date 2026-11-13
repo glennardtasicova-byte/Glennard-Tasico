@@ -2877,6 +2877,7 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
 .fa-plus-circle::before { content: "＋"; }
 .fa-hand-point-left::before { content: "👈"; }
 .fa-external-link-alt::before { content: "↗"; }
+.fa-envelope-open-text::before { content: "✉️"; }
 
 .gb-text-blue { color: #60a5fa; }
 .gb-text-pink { color: #f472b6; }
@@ -6499,6 +6500,267 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   color: #065f46;
   background: #f0fdf4;
   border-color: #16a34a;
+}
+
+/* ==========================================================================
+   AI Email Chatbot Popup Modal (#gb-email-direct-modal) — Cyan-Blue Accent
+   ========================================================================== */
+.gb-email-direct-dialog {
+  max-width: 640px;
+  max-height: 92vh;
+  overflow-y: auto;
+  border-color: rgba(6, 182, 212, 0.45);
+  box-shadow: 0 24px 64px rgba(2, 6, 23, 0.85), 0 0 36px rgba(6, 182, 212, 0.16);
+}
+
+[data-theme="light"] .gb-email-direct-dialog {
+  border-color: #0ea5e9;
+  box-shadow: 0 22px 54px rgba(15, 23, 42, 0.22);
+}
+
+.gb-email-direct-header {
+  background: linear-gradient(90deg, rgba(8, 51, 68, 0.88) 0%, rgba(15, 23, 42, 0.96) 100%);
+  border-bottom: 1px solid rgba(34, 211, 238, 0.35);
+}
+
+[data-theme="light"] .gb-email-direct-header {
+  background: linear-gradient(90deg, #e0f2fe 0%, #f0f9ff 100%);
+  border-bottom-color: #7dd3fc;
+}
+
+.gb-email-direct-emblem {
+  background: linear-gradient(135deg, #06b6d4 0%, #2563eb 100%);
+  box-shadow: 0 6px 18px rgba(6, 182, 212, 0.4);
+}
+
+.gb-email-online-dot,
+.gb-email-status-indicator {
+  background: #22d3ee;
+  box-shadow: 0 0 8px #22d3ee;
+}
+
+.gb-email-eyebrow-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  align-self: flex-start;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(6, 182, 212, 0.16);
+  border: 1px solid rgba(34, 211, 238, 0.45);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #67e8f9;
+}
+
+[data-theme="light"] .gb-email-eyebrow-badge {
+  background: #bae6fd;
+  border-color: #0284c7;
+  color: #075985;
+}
+
+.gb-email-recipient-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(8, 47, 73, 0.55);
+  border: 1px solid rgba(34, 211, 238, 0.42);
+}
+
+[data-theme="light"] .gb-email-recipient-card {
+  background: #f0f9ff;
+  border-color: #38bdf8;
+}
+
+.gb-email-recipient-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.gb-email-recipient-label {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+
+.gb-email-target-address {
+  font-family: var(--font-mono);
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #67e8f9;
+  word-break: break-all;
+}
+
+[data-theme="light"] .gb-email-target-address {
+  color: #0369a1;
+}
+
+.gb-email-copy-btn {
+  padding: 6px 12px;
+  font-size: 0.74rem;
+  color: #cffafe;
+  border-color: rgba(34, 211, 238, 0.5);
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.gb-email-copy-btn:hover {
+  background: rgba(6, 182, 212, 0.25);
+  border-color: #22d3ee;
+  color: #ffffff;
+}
+
+.gb-email-pipeline-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(56, 189, 248, 0.28);
+}
+
+[data-theme="light"] .gb-email-pipeline-box {
+  background: #f8fafc;
+  border-color: #bae6fd;
+}
+
+.gb-email-section-label {
+  color: #38bdf8;
+}
+
+[data-theme="light"] .gb-email-section-label {
+  color: #0369a1;
+}
+
+.gb-email-pipeline-steps {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: #cbd5e1;
+}
+
+[data-theme="light"] .gb-email-pipeline-steps {
+  color: #334155;
+}
+
+.gb-email-pipeline-steps code {
+  font-family: var(--font-mono);
+  font-size: 0.71rem;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(6, 182, 212, 0.14);
+  color: #67e8f9;
+}
+
+[data-theme="light"] .gb-email-pipeline-steps code {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.gb-email-starter-chip {
+  border-color: rgba(34, 211, 238, 0.35);
+}
+
+.gb-email-starter-chip:hover {
+  background: rgba(8, 51, 68, 0.72);
+  border-color: #22d3ee;
+}
+
+[data-theme="light"] .gb-email-starter-chip {
+  background: #f0f9ff;
+  border-color: #7dd3fc;
+}
+
+.gb-email-composer-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.gb-email-subject-input {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: rgba(2, 6, 23, 0.88);
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  color: #f8fafc;
+  font-family: var(--font-sans);
+  font-size: 0.83rem;
+  font-weight: 600;
+  outline: none;
+}
+
+.gb-email-subject-input:focus,
+.gb-email-body-textarea:focus {
+  border-color: #22d3ee;
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.22);
+}
+
+[data-theme="light"] .gb-email-subject-input {
+  background: #ffffff;
+  border-color: #0ea5e9;
+  color: #0f172a;
+}
+
+.gb-email-body-textarea {
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+.gb-email-btn-primary {
+  color: #041d29;
+  background: linear-gradient(90deg, #06b6d4 0%, #38bdf8 100%);
+  border-color: #67e8f9;
+  box-shadow: 0 6px 18px rgba(6, 182, 212, 0.34);
+}
+
+.gb-email-btn-primary:hover {
+  box-shadow: 0 8px 22px rgba(6, 182, 212, 0.48);
+}
+
+.gb-email-secondary-actions-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+@media (min-width: 560px) {
+  .gb-email-secondary-actions-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.gb-email-btn-secondary,
+.gb-email-btn-dashboard {
+  color: #cffafe;
+  border-color: rgba(34, 211, 238, 0.45);
+}
+
+.gb-email-btn-secondary:hover,
+.gb-email-btn-dashboard:hover {
+  background: rgba(8, 51, 68, 0.72);
+  border-color: #22d3ee;
+  color: #ffffff;
+}
+
+[data-theme="light"] .gb-email-btn-secondary,
+[data-theme="light"] .gb-email-btn-dashboard {
+  color: #075985;
+  background: #f0f9ff;
+  border-color: #0284c7;
 }
 
 

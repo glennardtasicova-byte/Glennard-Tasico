@@ -929,4 +929,60 @@ export function filterPortfolioCommentsList(comments = []) {
   return kept;
 }
 
+export const SYS02_EMAIL_CHATBOT_CONFIG = {
+  modalId: "gb-email-direct-modal",
+  targetEmail: "glennard.tasico.va@gmail.com",
+  headerBadge: "LIVE AI EMAIL AUTO-RESPONDER • GEMINI + GOOGLE DRIVE EXCEL SYNC",
+  title: "📧 Test My Live AI Email Chatbot",
+  copyBtnText: "📋 Copy Email",
+  copiedBtnText: "✅ Copied glennard.tasico.va@gmail.com!",
+  promptChips: [
+    {
+      label: "🤖 Ask about AI & n8n Automations",
+      subject: "Inquiry: AI & n8n Automation Workflows",
+      body: "Hi Glennard! Can you build custom webhooks, n8n workflows, and AI chatbots for my business?",
+    },
+    {
+      label: "💼 Ask about VA Rates & Availability",
+      subject: "Inquiry: Virtual Assistant Services & Availability",
+      body: "Hi Glennard! What Virtual Assistant services do you offer and what is your current availability?",
+    },
+    {
+      label: "🌐 Ask about Web Apps & Dashboards",
+      subject: "Inquiry: Custom Web App & CRM Dashboard",
+      body: "Hi Glennard! Tell me more about your GlennBot Automations dashboard and custom web app projects.",
+    },
+  ],
+};
+
+export function buildGmailComposeUrl(
+  subject = SYS02_EMAIL_CHATBOT_CONFIG.promptChips[0].subject,
+  body = SYS02_EMAIL_CHATBOT_CONFIG.promptChips[0].body,
+  toEmail = SYS02_EMAIL_CHATBOT_CONFIG.targetEmail
+) {
+  const cleanTo = String(toEmail || SYS02_EMAIL_CHATBOT_CONFIG.targetEmail).trim();
+  const cleanSubject =
+    String(subject || "").trim() || SYS02_EMAIL_CHATBOT_CONFIG.promptChips[0].subject;
+  const cleanBody =
+    String(body || "").trim() || SYS02_EMAIL_CHATBOT_CONFIG.promptChips[0].body;
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
+    cleanTo
+  )}&su=${encodeURIComponent(cleanSubject)}&body=${encodeURIComponent(cleanBody)}`;
+}
+
+export function buildGlennBotMailtoUrl(
+  subject = SYS02_EMAIL_CHATBOT_CONFIG.promptChips[0].subject,
+  body = SYS02_EMAIL_CHATBOT_CONFIG.promptChips[0].body,
+  toEmail = SYS02_EMAIL_CHATBOT_CONFIG.targetEmail
+) {
+  const cleanTo = String(toEmail || SYS02_EMAIL_CHATBOT_CONFIG.targetEmail).trim();
+  const cleanSubject =
+    String(subject || "").trim() || SYS02_EMAIL_CHATBOT_CONFIG.promptChips[0].subject;
+  const cleanBody =
+    String(body || "").trim() || SYS02_EMAIL_CHATBOT_CONFIG.promptChips[0].body;
+  return `mailto:${cleanTo}?subject=${encodeURIComponent(
+    cleanSubject
+  )}&body=${encodeURIComponent(cleanBody)}`;
+}
+
 

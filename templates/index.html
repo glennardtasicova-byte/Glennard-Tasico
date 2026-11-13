@@ -665,9 +665,10 @@
                 </button>
                 <button
                   type="button"
-                  class="btn-sys01-popout btn-live-launcher"
-                  onclick="event.stopPropagation(); openGlennBotLivePopup('email');"
-                  title="Open Multi-Account Email Hub Expanded View"
+                  id="gb-project2-send-email-btn"
+                  class="btn-sys01-popout btn-live-launcher btn-sys02-email"
+                  onclick="event.stopPropagation(); openEmailInteractivePopup();"
+                  title="Test the Live AI Email Auto-Responder (Gemini + Google Drive Excel Sync)"
                 >
                   <span>📧 Send an Email</span>
                 </button>
@@ -1354,6 +1355,170 @@
           >
             <span>📱 Open in WhatsApp App / Web (+63 917 549 7760) &#8599;</span>
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive AI Email Chatbot Popup Modal (glennard.tasico.va@gmail.com • Gemini + Google Drive Excel Sync) -->
+  <div id="gb-email-direct-modal" class="gb-comment-chooser-backdrop gb-wa-direct-backdrop gb-email-direct-backdrop" role="dialog" aria-modal="true" aria-labelledby="gb-email-direct-title" hidden>
+    <div class="gb-wa-direct-dialog gb-email-direct-dialog" onclick="event.stopPropagation();">
+      <!-- Email Header -->
+      <div class="gb-wa-direct-header gb-email-direct-header">
+        <div class="gb-wa-direct-identity">
+          <div class="gb-wa-direct-emblem gb-email-direct-emblem" aria-hidden="true">
+            <i class="fas fa-envelope-open-text"></i>
+            <span class="gb-wa-online-dot gb-email-online-dot"></span>
+          </div>
+          <div class="gb-wa-direct-meta">
+            <div class="gb-email-eyebrow-badge">
+              <span class="gb-wa-status-indicator gb-email-status-indicator"></span>
+              <span>LIVE AI EMAIL AUTO-RESPONDER &bull; GEMINI + GOOGLE DRIVE EXCEL SYNC</span>
+            </div>
+            <div class="gb-wa-direct-name-row">
+              <h3 id="gb-email-direct-title" class="gb-wa-direct-name">📧 Test My Live AI Email Chatbot</h3>
+            </div>
+            <p class="gb-wa-direct-status">
+              Send any question to <strong>glennard.tasico.va@gmail.com</strong> (in English, Tagalog, or Taglish) about Virtual Assistant services, n8n/Python automation workflows, pricing, availability, or custom web apps.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          class="gb-comment-chooser-close gb-wa-direct-close"
+          onclick="closeEmailInteractivePopup()"
+          aria-label="Close AI Email Chatbot Popup"
+        >
+          <span>&times;</span>
+        </button>
+      </div>
+
+      <!-- Email Body -->
+      <div class="gb-wa-direct-body gb-email-direct-body">
+        <!-- Recipient Email Card & 1-Click Copy Button -->
+        <div class="gb-email-recipient-card">
+          <div class="gb-email-recipient-info">
+            <span class="gb-email-recipient-label">RECIPIENT AI INBOX ADDRESS:</span>
+            <code id="gb-email-target-address" class="gb-email-target-address">glennard.tasico.va@gmail.com</code>
+          </div>
+          <button
+            type="button"
+            id="gb-email-copy-btn"
+            class="gb-wa-copy-btn gb-email-copy-btn"
+            onclick="copyGlennBotEmailAddress()"
+            aria-label="Copy email address glennard.tasico.va@gmail.com"
+          >
+            <span id="gb-email-copy-btn-label">📋 Copy Email</span>
+          </button>
+        </div>
+
+        <!-- Behind-the-Scenes Automation Pipeline Explanation -->
+        <div class="gb-email-pipeline-box">
+          <span class="gb-wa-section-label gb-email-section-label">⚙️ How This Automation Works Behind the Scenes:</span>
+          <ol class="gb-email-pipeline-steps">
+            <li>
+              <strong>Webhook Trigger:</strong> Every incoming email to <code>glennard.tasico.va@gmail.com</code> automatically triggers the GlennBot Automations webhook (<code>email.received</code>).
+            </li>
+            <li>
+              <strong>Inbound Excel Logging:</strong> Logs the sender's email message into <code>Conversations.xlsx (Sheet3)</code> inside the Files modal (synced live with Google Drive).
+            </li>
+            <li>
+              <strong>Script.xlsx + Gemini AI Formal Reply:</strong> Checks <code>Script.xlsx</code> (Column A keywords &amp; phrases &rarr; Column B knowledge base details) and uses <strong>Gemini AI</strong> to craft a custom response in the sender's language formatted as a formal email starting with <code>Dear [Sender Name],</code> and ending with <code>Regards, / Glennard</code>.
+            </li>
+            <li>
+              <strong>Auto-Dispatch &amp; Outbound Sync:</strong> Sends the reply back to your inbox automatically and logs the AI's email reply back into <code>Conversations.xlsx (Sheet3)</code>.
+            </li>
+          </ol>
+        </div>
+
+        <!-- Interactive Sample Subject & Question Picker -->
+        <div class="gb-wa-starter-section">
+          <span class="gb-wa-section-label gb-email-section-label">⚡ Quick-Prompt Question Chips (Click to populate Subject &amp; Message):</span>
+          <div class="gb-wa-starter-chips gb-email-starter-chips">
+            <button
+              type="button"
+              class="gb-wa-starter-chip gb-email-starter-chip"
+              data-email-subject="Inquiry: AI & n8n Automation Workflows"
+              data-email-body="Hi Glennard! Can you build custom webhooks, n8n workflows, and AI chatbots for my business?"
+              onclick="selectEmailPromptChip(this.getAttribute('data-email-subject'), this.getAttribute('data-email-body'))"
+            >
+              <span>🤖 Ask about AI &amp; n8n Automations</span>
+            </button>
+            <button
+              type="button"
+              class="gb-wa-starter-chip gb-email-starter-chip"
+              data-email-subject="Inquiry: Virtual Assistant Services & Availability"
+              data-email-body="Hi Glennard! What Virtual Assistant services do you offer and what is your current availability?"
+              onclick="selectEmailPromptChip(this.getAttribute('data-email-subject'), this.getAttribute('data-email-body'))"
+            >
+              <span>💼 Ask about VA Rates &amp; Availability</span>
+            </button>
+            <button
+              type="button"
+              class="gb-wa-starter-chip gb-email-starter-chip"
+              data-email-subject="Inquiry: Custom Web App & CRM Dashboard"
+              data-email-body="Hi Glennard! Tell me more about your GlennBot Automations dashboard and custom web app projects."
+              onclick="selectEmailPromptChip(this.getAttribute('data-email-subject'), this.getAttribute('data-email-body'))"
+            >
+              <span>🌐 Ask about Web Apps &amp; Dashboards</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Editable Subject & Message Composer -->
+        <div class="gb-email-composer-grid">
+          <div class="gb-wa-composer-field">
+            <label for="gb-email-custom-subject" class="gb-wa-section-label gb-email-section-label">Subject:</label>
+            <input
+              type="text"
+              id="gb-email-custom-subject"
+              class="gb-email-subject-input"
+              value="Inquiry: AI &amp; n8n Automation Workflows"
+              placeholder="Enter email subject..."
+            />
+          </div>
+
+          <div class="gb-wa-composer-field">
+            <label for="gb-email-custom-body" class="gb-wa-section-label gb-email-section-label">Your Question / Message:</label>
+            <textarea
+              id="gb-email-custom-body"
+              class="gb-wa-message-textarea gb-email-body-textarea"
+              rows="3"
+              placeholder="Ask any question in English, Tagalog, or Taglish..."
+            >Hi Glennard! Can you build custom webhooks, n8n workflows, and AI chatbots for my business?</textarea>
+          </div>
+        </div>
+
+        <!-- Action Buttons in Footer -->
+        <div class="gb-wa-actions-stack gb-email-actions-stack">
+          <button
+            type="button"
+            id="gb-email-gmail-compose-btn"
+            class="gb-wa-btn-primary gb-email-btn-primary"
+            onclick="launchGlennBotGmailCompose()"
+          >
+            <span>🚀 Open in Gmail Compose (Web)</span>
+          </button>
+
+          <div class="gb-email-secondary-actions-row">
+            <button
+              type="button"
+              id="gb-email-mailto-btn"
+              class="gb-wa-btn-secondary gb-email-btn-secondary"
+              onclick="launchGlennBotMailto()"
+            >
+              <span>📨 Open Default Mail App (mailto:)</span>
+            </button>
+
+            <button
+              type="button"
+              id="gb-email-live-dashboard-btn"
+              class="gb-wa-btn-secondary gb-email-btn-dashboard"
+              onclick="closeEmailInteractivePopup(); openGlennBotLivePopup('email');"
+            >
+              <span>📊 View Live Email Hub Dashboard</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

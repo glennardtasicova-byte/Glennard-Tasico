@@ -5,9 +5,12 @@ import {
   SYS01_PROJECT_SPEC,
   SYS02_SAVVY_FINDS_COMMENT_DEMO,
   SYS02_DM_SHOWCASE_CONFIG,
+  SYS02_EMAIL_CHATBOT_CONFIG,
   buildCommentSplitWorkspaceConfig,
   buildDmSplitWorkspaceConfig,
   buildGlennBotExpandedUrl,
+  buildGlennBotMailtoUrl,
+  buildGmailComposeUrl,
   buildInstantPopoutStyleTag,
   buildPortfolioLiveDmPayload,
   buildSavvyFindsRoleReversalWebhookPayload,
@@ -617,6 +620,50 @@ test("SYS-02 Send a DM Idea B (Interactive In-Portfolio Facebook Messenger Clien
     "wa_live_custom123"
   );
   assert.equal(waShortPrefixCfg.sessionConvId, "wa_live_custom123");
+});
+
+test("SYS-02 AI Email Chatbot Popup Modal (#gb-email-direct-modal) config, prompt chips, and Gmail/Mailto URL builders", () => {
+  assert.equal(SYS02_EMAIL_CHATBOT_CONFIG.modalId, "gb-email-direct-modal");
+  assert.equal(SYS02_EMAIL_CHATBOT_CONFIG.targetEmail, "glennard.tasico.va@gmail.com");
+  assert.equal(
+    SYS02_EMAIL_CHATBOT_CONFIG.headerBadge,
+    "LIVE AI EMAIL AUTO-RESPONDER • GEMINI + GOOGLE DRIVE EXCEL SYNC"
+  );
+  assert.equal(SYS02_EMAIL_CHATBOT_CONFIG.title, "📧 Test My Live AI Email Chatbot");
+  assert.equal(SYS02_EMAIL_CHATBOT_CONFIG.promptChips.length, 3);
+  assert.deepEqual(SYS02_EMAIL_CHATBOT_CONFIG.promptChips[0], {
+    label: "🤖 Ask about AI & n8n Automations",
+    subject: "Inquiry: AI & n8n Automation Workflows",
+    body: "Hi Glennard! Can you build custom webhooks, n8n workflows, and AI chatbots for my business?",
+  });
+  assert.deepEqual(SYS02_EMAIL_CHATBOT_CONFIG.promptChips[1], {
+    label: "💼 Ask about VA Rates & Availability",
+    subject: "Inquiry: Virtual Assistant Services & Availability",
+    body: "Hi Glennard! What Virtual Assistant services do you offer and what is your current availability?",
+  });
+  assert.deepEqual(SYS02_EMAIL_CHATBOT_CONFIG.promptChips[2], {
+    label: "🌐 Ask about Web Apps & Dashboards",
+    subject: "Inquiry: Custom Web App & CRM Dashboard",
+    body: "Hi Glennard! Tell me more about your GlennBot Automations dashboard and custom web app projects.",
+  });
+
+  const gmailUrl = buildGmailComposeUrl(
+    "Inquiry: Virtual Assistant Services & Availability",
+    "Hi Glennard! What Virtual Assistant services do you offer and what is your current availability?"
+  );
+  assert.equal(
+    gmailUrl,
+    "https://mail.google.com/mail/?view=cm&fs=1&to=glennard.tasico.va%40gmail.com&su=Inquiry%3A%20Virtual%20Assistant%20Services%20%26%20Availability&body=Hi%20Glennard!%20What%20Virtual%20Assistant%20services%20do%20you%20offer%20and%20what%20is%20your%20current%20availability%3F"
+  );
+
+  const mailtoUrl = buildGlennBotMailtoUrl(
+    "Inquiry: Custom Web App & CRM Dashboard",
+    "Hi Glennard! Tell me more about your GlennBot Automations dashboard and custom web app projects."
+  );
+  assert.equal(
+    mailtoUrl,
+    "mailto:glennard.tasico.va@gmail.com?subject=Inquiry%3A%20Custom%20Web%20App%20%26%20CRM%20Dashboard&body=Hi%20Glennard!%20Tell%20me%20more%20about%20your%20GlennBot%20Automations%20dashboard%20and%20custom%20web%20app%20projects."
+  );
 });
 
 

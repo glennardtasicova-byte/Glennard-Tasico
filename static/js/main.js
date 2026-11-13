@@ -1240,6 +1240,114 @@ function startLiveWhatsAppChatFromPopup() {
 }
 window.startLiveWhatsAppChatFromPopup = startLiveWhatsAppChatFromPopup;
 
+const GLENNBOT_TARGET_EMAIL = "glennard.tasico.va@gmail.com";
+
+function openEmailInteractivePopup() {
+  closeDmPlatformChooser();
+  closeWhatsAppInteractiveDmPopup();
+  const emailModal = document.getElementById("gb-email-direct-modal");
+  if (!emailModal) {
+    return openGlennBotLivePopup("email");
+  }
+  emailModal.hidden = false;
+  const subjEl = document.getElementById("gb-email-custom-subject");
+  const bodyEl = document.getElementById("gb-email-custom-body");
+  if (subjEl && !subjEl.value.trim()) {
+    subjEl.value = "Inquiry: AI & n8n Automation Workflows";
+  }
+  if (bodyEl && !bodyEl.value.trim()) {
+    bodyEl.value =
+      "Hi Glennard! Can you build custom webhooks, n8n workflows, and AI chatbots for my business?";
+  }
+  if (!emailModal.dataset.boundEmailListeners) {
+    emailModal.dataset.boundEmailListeners = "true";
+    emailModal.addEventListener("click", (e) => {
+      if (e.target === emailModal) closeEmailInteractivePopup();
+    });
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !emailModal.hidden) {
+        e.stopPropagation();
+        closeEmailInteractivePopup();
+      }
+    });
+  }
+}
+window.openEmailInteractivePopup = openEmailInteractivePopup;
+
+function closeEmailInteractivePopup() {
+  const emailModal = document.getElementById("gb-email-direct-modal");
+  if (emailModal) emailModal.hidden = true;
+}
+window.closeEmailInteractivePopup = closeEmailInteractivePopup;
+
+async function copyGlennBotEmailAddress() {
+  const emailText = GLENNBOT_TARGET_EMAIL;
+  const labelEl = document.getElementById("gb-email-copy-btn-label");
+  const btnEl = document.getElementById("gb-email-copy-btn");
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(emailText);
+    }
+  } catch (_) {}
+  const targetEl = labelEl || btnEl;
+  if (targetEl) {
+    const prev = targetEl.textContent;
+    targetEl.textContent = "✅ Copied glennard.tasico.va@gmail.com!";
+    window.setTimeout(() => {
+      targetEl.textContent = prev || "📋 Copy Email";
+    }, 2200);
+  }
+  return emailText;
+}
+window.copyGlennBotEmailAddress = copyGlennBotEmailAddress;
+
+function selectEmailPromptChip(subjectText, bodyText) {
+  const subjEl = document.getElementById("gb-email-custom-subject");
+  const bodyEl = document.getElementById("gb-email-custom-body");
+  if (subjEl && typeof subjectText === "string") {
+    subjEl.value = subjectText.trim();
+  }
+  if (bodyEl && typeof bodyText === "string") {
+    bodyEl.value = bodyText.trim();
+    bodyEl.focus();
+  }
+}
+window.selectEmailPromptChip = selectEmailPromptChip;
+
+function launchGlennBotGmailCompose() {
+  const subjEl = document.getElementById("gb-email-custom-subject");
+  const bodyEl = document.getElementById("gb-email-custom-body");
+  const subject =
+    (subjEl && subjEl.value ? subjEl.value.trim() : "") ||
+    "Inquiry: AI & n8n Automation Workflows";
+  const body =
+    (bodyEl && bodyEl.value ? bodyEl.value.trim() : "") ||
+    "Hi Glennard! Can you build custom webhooks, n8n workflows, and AI chatbots for my business?";
+  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(
+    GLENNBOT_TARGET_EMAIL
+  )}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  window.open(gmailUrl, "_blank", "noopener,noreferrer");
+  return gmailUrl;
+}
+window.launchGlennBotGmailCompose = launchGlennBotGmailCompose;
+
+function launchGlennBotMailto() {
+  const subjEl = document.getElementById("gb-email-custom-subject");
+  const bodyEl = document.getElementById("gb-email-custom-body");
+  const subject =
+    (subjEl && subjEl.value ? subjEl.value.trim() : "") ||
+    "Inquiry: AI & n8n Automation Workflows";
+  const body =
+    (bodyEl && bodyEl.value ? bodyEl.value.trim() : "") ||
+    "Hi Glennard! Can you build custom webhooks, n8n workflows, and AI chatbots for my business?";
+  const mailtoUrl = `mailto:${GLENNBOT_TARGET_EMAIL}?subject=${encodeURIComponent(
+    subject
+  )}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailtoUrl;
+  return mailtoUrl;
+}
+window.launchGlennBotMailto = launchGlennBotMailto;
+
 (function () {
   const STORAGE_KEY = "glenn_portfolio_theme";
 
@@ -2521,9 +2629,9 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
           </button>
           <button
             type="button"
-            class="btn-sys01-popout btn-live-launcher"
-            onclick="event.stopPropagation(); openGlennBotLivePopup('email');"
-            title="Open Multi-Account Email Hub Expanded View"
+            class="btn-sys01-popout btn-live-launcher btn-sys02-email"
+            onclick="event.stopPropagation(); openEmailInteractivePopup();"
+            title="Test the Live AI Email Auto-Responder (Gemini + Google Drive Excel Sync)"
           >
             <span>📧 Send an Email</span>
           </button>
@@ -2774,6 +2882,14 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && !modal.hidden) {
         closeProjectModal();
+      }
+    });
+    document.addEventListener("click", (e) => {
+      const emailBtn = e.target && e.target.closest ? e.target.closest(".btn-sys02-email") : null;
+      if (emailBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        openEmailInteractivePopup();
       }
     });
   }
