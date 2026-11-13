@@ -917,7 +917,7 @@ def _build_session_injector_snippet(
     )
 
     email_demo_lock_css = (
-        "  /* Portfolio Demo Mode: Lock Email Hub to glennard.tasico.va@gmail.com (Gmail), Sent folder only, and hide Connect/Disconnect controls */\n"
+        "  /* Portfolio Demo Mode: Lock Email Hub to glennard.tasico.va@gmail.com (Gmail), Sent folder only, and hide Connect/Disconnect/Compose/Sync controls */\n"
         "  #email-plat-card-microsoft,\n"
         "  #email-plat-card-imap,\n"
         "  #btn-show-all-email-platforms,\n"
@@ -930,6 +930,11 @@ def _build_session_injector_snippet(
         "  #btn-connect-gmail-card,\n"
         "  #btn-connect-microsoft-card,\n"
         "  #btn-connect-imap-card,\n"
+        "  #btn-email-compose-top,\n"
+        "  button[onclick*=\"openComposeEmailModal\"],\n"
+        "  #compose-email-modal,\n"
+        "  #btn-email-sync,\n"
+        "  #btn-sync-email-sent,\n"
         "  button[onclick*=\"openConnectAccountsModal('gmail')\"],\n"
         "  button[onclick*=\"openConnectAccountsModal(\\\"gmail\\\")\"],\n"
         "  button[onclick*=\"startEmailOAuthPopup(\"],\n"
@@ -1155,6 +1160,10 @@ def _apply_instant_popout_dom_transforms(
         "btn-connect-gmail-card",
         "btn-connect-microsoft-card",
         "btn-connect-imap-card",
+        "btn-email-compose-top",
+        "compose-email-modal",
+        "btn-email-sync",
+        "btn-sync-email-sent",
     ):
         html_text = html_text.replace(
             f'id="{cal_id}" class="',
@@ -1770,6 +1779,7 @@ def _build_calendar_lock_body_script() -> str:
         "window.startEmailOAuthPopup=function(){};"
         "window.disconnectEmailAccount=function(){};"
         "window.openImapConnectModal=function(){};"
+        "window.openComposeEmailModal=function(){};"
         "if(typeof emailAccountsList!=='undefined'&&Array.isArray(emailAccountsList)){"
         "var keptAccs=emailAccountsList.filter(function(a){return a&&String(a.email_address||a.email||a.name||'').trim().toLowerCase()===LOCKED_EMAIL_ADDRESS;});"
         "if(keptAccs.length===0){"
@@ -1821,7 +1831,7 @@ def _build_calendar_lock_body_script() -> str:
         "}"
         "var emailRoot=document.getElementById('view-email');"
         "if(!emailRoot)return;"
-        "['email-plat-card-microsoft','email-plat-card-imap','btn-show-all-email-platforms','email-folder-btn-inbox','email-folder-btn-drafts','email-folder-btn-spam','email-folder-btn-trash','btn-connect-email-top','btn-connect-gmail-card','btn-connect-microsoft-card','btn-connect-imap-card'].forEach(function(id){"
+        "['email-plat-card-microsoft','email-plat-card-imap','btn-show-all-email-platforms','email-folder-btn-inbox','email-folder-btn-drafts','email-folder-btn-spam','email-folder-btn-trash','btn-connect-email-top','btn-connect-gmail-card','btn-connect-microsoft-card','btn-connect-imap-card','btn-email-compose-top','btn-email-sync','btn-sync-email-sent','compose-email-modal'].forEach(function(id){"
         "var el=document.getElementById(id);"
         "if(el&&!el.classList.contains('hidden')){el.classList.add('hidden');el.style.setProperty('display','none','important');}"
         "});"

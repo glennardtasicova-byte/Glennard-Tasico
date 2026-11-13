@@ -123,7 +123,7 @@ export function buildInstantPopoutStyleTag(targetTab = "scheduler", popoutMode =
     `  }`,
   ].join("\n");
   const emailDemoLockCss = [
-    `  /* Portfolio Demo Mode: Lock Email Hub to glennard.tasico.va@gmail.com (Gmail), Sent folder only, and hide Connect/Disconnect controls */`,
+    `  /* Portfolio Demo Mode: Lock Email Hub to glennard.tasico.va@gmail.com (Gmail), Sent folder only, and hide Connect/Disconnect/Compose/Sync controls */`,
     `  #email-plat-card-microsoft,`,
     `  #email-plat-card-imap,`,
     `  #btn-show-all-email-platforms,`,
@@ -136,6 +136,11 @@ export function buildInstantPopoutStyleTag(targetTab = "scheduler", popoutMode =
     `  #btn-connect-gmail-card,`,
     `  #btn-connect-microsoft-card,`,
     `  #btn-connect-imap-card,`,
+    `  #btn-email-compose-top,`,
+    `  button[onclick*="openComposeEmailModal"],`,
+    `  #compose-email-modal,`,
+    `  #btn-email-sync,`,
+    `  #btn-sync-email-sent,`,
     `  button[onclick*="openConnectAccountsModal('gmail')"],`,
     `  button[onclick*="openConnectAccountsModal(\\"gmail\\")"],`,
     `  button[onclick*="startEmailOAuthPopup("],`,
