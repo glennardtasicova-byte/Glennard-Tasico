@@ -2811,6 +2811,8 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   overflow-wrap: anywhere;
 }
 
+#modal-panel-source-code .modal-case-footer-sys01,
+#modal-panel-live-widget .modal-case-footer-sys01,
 #modal-panel-source-code .modal-case-footer-sys02,
 #modal-panel-live-widget .modal-case-footer-sys02 {
   margin-top: 16px;

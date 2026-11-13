@@ -1853,365 +1853,333 @@ window.launchGlennBotMailto = launchGlennBotMailto;
       "social-scheduler": {
         sysId: "SYS-01",
         category: "Social & AI Publishing",
-        endpoint: "POST /api/ai/ask • POST /api/schedule • GET & DELETE /api/scheduled",
+        endpoint: "POST /api/schedule • GET /api/scheduled • POST /api/ai/generate",
         demoEndpoint: "/api/demo/ai-caption",
         title: "AI Content & Omnichannel Social Scheduler",
-        tagline: "Context-Aware Gemini 3.5 Flash Caption Engine + Multi-Platform APScheduler Queue",
+        tagline:
+          "Context-Aware Gemini 2.5 Flash Caption Engine + Zero-RAM Zernio Media Cloud & APScheduler Queue",
         pipelineNodes: [
-          { label: "Create Post UI", title: "Gemini 3.5 Flash + Live Web Search", accent: false },
-          { label: "Media & Queue DB", title: "Zernio Presign • GDrive • Cloudinary • PostgreSQL", accent: true },
-          { label: "Auto-Dispatch & Sync", title: "APScheduler + Zernio Omnichannel API", accent: false },
+          {
+            label: "STEP 01 • 📝 CREATE POST",
+            title: "Gemini 2.5 Flash Caption & Hashtag Generator + Google Drive Vault Media",
+            accent: false,
+          },
+          {
+            label: "STEP 02 • ⏳ QUEUE ENGINE",
+            title: "Zero-RAM Stream to Zernio Media Cloud + APScheduler & PostgreSQL Queue",
+            accent: true,
+          },
+          {
+            label: "STEP 03 • 📅 CALENDAR SYNC",
+            title: "Live Multi-Platform Publishing (FB • IG • TikTok • YouTube)",
+            accent: false,
+          },
         ],
         bottleneck:
-          "Marketing and operations teams were spending 12+ hours weekly manually researching topics, writing platform-specific social copy, formatting media assets, and logging into separate dashboards to schedule and track posts across Facebook, Instagram, TikTok, and YouTube.",
+          "Content teams and founders spend hours manually generating platform-specific captions, uploading heavy video reels across separate tabs, and tracking scheduled posts across Facebook, Instagram, TikTok, and YouTube.",
         solution:
-          "Architected a native FastAPI publishing engine (routers/scheduler_routes.py, routers/ai_routes.py & services/ai_service.py) powering Create Post, Queue, and Content Calendar. It enriches topics with free live web search (Bing RSS, Google News RSS & Wikipedia), generates platform-tailored titles, captions & hashtags via Google Gemini 3.5 Flash, streams media through Zernio Presigned Cloud, Google Drive Vault, and Cloudinary CDN, persists queue records in PostgreSQL (glennbot_scheduled_posts), and dispatches synchronized posts via APScheduler (SQLAlchemyJobStore) and Zernio API.",
+          "Architected a unified FastAPI + APScheduler + Zernio Social API publishing engine (`routers/scheduler_routes.py` & `routers/ai_routes.py`) backed by **PostgreSQL (`glennbot_scheduled_posts`)** and **Google Drive Vault**. Directly powers the 3 live interactive modules below:",
         architectureSteps: [
-          "**Create Post & AI Generation (`POST /api/ai/ask`)** — User submits a topic in the **Create Post** studio; FastAPI enriches context with live web search (Bing/Google News/Wikipedia) and calls **Google Gemini 3.5 Flash** (`gemini-3.5-flash`) to generate tailored FB, IG, TikTok & YouTube titles, captions, and hashtags.",
-          "**3-Tier Cloud Media & DB Persistence (`POST /api/schedule`)** — Immediately inserts the record into **PostgreSQL (`glennbot_scheduled_posts`)** with `processing_payload` status while uploading Reels, 16:9 Videos, or Image Albums via **Zernio Presign, Google Drive Vault, or Cloudinary CDN**.",
-          "**Native Scheduled Dispatch & Auto-Cleanup (`APScheduler` + `Zernio API`)** — Pre-registers the schedule on Zernio and queues native Python **APScheduler** jobs (`post_to_facebook`, `post_to_instagram`, `post_to_tiktok`, `post_to_youtube`), plus automated Cloudinary media cleanup 20 minutes after publishing.",
-          "**Live Queue & Content Calendar Sync (`GET & DELETE /api/scheduled`)** — Real-time status reconciliation (`sync_single_scheduled_row_with_zernio`) powers both the **Queue Table** and **Monthly Content Calendar** with live statuses (`waiting`, `published`, `failed`), published permalinks, and instant job cancellation.",
+          "**📝 Create Post (`#view-scheduler`)**: Generates platform-tailored captions & hashtags via `/api/ai/generate` (`gemini-2.5-flash`) and attaches media via chunked streaming (`/api/schedule/chunked-init` & `/api/schedule/chunked-complete`) or Google Drive Vault (`/api/files`).",
+          "**Zero-RAM Media Pipeline (`routers/scheduler_routes.py`)**: Streams video/image uploads directly to **Zernio Presigned Media Cloud** or **Google Drive Vault (`1f_3d1208297331d7315be76821c07867`)** without buffering large files in server RAM.",
+          "**⏳ Queue (`#view-queue` / `GET /api/scheduled`)**: Persists jobs in PostgreSQL (`glennbot_scheduled_posts`), registers exact execution timers in **APScheduler** (`post_to_facebook`, `post_to_instagram`, `post_to_tiktok`, `post_to_youtube`), and auto-reconciles live publish status with Zernio API (`sync_single_scheduled_row_with_zernio`).",
+          "**📅 Calendar (`#view-calendar`)**: Visualizes all queued, scheduled, and published posts across the 4 connected showcase accounts (**Facebook: GlennBot Automations**, **Instagram: @glennard.tasico.va**, **TikTok: @glennbot.automation**, **YouTube: glennardtasico**).",
         ],
         metrics: [
           { value: "85% Faster", label: "Content Production" },
           { value: "4 Channels", label: "FB • IG • TikTok • YT" },
           { value: "24/7 Queue", label: "APScheduler + PostgreSQL" },
         ],
-        sourceFile: "routers/scheduler_routes.py & routers/ai_routes.py",
-        sourceCode: `# routers/scheduler_routes.py & routers/ai_routes.py
+        sourceFile: "routers/scheduler_routes.py • routers/ai_routes.py (GlennBot Automations)",
+        sourceCode: `# glennbot_automations/routers/scheduler_routes.py & routers/ai_routes.py
 from fastapi import APIRouter, Form, File, UploadFile, Request
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import text
-from datetime import datetime, timedelta
-from typing import Optional, List
-import uuid, threading, pytz
+from datetime import datetime
+from typing import Optional
+import uuid, pytz
 
 from core.database import db_engine, scheduler, _coerce_db_datetime
 from services.ai_service import _execute_glennbot_ask_ai_core
 from services.zernio_service import (
-    register_scheduled_post_on_zernio, post_to_facebook, post_to_instagram,
-    post_to_tiktok, post_to_youtube, _cancel_zernio_scheduled_post, cleanup_cloudinary
+    _upload_local_file_to_zernio_media,
+    register_scheduled_post_on_zernio,
+    sync_single_scheduled_row_with_zernio,
+    post_to_facebook, post_to_instagram, post_to_tiktok, post_to_youtube,
 )
+from services.gdrive_service import _upload_local_file_to_gdrive_temp
 
 router = APIRouter()
 
-# 1. CREATE POST — ASK AI CAPTION & HASHTAG GENERATOR (Gemini 3.5 Flash + Live Web Search)
-@router.post("/api/ai/ask")
-async def api_ask_ai(request: Request):
-    body = await request.json()
+# ── 1. 📝 CREATE POST: AI Caption & Hashtag Generator (routers/ai_routes.py) ──
+@router.post("/api/ai/generate")
+async def generate_ai_content(request: Request):
+    data = await request.json()
     return await run_in_threadpool(
         lambda: _execute_glennbot_ask_ai_core(
-            user_topic=str(body.get("topic") or body.get("prompt") or "").strip(),
-            tone_str=str(body.get("tone") or "engaging").strip(),
-            lang_str=str(body.get("language") or "taglish").strip(),
-            post_type_str=str(body.get("post_type") or "reels").strip(),
-            platforms_list=body.get("platforms") or ["facebook", "instagram", "tiktok", "youtube"],
-            use_search=bool(body.get("use_search", True)),
+            user_topic=str(data.get("topic") or "").strip(),
+            tone_str=str(data.get("tone") or "engaging").strip(),
+            lang_str=str(data.get("language") or "taglish").strip(),
+            post_type_str=str(data.get("post_type") or "reels").strip(),
+            platforms_list=data.get("platforms") or ["facebook", "instagram", "tiktok", "youtube"],
+            use_search=bool(data.get("use_search", True)),
         )
     )
 
-# 2. CREATE POST — NATIVE OMNICHANNEL SCHEDULER & 3-TIER CLOUD MEDIA PIPELINE
+# ── 2. 📝 CREATE POST -> ⏳ QUEUE: Zero-RAM Media Stream & APScheduler (routers/scheduler_routes.py) ──
 @router.post("/api/schedule")
 async def receive_schedule(
-    platform: str = Form(...), post_type: str = Form(...), pageId: str = Form(""),
-    accountName: str = Form(""), date_val: str = Form("", alias="date"),
-    time_val: str = Form("", alias="time"), title: str = Form(""), caption: str = Form(""),
-    thumbnail: Optional[UploadFile] = File(None), media: Optional[UploadFile] = File(None),
-    media_files: Optional[List[UploadFile]] = File(None),
-    vault_media_file_id: str = Form(""), vault_thumb_file_id: str = Form(""),
+    platform: str = Form(...),
+    post_type: str = Form(...),
+    pageId: str = Form(""),
+    accountName: str = Form(""),
+    date_val: str = Form("", alias="date"),
+    time_val: str = Form("", alias="time"),
+    title: str = Form(""),
+    caption: str = Form(""),
+    media: Optional[UploadFile] = File(None),
+    vault_media_file_id: str = Form(""),
 ):
     manila_tz = pytz.timezone("Asia/Manila")
-    now_manila = datetime.now(manila_tz)
-    scheduled_time = (
-        manila_tz.localize(datetime.strptime(f"{date_val} {time_val}", "%Y-%m-%d %H:%M"))
-        if (date_val and time_val) else (now_manila + timedelta(seconds=10))
+    scheduled_time = manila_tz.localize(
+        datetime.strptime(f"{date_val} {time_val}", "%Y-%m-%d %H:%M")
     )
     record_id = f"post_{uuid.uuid4().hex[:12]}"
 
-    # Persist row in PostgreSQL immediately so Queue & Calendar never lose track of a post
-    def _insert_initial_sched_row():
-        with db_engine.begin() as conn:
-            conn.execute(
-                text("""
-                    INSERT INTO glennbot_scheduled_posts
-                    (id, platform, page_id, account_name, post_type, caption,
-                     media_preview_url, scheduled_time, status, status_message)
-                    VALUES (:id, :platform, :page_id, :account_name, :post_type, :caption,
-                            :preview, :sched_time, 'processing_payload', :status_msg)
-                """),
-                {
-                    "id": record_id, "platform": platform, "page_id": pageId,
-                    "account_name": accountName or platform.capitalize(),
-                    "post_type": post_type, "caption": title.strip() or caption,
-                    "preview": f"/api/files/{vault_media_file_id}/stream" if vault_media_file_id else "",
-                    "sched_time": scheduled_time,
-                    "status_msg": "Processing Payload • Uploading media & queueing...",
-                },
-            )
+    # Persist initial job state in PostgreSQL (glennbot_scheduled_posts)
+    with db_engine.begin() as conn:
+        conn.execute(
+            text("""
+                INSERT INTO glennbot_scheduled_posts
+                (id, platform, page_id, account_name, post_type, caption,
+                 scheduled_time, status, status_message)
+                VALUES (:id, :platform, :page_id, :account_name, :post_type, :caption,
+                        :sched_time, 'processing_payload', 'Streaming media to Zernio Cloud...')
+            """),
+            {
+                "id": record_id, "platform": platform, "page_id": pageId,
+                "account_name": accountName or platform.capitalize(),
+                "post_type": post_type, "caption": title.strip() or caption,
+                "sched_time": scheduled_time,
+            },
+        )
 
-    await run_in_threadpool(_insert_initial_sched_row)
+    # Stream directly to Zernio Presigned Media Cloud or Google Drive Vault (Zero RAM overhead)
+    media_url = _upload_local_file_to_zernio_media(media) or _upload_local_file_to_gdrive_temp(media)
 
-    # Offload Zernio Presign / Google Drive Vault / Cloudinary upload & APScheduler registration
-    threading.Thread(
-        target=_process_schedule_payload_background,
-        args=(record_id, platform, post_type, pageId, accountName, title, caption, scheduled_time),
-        daemon=True,
-    ).start()
+    # Register native APScheduler job & Zernio schedule for FB / IG / TikTok / YouTube
+    dispatch_fn = {
+        "facebook": post_to_facebook,
+        "instagram": post_to_instagram,
+        "tiktok": post_to_tiktok,
+        "youtube": post_to_youtube,
+    }[platform.lower()]
 
-    return {"status": "success", "id": record_id, "queue_status": "processing_payload"}
+    scheduler.add_job(
+        dispatch_fn, "date", run_date=scheduled_time, id=record_id, replace_existing=True,
+        args=[pageId, post_type, title, caption, media_url, None, record_id],
+    )
+    return {"status": "success", "job_id": record_id, "scheduled_time": scheduled_time.isoformat()}
 
-# 3. QUEUE & CONTENT CALENDAR — LIVE POSTGRESQL + ZERNIO STATUS SYNC
+# ── 3. ⏳ QUEUE & 📅 CALENDAR: Live Status Sync (routers/scheduler_routes.py) ──
 @router.get("/api/scheduled")
 def get_scheduled_posts(month: Optional[int] = None, year: Optional[int] = None):
     manila_tz = pytz.timezone("Asia/Manila")
     with db_engine.connect() as conn:
         rows = conn.execute(
-            text("""
-                SELECT id, platform, page_id, account_name, post_type, caption,
-                       media_preview_url, scheduled_time, status, status_message,
-                       external_post_id, permalink_url, created_at
-                FROM glennbot_scheduled_posts
-                ORDER BY scheduled_time ASC
-            """)
+            text("SELECT * FROM glennbot_scheduled_posts ORDER BY scheduled_time ASC")
         ).mappings().all()
 
-        items = []
-        for r in rows:
-            r_dict = dict(r)
-            sched_dt = _coerce_db_datetime(r_dict.get("scheduled_time"), manila_tz)
-            if month and year and (not sched_dt or sched_dt.month != int(month) or sched_dt.year != int(year)):
-                continue
-            synced = sync_single_scheduled_row_with_zernio(r_dict)
-            items.append({
-                "id": r_dict["id"],
-                "platform": r_dict["platform"],
-                "account_name": r_dict["account_name"],
-                "post_type": r_dict["post_type"],
-                "caption": r_dict["caption"] or "",
-                "media_preview_url": r_dict["media_preview_url"] or "",
-                "scheduled_iso": sched_dt.isoformat() if sched_dt else "",
-                "status": synced["status"],
-                "permalink_url": synced["permalink_url"],
-            })
-        return {"status": "success", "items": items}
-
-# 4. QUEUE & CALENDAR — CANCEL SCHEDULED JOB & CLEANUP CLOUD MEDIA
-@router.delete("/api/scheduled/{record_id}")
-def delete_scheduled_post(record_id: str):
-    try:
-        scheduler.remove_job(record_id)
-    except Exception:
-        pass
-    with db_engine.begin() as conn:
-        conn.execute(text("DELETE FROM glennbot_scheduled_posts WHERE id = :id"), {"id": record_id})
-    return {"status": "success"}`,
+    items = []
+    for row in rows:
+        synced = sync_single_scheduled_row_with_zernio(dict(row))
+        sched_dt = _coerce_db_datetime(row.get("scheduled_time"), manila_tz)
+        if month and year and (not sched_dt or sched_dt.month != month or sched_dt.year != year):
+            continue
+        items.append({**dict(row), **synced, "scheduled_iso": sched_dt.isoformat() if sched_dt else ""})
+    return {"status": "success", "items": items}`,
+        workflowPresets: {
+          "📝 Create Post — AI Caption + Multi-Platform Schedule (FB, IG, TikTok, YouTube)": {
+            platforms:
+              "Facebook (GlennBot Automations), Instagram (@glennard.tasico.va), TikTok (@glennbot.automation), YouTube (glennardtasico)",
+            topic:
+              "Launch our 24/7 AI Omnichannel Automation showcase video across Facebook, Instagram Reels, TikTok, and YouTube Shorts via Zernio Presigned Media Cloud.",
+          },
+          "⏳ Queue — Inspect APScheduler & Zernio Presigned Media Pipeline": {
+            platforms:
+              "Facebook (GlennBot Automations), Instagram (@glennard.tasico.va), TikTok (@glennbot.automation), YouTube (glennardtasico)",
+            topic:
+              "Inspect live APScheduler queue jobs in PostgreSQL (glennbot_scheduled_posts) and stream 4K Reel via Zero-RAM Zernio Presigned Upload.",
+          },
+          "📅 Calendar — Sync Published & Queued Posts Across 4 Connected Accounts": {
+            platforms:
+              "Facebook (GlennBot Automations), Instagram (@glennard.tasico.va), TikTok (@glennbot.automation), YouTube (glennardtasico)",
+            topic:
+              "Reconcile monthly content calendar status (sync_single_scheduled_row_with_zernio) across all 4 connected accounts for November 2026.",
+          },
+        },
         widgetFields: [
           {
-            name: "topic",
-            label: "Campaign Topic / Operational Update",
-            type: "text",
-            value: "Automated Omnichannel Social Publishing with FastAPI + Gemini 3.5 Flash",
-          },
-          {
-            name: "tone",
-            label: "AI Brand Voice & Tone",
+            name: "workflow",
+            label: "Select SYS-01 Workflow to Simulate",
             type: "select",
             options: [
-              "Executive & High-Converting",
-              "Taglish Tech Builder",
-              "Engaging & Story-Driven",
+              "📝 Create Post — AI Caption + Multi-Platform Schedule (FB, IG, TikTok, YouTube)",
+              "⏳ Queue — Inspect APScheduler & Zernio Presigned Media Pipeline",
+              "📅 Calendar — Sync Published & Queued Posts Across 4 Connected Accounts",
             ],
           },
           {
             name: "platforms",
-            label: "Target Social Channels (Comma-separated)",
+            label: "Target Connected Accounts",
             type: "text",
-            value: "facebook, instagram, tiktok, youtube",
+            value:
+              "Facebook (GlennBot Automations), Instagram (@glennard.tasico.va), TikTok (@glennbot.automation), YouTube (glennardtasico)",
+          },
+          {
+            name: "topic",
+            label: "Campaign Topic / Schedule Payload",
+            type: "textarea",
+            value:
+              "Launch our 24/7 AI Omnichannel Automation showcase video across Facebook, Instagram Reels, TikTok, and YouTube Shorts via Zernio Presigned Media Cloud.",
           },
         ],
       },
       "omnichannel-inbox": {
         sysId: "SYS-02",
         category: "Omnichannel & AI Triage",
-        endpoint: "POST /api/v1/inbox/triage",
+        endpoint: "POST /webhooks • /api/v1/comments/reply • /api/v1/messages/send • /api/email/messages",
         demoEndpoint: "/api/demo/inbox-triage",
         title: "Unified Omnichannel Inbox & Smart Auto-Responder",
         tagline: "AI Intent Classification, Priority Scoring & Instant Multi-Channel Reply Engine",
         pipelineNodes: [
           {
-            label: "INBOUND",
-            title: "Comments (FB/IG/TikTok) • DMs (FB/IG/WA) • Gmail OAuth • SMS",
+            label: "INBOUND CHANNELS",
+            title: "💬 Social Comments (FB/IG/TikTok) • ✉️ DMs (Messenger/IG/WA/SMS) • 📧 Gmail (Composio)",
             accent: false,
           },
           {
-            label: "AI CLASSIFIER",
-            title: "Gemini AI Intent Triage & n8n Webhook Router",
+            label: "ORCHESTRATION & AI",
+            title: "FastAPI /webhooks + n8n Event Dispatcher + Gemini 2.5 Flash RAG (/api/v1/ai/ask)",
             accent: true,
           },
           {
-            label: "ACTION",
-            title: "Auto-Reply (Comment / DM / Email / SMS) + CRM Sync",
+            label: "AUTO-RESPONDER",
+            title: "Public Comment Reply + Private DM Follow-Up + TextBee SMS + Composio Sent Sync",
             accent: false,
           },
         ],
         bottleneck:
-          "Client inquiries, social post comments, direct messages, and urgent supplier alerts were fragmented across Facebook, Instagram, TikTok, WhatsApp, Gmail, and SMS—causing delayed response times, manual copy-pasting, and missed high-intent leads outside business hours.",
+          "Inbound leads and customer inquiries arrive simultaneously across Facebook/Instagram/TikTok comments, Messenger/Instagram/WhatsApp DMs, SMS, and Gmail—leading to slow manual replies, missed DMs, and fragmented lead tracking.",
         solution:
-          "Engineered a unified FastAPI + n8n omnichannel triage and auto-responder engine (`glennbot_automations/routers/omnichannel_triage_router.py`) powered by **Google Gemini 3.5 Flash**. It ingests real-time webhooks across **Social Comments (FB/IG/TikTok)**, **Omnichannel DMs (Messenger/IG/WhatsApp)**, **Composio Gmail OAuth (`glennard.tasico.va@gmail.com`)**, and **TextBee SMS**, scores lead urgency (`0-100`), dispatches context-aware replies on the originating channel, and syncs conversations to **PostgreSQL & Cloudinary**.",
+          "Engineered an event-driven FastAPI + n8n + Gemini 2.5 Flash omnichannel router (`routers/webhooks_routes.py`, `routers/internal_api_routes.py`, `routers/messages_routes.py`, and `routers/email_accounts_routes.py`) directly powering the 3 live interactive buttons below:",
         architectureSteps: [
-          "**Social Comment Auto-Responder**: Captures FB, IG, and TikTok post comments via webhook, replies publicly in-thread, and dispatches a follow-up Private DM.",
-          "**Omnichannel Direct Messaging**: Consolidates Facebook Messenger, Instagram DM, and WhatsApp Business threads into a real-time split-screen inbox with sub-second AI replies.",
-          "**Smart Email Hub (`glennard.tasico.va@gmail.com`)**: Uses Composio OAuth2 (Gmail / Microsoft 365) & IMAP/SMTP to classify inbound client inquiries, draft rich HTML responses, and log Sent items.",
-          "**SMS Gateway & CRM Persistence**: Routes urgent alerts via TextBee SMS and syncs lead profiles to PostgreSQL & Cloudinary.",
+          "**💬 Post a Comment (`POST /webhooks` -> `_notify_n8n_new_comment`)**: Captures Facebook, Instagram, and TikTok comments in real time via Zernio webhooks, triggers n8n (`comment.received`), generates a context-aware reply via `/api/v1/ai/ask`, posts a public comment reply (`/api/v1/comments/reply`), and dispatches an automated private DM follow-up (`/api/v1/comments/send-dm`).",
+          "**✉️ Send a DM (`routers/messages_routes.py` & `_notify_n8n_new_message`)**: Aggregates Facebook Messenger, Instagram DM, WhatsApp (via Zernio API), and SMS (via TextBee Gateway) into a unified conversation store synced with Cloudinary & PostgreSQL (`glennbot_contacts`), replying automatically via `/api/v1/messages/send` and `/api/v1/sms/send`.",
+          "**📧 Send an Email (`routers/email_accounts_routes.py` & `routers/email_send_webhooks_routes.py`)**: Powered by **Composio v3 Gmail OAuth2** (`GMAIL_SEND_EMAIL` / `GMAIL_FETCH_EMAILS`) and Google Drive Vault attachments, with live verification in the **Email Hub Dashboard (`glennard.tasico.va@gmail.com` — Sent folder)**.",
+          "**Unified CRM & Audit Trail**: Every inbound comment, DM, SMS, and email automatically upserts the contact record in PostgreSQL (`glennbot_contacts`) and logs the AI response latency.",
         ],
         metrics: [
-          { value: "< 2.5s", label: "Gemini AI Triage Latency" },
-          { value: "4 Pipelines", label: "Comments • DMs • Email • SMS" },
-          { value: "100% Synced", label: "PostgreSQL & Cloudinary" },
+          { value: "< 2.5s", label: "Gemini AI + n8n Triage Latency" },
+          { value: "3 Live Channels", label: "Comments • DMs/SMS • Gmail" },
+          { value: "100% Automated", label: "Zernio • TextBee • Composio OAuth" },
         ],
-        sourceFile: "glennbot_automations/routers/omnichannel_triage_router.py",
-        sourceCode: `# glennbot_automations/routers/omnichannel_triage_router.py
-from typing import Literal, Optional
-from fastapi import APIRouter, Header
-from pydantic import BaseModel, Field
+        sourceFile:
+          "routers/webhooks_routes.py • routers/internal_api_routes.py • routers/email_accounts_routes.py",
+        sourceCode: `# glennbot_automations/routers/webhooks_routes.py & routers/internal_api_routes.py
+from fastapi import APIRouter, Request, Depends, Query
 from sqlalchemy import text
-from google import genai
-import httpx
-
+from core.security import verify_internal_api_key
 from core.database import db_engine
-from services.cloudinary_vault import archive_omnichannel_transcript
+from services.comments_service import (
+    _notify_n8n_new_comment, _execute_comment_reply_core, _execute_comment_private_dm_core
+)
+from services.messages_service import (
+    _notify_n8n_new_message, _execute_message_reply_core, _upsert_contact_from_interaction
+)
+from services.email_service import (
+    _fetch_composio_emails_for_account, _resolve_composio_connected_account
+)
 
-router = APIRouter(prefix="/api/v1/inbox", tags=["Omnichannel Inbox & AI Triage"])
+router = APIRouter()
 
-class OmnichannelInboundPayload(BaseModel):
-    channel: Literal["social_comment", "social_dm", "email_oauth", "sms_gateway"]
-    sender: str
-    message: str
-    post_id: Optional[str] = None
-    subject: Optional[str] = "Client Inquiry via GlennBot Omnichannel Hub"
+# ── 1. 💬 POST A COMMENT & ✉️ SEND A DM: Unified Webhook Ingest (routers/webhooks_routes.py) ──
+@router.post("/webhooks")
+async def receive_zernio_and_textbee_webhooks(request: Request):
+    payload = await request.json()
+    event_type = str(payload.get("event") or payload.get("type") or "").lower()
 
-class TriageDecision(BaseModel):
-    intent: str = Field(description="Detected client or operations intent")
-    urgency_score: int = Field(ge=0, le=100, description="Priority score from 0 to 100")
-    reply_text: str = Field(description="Context-aware reply grounded on Glenn's knowledge base")
+    # Inbound FB / IG / TikTok Comment -> Trigger n8n AI Auto-Reply + Private DM Follow-Up
+    if "comment" in event_type:
+        comment_event = _extract_comment_webhook_payload(payload)
+        _notify_n8n_new_comment(comment_event)
+        return {"status": "accepted", "pipeline": "comment_auto_responder", "event": event_type}
 
-CHANNEL_DISPATCH_ENDPOINTS = {
-    "social_comment": "/api/v1/comments/reply + /api/v1/comments/send-dm",
-    "social_dm": "/api/v1/messages/send",
-    "email_oauth": "/api/v1/emails/send",
-    "sms_gateway": "/api/v1/sms/send",
-}
+    # Inbound FB Messenger / IG DM / WhatsApp / TextBee SMS -> Upsert CRM Contact & Trigger n8n AI
+    if "message" in event_type or "sms" in event_type:
+        msg_event = _extract_message_webhook_payload(payload)
+        _upsert_contact_from_interaction(msg_event)
+        _notify_n8n_new_message(msg_event)
+        return {"status": "accepted", "pipeline": "omnichannel_dm_auto_responder", "event": event_type}
 
-@router.post("/triage")
-async def triage_inbound_omnichannel_event(
-    payload: OmnichannelInboundPayload,
-    x_api_key: str = Header(..., alias="X-API-Key"),
-):
-    # 1. Structured Gemini AI Intent Triage, Urgency Scoring (0-100) & Grounded Reply
-    ai_client = genai.Client()
-    prompt = (
-        f"Channel: {payload.channel} | Sender: {payload.sender}\\n"
-        f"Inbound Message: {payload.message}\\n"
-        "Classify intent, compute urgency_score (0-100), and draft a helpful reply "
-        "grounded on Glennard Tasico's AI Automation & Web Engineering knowledge base."
+    return {"status": "ignored"}
+
+# ── 2. 💬 COMMENT & ✉️ DM DISPATCH: Internal n8n Execution Endpoints (routers/internal_api_routes.py) ──
+@router.post("/api/v1/comments/reply", dependencies=[Depends(verify_internal_api_key)])
+async def v1_reply_to_comment(request: Request):
+    data = await request.json()
+    # Posts public reply on FB/IG/TikTok + optional Private DM via /api/v1/comments/send-dm
+    reply_res = _execute_comment_reply_core(
+        record_id=data["record_id"], comment_id=data["comment_id"], message=data["message"]
     )
-    ai_resp = ai_client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt,
-        config={"response_mime_type": "application/json", "response_schema": TriageDecision},
-    )
-    decision: TriageDecision = ai_resp.parsed
-
-    # 2. Dispatch Automated Reply Back Through the Originating Channel
-    async with httpx.AsyncClient(timeout=15.0) as http:
-        if payload.channel == "social_comment":
-            # Zernio API: Public in-thread comment reply + follow-up Private DM
-            await http.post(
-                "https://glennbotautomations.onrender.com/api/v1/comments/reply",
-                headers={"X-API-Key": x_api_key},
-                json={"post_id": payload.post_id, "recipient": payload.sender, "message": decision.reply_text},
-            )
-            await http.post(
-                "https://glennbotautomations.onrender.com/api/v1/comments/send-dm",
-                headers={"X-API-Key": x_api_key},
-                json={"recipient": payload.sender, "message": decision.reply_text},
-            )
-        elif payload.channel == "social_dm":
-            # FB Messenger / Instagram Direct / WhatsApp Business API
-            await http.post(
-                "https://glennbotautomations.onrender.com/api/v1/messages/send",
-                headers={"X-API-Key": x_api_key},
-                json={"recipient": payload.sender, "message": decision.reply_text},
-            )
-        elif payload.channel == "email_oauth":
-            # Composio GMAIL_SEND_EMAIL from glennard.tasico.va@gmail.com
-            await http.post(
-                "https://glennbotautomations.onrender.com/api/v1/emails/send",
-                headers={"X-API-Key": x_api_key},
-                json={
-                    "action": "GMAIL_SEND_EMAIL",
-                    "from_email": "glennard.tasico.va@gmail.com",
-                    "to_email": payload.sender,
-                    "subject": f"Re: {payload.subject}",
-                    "html_body": decision.reply_text,
-                },
-            )
-        elif payload.channel == "sms_gateway":
-            # TextBee Android SMS Gateway
-            await http.post(
-                "https://glennbotautomations.onrender.com/api/v1/sms/send",
-                headers={"X-API-Key": x_api_key},
-                json={"recipient": payload.sender, "message": decision.reply_text[:320]},
-            )
-
-    # 3. Persist Conversation State & Lead Profile to PostgreSQL & Cloudinary
-    cloud_url = archive_omnichannel_transcript(payload.channel, payload.sender, decision.reply_text)
-    with db_engine.begin() as conn:
-        conn.execute(
-            text("""
-                INSERT INTO glennbot_omnichannel_leads
-                (channel, sender, intent, urgency_score, reply_text, transcript_url)
-                VALUES (:channel, :sender, :intent, :score, :reply, :url)
-            """),
-            {
-                "channel": payload.channel,
-                "sender": payload.sender,
-                "intent": decision.intent,
-                "score": decision.urgency_score,
-                "reply": decision.reply_text,
-                "url": cloud_url,
-            },
+    if data.get("send_private_dm"):
+        _execute_comment_private_dm_core(
+            record_id=data["record_id"], comment_id=data["comment_id"], message=data["dm_message"]
         )
+    return {"status": "success", "dispatched_via": "zernio_comments_api", "result": reply_res}
 
+@router.post("/api/v1/messages/send", dependencies=[Depends(verify_internal_api_key)])
+async def v1_send_omnichannel_dm(request: Request):
+    data = await request.json()
+    # Dispatches AI reply to Facebook Messenger, Instagram DM, WhatsApp, or TextBee SMS
+    return _execute_message_reply_core(
+        account_id=data["account_id"],
+        conversation_id=data["conversation_id"],
+        platform=data.get("platform", "facebook"),
+        message=data["message"],
+    )
+
+# ── 3. 📧 SEND AN EMAIL: Composio Gmail OAuth2 Auto-Responder & Sent Folder Sync ──
+@router.get("/api/email/messages")
+def api_list_email_messages(
+    account_id: str = Query("gmail_glennard_tasico_va"),
+    folder: str = Query("sent"),
+    limit: int = Query(30),
+):
+    # Fetches live AI-sent replies from glennard.tasico.va@gmail.com via Composio GMAIL_FETCH_EMAILS
+    acct = _resolve_composio_connected_account(account_id, email_filter="glennard.tasico.va@gmail.com")
+    messages = _fetch_composio_emails_for_account(acct, folder=folder, limit=limit)
     return {
-        "status": "TRIAGED_AND_DISPATCHED",
-        "channel": payload.channel,
-        "dispatched_via": CHANNEL_DISPATCH_ENDPOINTS[payload.channel],
-        "urgency_score": decision.urgency_score,
-        "intent": decision.intent,
-        "draft_response": decision.reply_text,
-        "storage": "PostgreSQL + Cloudinary Synced",
+        "status": "success",
+        "account_email": "glennard.tasico.va@gmail.com",
+        "folder": folder,
+        "messages": messages,
     }`,
         channelPresets: {
-          "Omnichannel DM (Messenger / IG / WhatsApp)": {
-            sender: "fb_user_glenn_client (@glenn.enterprise)",
+          "💬 Social Comment (Facebook / Instagram / TikTok via Zernio)": {
+            sender: "@client_lead_ph (Instagram / Facebook Post)",
             message:
-              "Hi Glenn! Can you build an automated WhatsApp + Messenger AI responder connected to n8n for our e-commerce store?",
+              "How much is your AI Omnichannel Automation setup for an e-commerce brand? Can you DM me the details?",
           },
-          "Social Comment (Facebook / Instagram / TikTok)": {
-            sender: "@agency_founder_io (Facebook / IG Post Comment)",
+          "✉️ Direct Message (FB Messenger / Instagram DM / WhatsApp / TextBee SMS)": {
+            sender: "+63 917 555 0194 / @enterprise_buyer_dm",
             message:
-              "Solid automation setup! How do you connect Gemini AI to auto-reply to comments and send a Private DM?",
+              "Hi Glenn, we need an automated pipeline that syncs our incoming leads to PostgreSQL and alerts our team on WhatsApp & SMS.",
           },
-          "Email Hub (Composio Gmail OAuth / SMTP)": {
+          "📧 Email Auto-Responder (Composio Gmail OAuth — glennard.tasico.va@gmail.com)": {
             sender: "ops-director@enterprise-client.io",
             message:
-              "Hi Glenn, we need an automated pipeline that triages incoming client emails via Gmail OAuth and syncs qualified leads to PostgreSQL.",
-          },
-          "TextBee SMS Gateway": {
-            sender: "+63 917 555 0198",
-            message:
-              "URGENT: Supplier capacity threshold reached on Line 2. Please trigger the n8n escalation workflow and confirm receipt.",
+              "Hi Glennard, please send over your technical architecture proposal and available schedule for a discovery call this week.",
           },
         },
         widgetFields: [
@@ -2220,24 +2188,23 @@ async def triage_inbound_omnichannel_event(
             label: "Inbound Source Channel",
             type: "select",
             options: [
-              "Omnichannel DM (Messenger / IG / WhatsApp)",
-              "Social Comment (Facebook / Instagram / TikTok)",
-              "Email Hub (Composio Gmail OAuth / SMTP)",
-              "TextBee SMS Gateway",
+              "💬 Social Comment (Facebook / Instagram / TikTok via Zernio)",
+              "✉️ Direct Message (FB Messenger / Instagram DM / WhatsApp / TextBee SMS)",
+              "📧 Email Auto-Responder (Composio Gmail OAuth — glennard.tasico.va@gmail.com)",
             ],
           },
           {
             name: "sender",
             label: "Sender Handle / Contact",
             type: "text",
-            value: "fb_user_glenn_client (@glenn.enterprise)",
+            value: "@client_lead_ph (Instagram / Facebook Post)",
           },
           {
             name: "message",
-            label: "Inbound Client / Supplier Message",
+            label: "Sample Message",
             type: "textarea",
             value:
-              "Hi Glenn! Can you build an automated WhatsApp + Messenger AI responder connected to n8n for our e-commerce store?",
+              "How much is your AI Omnichannel Automation setup for an e-commerce brand? Can you DM me the details?",
           },
         ],
       },
@@ -2815,7 +2782,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
           </div>
           <pre class="code-viewer-pre"><code>${escapeHtml(proj.sourceCode)}</code></pre>
         </div>
-        ${projectId === "omnichannel-inbox" ? caseFooterHtml : ""}
+        ${projectId === "social-scheduler" || projectId === "omnichannel-inbox" ? caseFooterHtml : ""}
       `;
 
       const copyBtn = document.getElementById("modal-copy-code-btn");
@@ -2831,12 +2798,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         });
       }
 
-      // 3. Render Tab 03: Expanded GlennBot Social Scheduler Workspace for SYS-01, or Live API Widget for SYS-02..04
-      if (projectId === "social-scheduler") {
-        renderGlennBotSchedulerWorkspace(panelLiveWidget);
-        return;
-      }
-
+      // 3. Render Tab 03: Live Interactive API Widget for SYS-01..04
       const fieldsHtml = proj.widgetFields
         .map((field) => {
           if (field.type === "select") {
@@ -2889,7 +2851,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
             <pre id="widget-json-output" class="widget-json-pre">Click "Execute Live API Request" to send a real POST payload to the FastAPI backend...</pre>
           </div>
         </div>
-        ${projectId === "omnichannel-inbox" ? caseFooterHtml : ""}
+        ${projectId === "social-scheduler" || projectId === "omnichannel-inbox" ? caseFooterHtml : ""}
       `;
 
       const form = document.getElementById("live-api-widget-form");
@@ -2932,6 +2894,22 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
       }
 
       if (form) {
+        if (proj.workflowPresets) {
+          const workflowSelect = form.querySelector('select[name="workflow"]');
+          const platformsInput = form.querySelector('input[name="platforms"]');
+          const topicInput = form.querySelector('textarea[name="topic"], input[name="topic"]');
+          if (workflowSelect) {
+            workflowSelect.addEventListener("change", () => {
+              const preset = proj.workflowPresets[workflowSelect.value];
+              if (preset) {
+                if (platformsInput && preset.platforms) platformsInput.value = preset.platforms;
+                if (topicInput && preset.topic) topicInput.value = preset.topic;
+              }
+              executeDemoRequest();
+            });
+          }
+        }
+
         if (proj.channelPresets) {
           const channelSelect = form.querySelector('select[name="channel"]');
           const senderInput = form.querySelector('input[name="sender"]');

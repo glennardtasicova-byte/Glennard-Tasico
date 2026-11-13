@@ -448,9 +448,21 @@ async def demo_ai_caption(request: Request):
     except Exception:
         body = {}
 
-    topic = (body.get("topic") or "Automated Lead Capture & CRM Sync with FastAPI + n8n").strip()
+    workflow = (
+        body.get("workflow")
+        or "📝 Create Post — AI Caption + Multi-Platform Schedule (FB, IG, TikTok, YouTube)"
+    ).strip()
+    topic = (
+        body.get("topic")
+        or "Launch our 24/7 AI Omnichannel Automation showcase video across Facebook, Instagram Reels, TikTok, and YouTube Shorts via Zernio Presigned Media Cloud."
+    ).strip()
     tone = (body.get("tone") or "Executive & High-Converting").strip()
-    platforms = body.get("platforms") or ["facebook", "instagram", "tiktok", "youtube"]
+    platforms = body.get("platforms") or [
+        "Facebook (GlennBot Automations)",
+        "Instagram (@glennard.tasico.va)",
+        "TikTok (@glennbot.automation)",
+        "YouTube (glennardtasico)",
+    ]
     if isinstance(platforms, str):
         platforms = [p.strip() for p in platforms.split(",") if p.strip()]
 
@@ -492,6 +504,7 @@ async def demo_ai_caption(request: Request):
     yt_title = (remote_data or {}).get("title") or f"How We Automated {topic[:58]} | FastAPI + Gemini AI + n8n"[:100]
 
     elapsed_ms = round((time.perf_counter() - t0) * 1000 + 18.4, 1)
+    job_id = f"post_{uuid.uuid4().hex[:12]}"
 
     ai_payload = {
         "title": yt_title,
@@ -513,21 +526,33 @@ async def demo_ai_caption(request: Request):
 
     return {
         "status": "success",
-        "engine": "GlennBot AI Content & Zernio Social Scheduler v1.4",
+        "engine": "GlennBot AI Content & Zernio Social Scheduler (routers/scheduler_routes.py)",
+        "workflow": workflow,
+        "job_id": job_id,
+        "postgres_table": "glennbot_scheduled_posts",
+        "apscheduler_trigger": "date (post_to_facebook, post_to_instagram, post_to_tiktok, post_to_youtube)",
+        "zernio_media_cloud": "zero_ram_presigned_stream_active",
+        "gdrive_vault_folder": "1f_3d1208297331d7315be76821c07867",
         "glennbot_base_url": GLENNBOT_BASE_URL,
         "remote_endpoint": remote_url,
-        "endpoint": "POST /api/v1/ai/ask",
+        "endpoint": "POST /api/schedule • GET /api/scheduled • POST /api/ai/generate",
         "latency_ms": elapsed_ms,
         **ai_payload,
         "data": ai_payload,
-        "input": {"topic": topic, "tone": tone, "target_platforms": platforms},
+        "input": {"workflow": workflow, "topic": topic, "tone": tone, "target_platforms": platforms},
         "output": {
+            "job_id": job_id,
+            "postgres_table": "glennbot_scheduled_posts",
+            "apscheduler_trigger": "date (Asia/Manila)",
+            "zernio_media_cloud": "presigned_upload_verified",
             **ai_payload,
             "scheduled_dispatch": {
                 "status": "QUEUED_APSCHEDULER",
+                "job_id": job_id,
+                "postgres_table": "glennbot_scheduled_posts",
                 "platforms_synced": platforms,
-                "next_slot_utc": "2026-11-08T14:00:00Z",
-                "webhook_ack": "n8n_social_pipeline_200_OK",
+                "next_slot_manila": "2026-11-14T18:00:00+08:00",
+                "zernio_reconciliation": "sync_single_scheduled_row_with_zernio",
             },
         },
     }
@@ -588,72 +613,149 @@ async def demo_inbox_triage(request: Request):
     except Exception:
         body = {}
 
-    channel = (body.get("channel") or "Omnichannel DM (Messenger / IG / WhatsApp)").strip()
-    sender = (body.get("sender") or "fb_user_glenn_client (@glenn.enterprise)").strip()
+    channel = (
+        body.get("channel")
+        or "💬 Social Comment (Facebook / Instagram / TikTok via Zernio)"
+    ).strip()
+    sender = (
+        body.get("sender")
+        or "@client_lead_ph (Instagram / Facebook Post)"
+    ).strip()
     message = (
         body.get("message")
-        or "Hi Glenn! Can you build an automated WhatsApp + Messenger AI responder connected to n8n for our e-commerce store?"
+        or "How much is your AI Omnichannel Automation setup for an e-commerce brand? Can you DM me the details?"
     ).strip()
 
     lower_chan = channel.lower()
     if "comment" in lower_chan or "tiktok" in lower_chan:
         channel_key = "social_comment"
-        dispatched_via = "POST /api/v1/comments/reply + POST /api/v1/comments/send-dm (Zernio API)"
-        default_route = "n8n_comment_webhook + Zernio_Public_Reply_And_Private_DM"
-    elif "email" in lower_chan or "gmail" in lower_chan or "smtp" in lower_chan:
+        event_name = "comment.received"
+        n8n_workflow = "GlennBot Comment Auto-Responder"
+        dispatched_via = "/api/v1/comments/reply + /api/v1/comments/send-dm (Zernio)"
+    elif "email" in lower_chan or "gmail" in lower_chan or "composio" in lower_chan or "smtp" in lower_chan:
         channel_key = "email_oauth"
-        dispatched_via = "POST /api/v1/emails/send (Composio GMAIL_SEND_EMAIL • glennard.tasico.va@gmail.com)"
-        default_route = "Composio_Gmail_OAuth_Triage + PostgreSQL_And_Cloudinary_Sync"
-    elif "sms" in lower_chan or "textbee" in lower_chan:
-        channel_key = "sms_gateway"
-        dispatched_via = "POST /api/v1/sms/send (TextBee Android SMS Gateway)"
-        default_route = "n8n_incident_webhook + TextBee_SMS_Alert + PostgreSQL_CRM"
+        event_name = "email.received"
+        n8n_workflow = "GlennBot Composio Gmail OAuth Auto-Responder"
+        dispatched_via = "Composio GMAIL_SEND_EMAIL • /api/email/messages?folder=sent"
     else:
         channel_key = "social_dm"
-        dispatched_via = "POST /api/v1/messages/send (FB Messenger / IG DM / WhatsApp)"
-        default_route = "n8n_omnichannel_dm_router + Zernio_Messages_API + PostgreSQL_CRM"
+        event_name = "message.received"
+        n8n_workflow = "GlennBot Omnichannel DM & SMS Router"
+        dispatched_via = "/api/v1/messages/send (Zernio / TextBee)"
 
     lower_msg = message.lower()
     if any(k in lower_msg for k in ("urgent", "down", "error", "asap", "critical", "delay", "threshold")):
         intent = "URGENT_OPERATIONS_ESCALATION"
         priority = "P1_CRITICAL (Score: 96/100)"
-        route_to = f"n8n_incident_escalation + {default_route}"
-    elif any(k in lower_msg for k in ("price", "quote", "project", "build", "sync", "automate", "pipeline", "hire", "connect")):
+    elif any(k in lower_msg for k in ("price", "much", "quote", "project", "build", "sync", "automate", "pipeline", "hire", "proposal", "schedule")):
         intent = "HIGH_INTENT_AUTOMATION_INQUIRY"
-        priority = "P1_HOT_LEAD (Score: 94/100)"
-        route_to = default_route
+        priority = "P1_HOT_LEAD (Score: 95/100)"
     else:
         intent = "GENERAL_TECHNICAL_CONSULTATION"
-        priority = "P2_STANDARD (Score: 82/100)"
-        route_to = default_route
+        priority = "P2_STANDARD (Score: 84/100)"
 
-    smart_reply = (
-        f"Hi! Thanks for reaching out via {channel}. GlennBot AI (Gemini 3.5 Flash) has triaged your message "
-        f"('{message[:72]}{'...' if len(message) > 72 else ''}'), dispatched an automated response via {dispatched_via}, "
-        f"and synced your conversation to PostgreSQL & Cloudinary."
-    )
     elapsed_ms = round((time.perf_counter() - t0) * 1000 + 14.2, 1)
 
+    if channel_key == "social_comment":
+        public_reply_msg = (
+            f"Hi {sender.split()[0]}! Thanks for your comment! 🙌 I've just sent you a private DM with full architecture "
+            f"and pricing details for our AI Omnichannel Automation setup."
+        )
+        private_dm_msg = (
+            f"Hi {sender.split()[0]}! Here are the details on our FastAPI + Gemini 2.5 Flash + n8n Omnichannel Automation "
+            f"for e-commerce brands. Would you like to book a quick discovery call this week?"
+        )
+        return {
+            "status": "TRIAGED_AND_DISPATCHED",
+            "engine": "GlennBot Omnichannel Webhook & Auto-Responder Router",
+            "endpoint": "POST /webhooks -> POST /api/v1/comments/reply & /api/v1/comments/send-dm",
+            "event": event_name,
+            "n8n_workflow": n8n_workflow,
+            "latency_ms": elapsed_ms,
+            "dispatched_via": dispatched_via,
+            "public_comment_reply": {
+                "endpoint": "/api/v1/comments/reply",
+                "transport": "zernio_comments_api",
+                "recipient": sender,
+                "message": public_reply_msg,
+            },
+            "private_dm_followup": {
+                "endpoint": "/api/v1/comments/send-dm",
+                "transport": "zernio_private_dm_api",
+                "recipient": sender,
+                "message": private_dm_msg,
+            },
+            "crm_sync": "glennbot_contacts",
+            "triage_analysis": {
+                "source_channel": channel,
+                "channel_key": channel_key,
+                "sender_id": sender,
+                "detected_intent": intent,
+                "priority_rating": priority,
+                "n8n_workflow": n8n_workflow,
+                "dispatched_via": dispatched_via,
+            },
+        }
+
+    if channel_key == "email_oauth":
+        ai_drafted_reply = (
+            "Hi! Thank you for reaching out to Glennard Tasico (glennard.tasico.va@gmail.com). "
+            "I have attached our FastAPI + n8n + Gemini AI technical architecture proposal and shared my available slots "
+            "for a discovery call this week. Looking forward to speaking with you!"
+        )
+        return {
+            "status": "TRIAGED_AND_DISPATCHED",
+            "engine": "GlennBot Composio v3 Gmail OAuth2 Auto-Responder",
+            "endpoint": "POST /api/email/send • GET /api/email/messages?folder=sent",
+            "event": event_name,
+            "n8n_workflow": n8n_workflow,
+            "latency_ms": elapsed_ms,
+            "composio_tool": "GMAIL_SEND_EMAIL",
+            "authenticated_sender": "glennard.tasico.va@gmail.com",
+            "recipient": sender,
+            "verified_in_folder": "Sent (/api/email/messages?folder=sent)",
+            "ai_drafted_reply": ai_drafted_reply,
+            "dispatched_via": dispatched_via,
+            "crm_sync": "glennbot_contacts",
+            "triage_analysis": {
+                "source_channel": channel,
+                "channel_key": channel_key,
+                "sender_id": sender,
+                "detected_intent": intent,
+                "priority_rating": priority,
+                "composio_tool": "GMAIL_SEND_EMAIL",
+                "authenticated_sender": "glennard.tasico.va@gmail.com",
+                "verified_in_folder": "Sent (/api/email/messages?folder=sent)",
+            },
+        }
+
+    dm_reply = (
+        f"Hi! GlennBot AI (Gemini 2.5 Flash) received your message ({sender}). "
+        f"Our FastAPI + n8n pipeline has logged your lead to PostgreSQL (glennbot_contacts) and alerted Glennard on WhatsApp & TextBee SMS."
+    )
     return {
         "status": "TRIAGED_AND_DISPATCHED",
-        "engine": "GlennBot Omnichannel Triage & Auto-Responder Router v3.5",
-        "endpoint": "POST /api/v1/inbox/triage",
+        "engine": "GlennBot Omnichannel DM & TextBee SMS Router",
+        "endpoint": "POST /webhooks -> POST /api/v1/messages/send & /api/v1/sms/send",
+        "event": event_name,
+        "n8n_workflow": n8n_workflow,
         "latency_ms": elapsed_ms,
-        "dispatched_via": dispatched_via,
+        "dispatched_via": "/api/v1/messages/send (Zernio / TextBee)",
+        "crm_sync": "glennbot_contacts",
         "triage_analysis": {
             "source_channel": channel,
             "channel_key": channel_key,
             "sender_id": sender,
             "detected_intent": intent,
             "priority_rating": priority,
-            "automated_routing": route_to,
-            "dispatched_via": dispatched_via,
+            "n8n_workflow": n8n_workflow,
+            "dispatched_via": "/api/v1/messages/send (Zernio / TextBee)",
+            "crm_sync": "glennbot_contacts",
         },
         "smart_auto_reply": {
-            "draft_response": smart_reply,
-            "dispatched_via": dispatched_via,
-            "delivery_transport": dispatched_via,
-            "crm_record_status": "UPSERTED_POSTGRESQL_AND_CLOUDINARY",
+            "draft_response": dm_reply,
+            "dispatched_via": "/api/v1/messages/send (Zernio / TextBee)",
+            "crm_record_status": "UPSERTED_GLENNBOT_CONTACTS_AND_CLOUDINARY",
         },
     }
 

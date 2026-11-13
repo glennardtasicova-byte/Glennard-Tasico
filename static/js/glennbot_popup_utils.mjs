@@ -329,8 +329,8 @@ export function filterPortfolioSocialAccounts(rawPayload = {}) {
 }
 
 export const SYS01_PROJECT_SPEC = {
-  endpoint: "POST /api/ai/ask • POST /api/schedule • GET & DELETE /api/scheduled",
-  tagline: "Context-Aware Gemini 3.5 Flash Caption Engine + Multi-Platform APScheduler Queue",
+  endpoint: "POST /api/schedule • GET /api/scheduled • POST /api/ai/generate",
+  tagline: "Context-Aware Gemini 2.5 Flash Caption Engine + Zero-RAM Zernio Media Cloud & APScheduler Queue",
   stackPills: [
     "FastAPI",
     "Gemini 3.5 Flash",
@@ -339,7 +339,29 @@ export const SYS01_PROJECT_SPEC = {
     "Cloudinary & GDrive",
     "APScheduler",
   ],
-  sourceFile: "routers/scheduler_routes.py & routers/ai_routes.py",
+  sourceFile: "routers/scheduler_routes.py • routers/ai_routes.py (GlennBot Automations)",
+  pipelineNodes: [
+    {
+      label: "STEP 01 • 📝 CREATE POST",
+      title: "Gemini 2.5 Flash Caption & Hashtag Generator + Google Drive Vault Media",
+      accent: false,
+    },
+    {
+      label: "STEP 02 • ⏳ QUEUE ENGINE",
+      title: "Zero-RAM Stream to Zernio Media Cloud + APScheduler & PostgreSQL Queue",
+      accent: true,
+    },
+    {
+      label: "STEP 03 • 📅 CALENDAR SYNC",
+      title: "Live Multi-Platform Publishing (FB • IG • TikTok • YouTube)",
+      accent: false,
+    },
+  ],
+  workflowOptions: [
+    "📝 Create Post — AI Caption + Multi-Platform Schedule (FB, IG, TikTok, YouTube)",
+    "⏳ Queue — Inspect APScheduler & Zernio Presigned Media Pipeline",
+    "📅 Calendar — Sync Published & Queued Posts Across 4 Connected Accounts",
+  ],
   footerButtons: ["📝 Create Post", "⏳ Queue", "📅 Calendar"],
 };
 
@@ -1118,8 +1140,8 @@ export function enforceEmailSentFolderUrl(rawUrl = "/api/email/messages") {
 export const SYS02_PROJECT_SPEC = {
   sysId: "SYS-02",
   title: "Unified Omnichannel Inbox & Smart Auto-Responder",
-  endpoint: "POST /api/v1/inbox/triage",
-  sourceFile: "glennbot_automations/routers/omnichannel_triage_router.py",
+  endpoint: "POST /webhooks • /api/v1/comments/reply • /api/v1/messages/send • /api/email/messages",
+  sourceFile: "routers/webhooks_routes.py • routers/internal_api_routes.py • routers/email_accounts_routes.py",
   stackPills: [
     "FastAPI",
     "Gemini 3.5 Flash",
@@ -1131,57 +1153,59 @@ export const SYS02_PROJECT_SPEC = {
   ],
   pipelineNodes: [
     {
-      label: "INBOUND",
-      title: "Comments (FB/IG/TikTok) • DMs (FB/IG/WA) • Gmail OAuth • SMS",
+      label: "INBOUND CHANNELS",
+      title: "💬 Social Comments (FB/IG/TikTok) • ✉️ DMs (Messenger/IG/WA/SMS) • 📧 Gmail (Composio)",
       accent: false,
     },
     {
-      label: "AI CLASSIFIER",
-      title: "Gemini AI Intent Triage & n8n Webhook Router",
+      label: "ORCHESTRATION & AI",
+      title: "FastAPI /webhooks + n8n Event Dispatcher + Gemini 2.5 Flash RAG (/api/v1/ai/ask)",
       accent: true,
     },
     {
-      label: "ACTION",
-      title: "Auto-Reply (Comment / DM / Email / SMS) + CRM Sync",
+      label: "AUTO-RESPONDER",
+      title: "Public Comment Reply + Private DM Follow-Up + TextBee SMS + Composio Sent Sync",
       accent: false,
     },
   ],
+  metrics: [
+    { value: "< 2.5s", label: "Gemini AI + n8n Triage Latency" },
+    { value: "3 Live Channels", label: "Comments • DMs/SMS • Gmail" },
+    { value: "100% Automated", label: "Zernio • TextBee • Composio OAuth" },
+  ],
   channelOptions: [
-    "Omnichannel DM (Messenger / IG / WhatsApp)",
-    "Social Comment (Facebook / Instagram / TikTok)",
-    "Email Hub (Composio Gmail OAuth / SMTP)",
-    "TextBee SMS Gateway",
+    "💬 Social Comment (Facebook / Instagram / TikTok via Zernio)",
+    "✉️ Direct Message (FB Messenger / Instagram DM / WhatsApp / TextBee SMS)",
+    "📧 Email Auto-Responder (Composio Gmail OAuth — glennard.tasico.va@gmail.com)",
   ],
   channelPresets: {
-    "Omnichannel DM (Messenger / IG / WhatsApp)": {
-      channelKey: "social_dm",
-      sender: "fb_user_glenn_client (@glenn.enterprise)",
-      message:
-        "Hi Glenn! Can you build an automated WhatsApp + Messenger AI responder connected to n8n for our e-commerce store?",
-      dispatched_via: "POST /api/v1/messages/send (FB Messenger / IG DM / WhatsApp)",
-    },
-    "Social Comment (Facebook / Instagram / TikTok)": {
+    "💬 Social Comment (Facebook / Instagram / TikTok via Zernio)": {
       channelKey: "social_comment",
-      sender: "@agency_founder_io (Facebook / IG Post Comment)",
+      sender: "@client_lead_ph (Instagram / Facebook Post)",
       message:
-        "Solid automation setup! How do you connect Gemini AI to auto-reply to comments and send a Private DM?",
-      dispatched_via:
-        "POST /api/v1/comments/reply + POST /api/v1/comments/send-dm (Zernio API)",
+        "How much is your AI Omnichannel Automation setup for an e-commerce brand? Can you DM me the details?",
+      event: "comment.received",
+      n8n_workflow: "GlennBot Comment Auto-Responder",
+      dispatched_via: "POST /api/v1/comments/reply + POST /api/v1/comments/send-dm",
     },
-    "Email Hub (Composio Gmail OAuth / SMTP)": {
+    "✉️ Direct Message (FB Messenger / Instagram DM / WhatsApp / TextBee SMS)": {
+      channelKey: "social_dm",
+      sender: "+63 917 555 0194 / @enterprise_buyer_dm",
+      message:
+        "Hi Glenn, we need an automated pipeline that syncs our incoming leads to PostgreSQL and alerts our team on WhatsApp & SMS.",
+      event: "message.received",
+      n8n_workflow: "GlennBot Omnichannel DM & SMS Router",
+      dispatched_via: "/api/v1/messages/send (Zernio / TextBee)",
+    },
+    "📧 Email Auto-Responder (Composio Gmail OAuth — glennard.tasico.va@gmail.com)": {
       channelKey: "email_oauth",
       sender: "ops-director@enterprise-client.io",
       message:
-        "Hi Glenn, we need an automated pipeline that triages incoming client emails via Gmail OAuth and syncs qualified leads to PostgreSQL.",
-      dispatched_via:
-        "POST /api/v1/emails/send (Composio GMAIL_SEND_EMAIL • glennard.tasico.va@gmail.com)",
-    },
-    "TextBee SMS Gateway": {
-      channelKey: "sms_gateway",
-      sender: "+63 917 555 0198",
-      message:
-        "URGENT: Supplier capacity threshold reached on Line 2. Please trigger the n8n escalation workflow and confirm receipt.",
-      dispatched_via: "POST /api/v1/sms/send (TextBee Android SMS Gateway)",
+        "Hi Glennard, please send over your technical architecture proposal and available schedule for a discovery call this week.",
+      composio_tool: "GMAIL_SEND_EMAIL",
+      authenticated_sender: "glennard.tasico.va@gmail.com",
+      verified_in_folder: "Sent (/api/email/messages?folder=sent)",
+      dispatched_via: "GMAIL_SEND_EMAIL (Composio Gmail OAuth • glennard.tasico.va@gmail.com)",
     },
   },
   footerButtons: ["💬 Post a Comment", "✉️ Send a DM", "📧 Send an Email"],
@@ -1195,18 +1219,15 @@ export function resolveSys02ChannelPreset(channelLabel = "") {
   const lower = raw.toLowerCase();
   if (lower.includes("comment") || lower.includes("tiktok")) {
     return SYS02_PROJECT_SPEC.channelPresets[
-      "Social Comment (Facebook / Instagram / TikTok)"
+      "💬 Social Comment (Facebook / Instagram / TikTok via Zernio)"
     ];
   }
-  if (lower.includes("email") || lower.includes("gmail") || lower.includes("smtp")) {
+  if (lower.includes("email") || lower.includes("gmail") || lower.includes("composio")) {
     return SYS02_PROJECT_SPEC.channelPresets[
-      "Email Hub (Composio Gmail OAuth / SMTP)"
+      "📧 Email Auto-Responder (Composio Gmail OAuth — glennard.tasico.va@gmail.com)"
     ];
-  }
-  if (lower.includes("sms") || lower.includes("textbee")) {
-    return SYS02_PROJECT_SPEC.channelPresets["TextBee SMS Gateway"];
   }
   return SYS02_PROJECT_SPEC.channelPresets[
-    "Omnichannel DM (Messenger / IG / WhatsApp)"
+    "✉️ Direct Message (FB Messenger / Instagram DM / WhatsApp / TextBee SMS)"
   ];
 }
