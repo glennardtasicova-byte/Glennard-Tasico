@@ -1065,10 +1065,15 @@ export function enforceEmailSentFolderUrl(rawUrl = "/api/email/messages") {
   if (!str.includes("/api/email/messages")) return str;
   const parsed = new URL(str, "http://localhost:3000");
   parsed.searchParams.set("folder", "sent");
-  parsed.searchParams.set("email_address", SYS02_EMAIL_CHATBOT_CONFIG.targetEmail);
-  parsed.searchParams.set("platform", "gmail");
+  const accId = parsed.searchParams.get("account_id");
+  if (accId === "" || accId === "gmail_glennard_tasico_va") {
+    parsed.searchParams.delete("account_id");
+  }
+  parsed.searchParams.delete("email_address");
+  parsed.searchParams.delete("platform");
   return `${parsed.pathname}${parsed.search}`;
 }
+
 
 
 

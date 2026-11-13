@@ -702,13 +702,14 @@ test("SYS-02 Email Hub Dashboard Portfolio Demo Mode locks account to glennard.t
   assert.equal(fallbackAccounts.active_account_id, "gmail_glennard_tasico_va");
 
   const rewrittenInboxUrl = enforceEmailSentFolderUrl(
-    "/api/email/messages?folder=inbox&page=1"
+    "/api/email/messages?account_id=gmail_glennard_tasico_va&folder=inbox&page=1"
   );
   assert.equal(
     rewrittenInboxUrl,
-    "/api/email/messages?folder=sent&page=1&email_address=glennard.tasico.va%40gmail.com&platform=gmail"
+    "/api/email/messages?folder=sent&page=1"
   );
 });
+
 
 
 
