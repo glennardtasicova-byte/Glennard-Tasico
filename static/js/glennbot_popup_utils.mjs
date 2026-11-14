@@ -1170,7 +1170,7 @@ export const SYS02_PROJECT_SPEC = {
     },
   ],
   metrics: [
-    { value: "< 2.5s", label: "Gemini 3.5 Flash + n8n Latency" },
+    { value: "24/7 Live", label: "Zero Missed Inquiries" },
     { value: "3 Live Channels", label: "Comments • DMs • Gmail" },
     { value: "100% Automated", label: "Zernio • Composio • GDrive Excel" },
   ],

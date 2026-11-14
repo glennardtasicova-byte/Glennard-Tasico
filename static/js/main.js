@@ -2080,7 +2080,7 @@ def get_scheduled_posts(month: Optional[int] = None, year: Optional[int] = None)
           "**📧 Send an Email (`openEmailInteractivePopup` • `?popout_mode=workspace_view&tab=email`)**: Opens the **`📧 Test My Live AI Email Chatbot`** modal (`LIVE AI EMAIL AUTO-RESPONDER • GEMINI + GOOGLE DRIVE EXCEL SYNC`) targeting **`glennard.tasico.va@gmail.com`**. Composio Gmail trigger / n8n calls **Gemini 3.5 Flash** (`POST /api/v1/ai/ask` in `email_reply` mode reading **`Script.xlsx` Sheet1** and **`Conversations.xlsx` Sheet3**, formatting replies with `Dear [Name of Sender], ... Regards, Glennard`), sends via Composio Gmail OAuth (`GMAIL_SEND_EMAIL`), and syncs verified replies in `GET /api/email/messages?folder=sent`.",
         ],
         metrics: [
-          { value: "< 2.5s", label: "Gemini 3.5 Flash + n8n Latency" },
+          { value: "24/7 Live", label: "Zero Missed Inquiries" },
           { value: "3 Live Channels", label: "Comments • DMs • Gmail" },
           { value: "100% Automated", label: "Zernio • Composio • GDrive Excel" },
         ],

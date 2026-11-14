@@ -800,6 +800,11 @@ test("SYS-02 Unified Omnichannel Inbox architecture spec, 3 live channel presets
     SYS02_PROJECT_SPEC.pipelineNodes[2].title,
     "Live Comment Reply + Messenger/IG/WhatsApp DM Reply + Gmail Sent Folder Sync"
   );
+  assert.deepEqual(SYS02_PROJECT_SPEC.metrics, [
+    { value: "24/7 Live", label: "Zero Missed Inquiries" },
+    { value: "3 Live Channels", label: "Comments • DMs • Gmail" },
+    { value: "100% Automated", label: "Zernio • Composio • GDrive Excel" },
+  ]);
   assert.deepEqual(SYS02_PROJECT_SPEC.channelOptions, [
     "💬 Post a Comment (Facebook / Instagram / TikTok Showcase Posts)",
     "✉️ Send a DM (Facebook Messenger / Instagram DM / WhatsApp / Mock Chat)",
@@ -853,6 +858,9 @@ test("SYS-01 and SYS-02 showcase webcards include full-width .webcard-banner .we
   assert.ok(indexHtml.includes('alt="SYS-01 Social &amp; AI Publishing Architecture Banner"'));
   assert.ok(indexHtml.includes('src="/static/images/sys-02-banner.webp"'));
   assert.ok(indexHtml.includes('alt="SYS-02 Omnichannel &amp; AI Triage Architecture Banner"'));
+  assert.ok(indexHtml.includes('<span class="project-impact-pill">85% Faster Publishing</span>'));
+  assert.ok(indexHtml.includes('<span class="project-impact-pill">24/7 Instant Auto-Reply</span>'));
+  assert.ok(!indexHtml.includes("&lt; 2.5s AI Response"));
 
   const styleCss = fs.readFileSync("static/css/style.css", "utf8");
   assert.ok(styleCss.includes(".webcard-banner {"));
