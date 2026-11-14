@@ -2971,6 +2971,11 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
     document.querySelectorAll(".project-showcase-card").forEach((card) => {
       card.addEventListener("click", (e) => {
         if (e.target.closest("button, a, .project-tryme-dock, .project-tryme-callout")) return;
+        const banner = e.target.closest(".webcard-banner");
+        if (banner && banner.getAttribute("data-suppress-click") === "1") {
+          banner.removeAttribute("data-suppress-click");
+          return;
+        }
         const projId = card.getAttribute("data-project-id");
         openProjectModal(projId, "case-study");
       });
@@ -3014,12 +3019,191 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
     });
   }
 
+  function initEqualizeProjectWebCards() {
+    const grid = document.querySelector(".projects-grid-2x2");
+    if (!grid) return;
+
+    function syncHeights() {
+      const cards = Array.from(grid.querySelectorAll(".project-showcase-card"));
+      if (!cards.length) return;
+
+      const selectors = [
+        ".project-title-row",
+        ".project-tryme-callout",
+        ".project-tryme-buttons",
+        ".project-footer-links",
+      ];
+
+      // Reset inline minHeight before measuring natural wrapped heights
+      selectors.forEach((sel) => {
+        cards.forEach((card) => {
+          const el = card.querySelector(sel);
+          if (el) el.style.minHeight = "";
+        });
+      });
+
+      // On mobile single-column stack (<= 768px), let each card size naturally
+      if (window.innerWidth <= 768) {
+        return;
+      }
+
+      selectors.forEach((sel) => {
+        let maxH = 0;
+        const elements = [];
+        cards.forEach((card) => {
+          const el = card.querySelector(sel);
+          if (el) {
+            elements.push(el);
+            const h = Math.ceil(el.getBoundingClientRect().height);
+            if (h > maxH) maxH = h;
+          }
+        });
+        if (maxH > 0) {
+          elements.forEach((el) => {
+            el.style.minHeight = maxH + "px";
+          });
+        }
+      });
+    }
+
+    syncHeights();
+    window.addEventListener("load", syncHeights);
+    window.addEventListener("resize", syncHeights);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(syncHeights).catch(() => {});
+    }
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(() => {
+        window.requestAnimationFrame(syncHeights);
+      });
+      ro.observe(grid);
+    }
+  }
+
+  function initWebcardBannerMagnifier() {
+    const banners = document.querySelectorAll(".webcard-banner");
+    if (!banners.length) return;
+
+    banners.forEach((banner) => {
+      // Inject magnifying glass lens ring if not already present
+      if (!banner.querySelector(".webcard-magnifier-lens")) {
+        const lens = document.createElement("span");
+        lens.className = "webcard-magnifier-lens";
+        lens.setAttribute("aria-hidden", "true");
+        banner.appendChild(lens);
+      }
+
+      function updateMagnifierCoords(clientX, clientY, isTouch) {
+        const rect = banner.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        const rawX = ((clientX - rect.left) / rect.width) * 100;
+        const rawY = ((clientY - rect.top) / rect.height) * 100;
+        const pctX = Math.max(0, Math.min(100, rawX));
+        // On touch devices, offset Y slightly upward so the user's finger doesn't cover the zoomed text
+        const adjustedY = isTouch ? rawY - 8 : rawY;
+        const pctY = Math.max(0, Math.min(100, adjustedY));
+
+        banner.style.setProperty("--zoom-x", pctX.toFixed(2) + "%");
+        banner.style.setProperty("--zoom-y", pctY.toFixed(2) + "%");
+        banner.style.setProperty("--lens-x", pctX.toFixed(2) + "%");
+        banner.style.setProperty("--lens-y", Math.max(0, Math.min(100, rawY)).toFixed(2) + "%");
+      }
+
+      function resetMagnifier() {
+        banner.classList.remove("is-magnifying");
+      }
+
+      // Desktop Mouse Hover & Move
+      banner.addEventListener("mouseenter", (e) => {
+        banner.classList.add("is-magnifying");
+        updateMagnifierCoords(e.clientX, e.clientY, false);
+      });
+
+      banner.addEventListener("mousemove", (e) => {
+        if (!banner.classList.contains("is-magnifying")) {
+          banner.classList.add("is-magnifying");
+        }
+        updateMagnifierCoords(e.clientX, e.clientY, false);
+      });
+
+      banner.addEventListener("mouseleave", () => {
+        resetMagnifier();
+      });
+
+      // Mobile Browser Hold-Touch + Finger Drag
+      let holdTimer = null;
+      let isTouchMagnifying = false;
+      let startX = 0;
+      let startY = 0;
+
+      banner.addEventListener(
+        "touchstart",
+        (e) => {
+          if (!e.touches || e.touches.length !== 1) return;
+          const touch = e.touches[0];
+          startX = touch.clientX;
+          startY = touch.clientY;
+          isTouchMagnifying = false;
+
+          if (holdTimer) clearTimeout(holdTimer);
+          holdTimer = setTimeout(() => {
+            isTouchMagnifying = true;
+            banner.setAttribute("data-suppress-click", "1");
+            banner.classList.add("is-magnifying");
+            updateMagnifierCoords(touch.clientX, touch.clientY, true);
+          }, 150);
+        },
+        { passive: true }
+      );
+
+      banner.addEventListener(
+        "touchmove",
+        (e) => {
+          if (!e.touches || e.touches.length !== 1) return;
+          const touch = e.touches[0];
+          if (!isTouchMagnifying) {
+            const dx = Math.abs(touch.clientX - startX);
+            const dy = Math.abs(touch.clientY - startY);
+            // If user starts scrolling before hold timer fires, cancel hold timer
+            if (dx > 12 || dy > 12) {
+              if (holdTimer) {
+                clearTimeout(holdTimer);
+                holdTimer = null;
+              }
+            }
+            return;
+          }
+          // Actively magnifying via hold + drag: prevent page scroll while panning banner zoom
+          if (e.cancelable) e.preventDefault();
+          updateMagnifierCoords(touch.clientX, touch.clientY, true);
+        },
+        { passive: false }
+      );
+
+      function endTouchMagnifier() {
+        if (holdTimer) {
+          clearTimeout(holdTimer);
+          holdTimer = null;
+        }
+        if (isTouchMagnifying) {
+          isTouchMagnifying = false;
+          resetMagnifier();
+        }
+      }
+
+      banner.addEventListener("touchend", endTouchMagnifier, { passive: true });
+      banner.addEventListener("touchcancel", endTouchMagnifier, { passive: true });
+    });
+  }
+
   function initAll() {
     initThemeToggle();
     initRoleTypingEffect();
     initScrollReveal();
     initCircuitCanvas();
     initFeaturedProjectsInspector();
+    initEqualizeProjectWebCards();
+    initWebcardBannerMagnifier();
   }
 
   if (document.readyState === "loading") {

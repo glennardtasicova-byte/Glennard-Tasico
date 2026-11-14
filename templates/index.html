@@ -15,12 +15,100 @@
 
   <!-- Font Awesome Icons & Custom Stylesheet -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <link rel="stylesheet" href="/static/css/style.css?v=65" />
+  <link rel="stylesheet" href="/static/css/style.css?v=72" />
   <style>
+    .about-bio-frame {
+      width: 100%;
+    }
+    .about-frames-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 22px;
+      align-items: stretch;
+      width: 100%;
+    }
+    .about-stack-group,
+    .about-build-group {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .stack-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      grid-template-rows: repeat(2, 1fr);
+      gap: 14px;
+      width: 100%;
+      flex: 1;
+    }
+    .build-cards-grid {
+      display: grid;
+      grid-template-columns: 1fr !important;
+      grid-template-rows: repeat(4, 1fr);
+      gap: 14px;
+      width: 100%;
+      flex: 1;
+    }
+    .stack-cards-grid .stack-card {
+      height: 100%;
+      justify-content: flex-start !important;
+      padding: 18px 20px !important;
+      gap: 12px !important;
+    }
+    .stack-card-list {
+      display: flex !important;
+      flex-direction: column !important;
+      flex-wrap: nowrap !important;
+      align-items: flex-start !important;
+      gap: 8px !important;
+    }
+    .stack-card-list li {
+      display: flex !important;
+      align-items: center !important;
+      width: 100%;
+      font-size: 0.82rem !important;
+      line-height: 1.45 !important;
+    }
+    .build-cards-grid .build-card {
+      height: 100%;
+      justify-content: center;
+    }
+    @media (max-width: 1024px) {
+      .about-frames-grid {
+        grid-template-columns: 1fr !important;
+      }
+    }
+    @media (max-width: 640px) {
+      .stack-cards-grid {
+        grid-template-columns: 1fr !important;
+        grid-template-rows: auto;
+      }
+    }
+    .projects-showcase-section {
+      max-width: 1640px;
+    }
+    .projects-grid-2x2 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: clamp(10px, 1vw, 16px);
+      align-items: stretch;
+      width: 100%;
+    }
+    @media (max-width: 768px) {
+      .projects-grid-2x2 {
+        grid-template-columns: 1fr !important;
+      }
+    }
+    .web-card.project-showcase-card {
+      --card-pad: clamp(12px, 1.05vw, 16px);
+      padding: var(--card-pad) !important;
+      gap: 12px;
+    }
     .webcard-banner {
-      margin: -24px -24px 0 -24px;
-      width: calc(100% + 48px);
-      max-width: calc(100% + 48px);
+      position: relative;
+      margin: calc(-1 * var(--card-pad, 14px)) calc(-1 * var(--card-pad, 14px)) 0 calc(-1 * var(--card-pad, 14px));
+      width: calc(100% + (var(--card-pad, 14px) * 2));
+      max-width: calc(100% + (var(--card-pad, 14px) * 2));
       border-top-left-radius: 15px;
       border-top-right-radius: 15px;
       overflow: hidden;
@@ -28,6 +116,11 @@
       background-color: #0b1120;
       flex-shrink: 0;
       box-sizing: border-box;
+      cursor: zoom-in;
+      touch-action: pan-y;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
     }
     [data-theme="light"] .webcard-banner {
       background-color: #f8fafc;
@@ -54,6 +147,10 @@
       max-width: 100% !important;
       height: auto !important;
       display: block !important;
+      transform: scale(1);
+      transform-origin: var(--zoom-x, 50%) var(--zoom-y, 50%);
+      transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform, transform-origin;
     }
     .webcard-banner img {
       width: 100% !important;
@@ -61,6 +158,41 @@
       height: auto !important;
       display: block !important;
       object-fit: contain !important;
+      transform: scale(1);
+      transform-origin: var(--zoom-x, 50%) var(--zoom-y, 50%);
+      transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform, transform-origin;
+      pointer-events: none;
+    }
+    .webcard-banner.is-magnifying {
+      border-bottom-color: var(--accent-primary);
+      box-shadow: inset 0 0 22px rgba(16, 185, 129, 0.25);
+    }
+    .webcard-banner.is-magnifying img,
+    .webcard-banner.is-magnifying .webcard-banner-placeholder-svg {
+      transform: scale(2.35);
+      transition: transform 90ms ease-out;
+    }
+    .webcard-magnifier-lens {
+      position: absolute;
+      left: var(--lens-x, 50%);
+      top: var(--lens-y, 50%);
+      width: 78px;
+      height: 78px;
+      border-radius: 50%;
+      border: 2px solid rgba(52, 211, 153, 0.9);
+      box-shadow:
+        0 0 18px rgba(16, 185, 129, 0.5),
+        inset 0 0 12px rgba(56, 189, 248, 0.3);
+      transform: translate(-50%, -50%) scale(0.7);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 150ms ease, transform 150ms ease;
+      z-index: 4;
+    }
+    .webcard-banner.is-magnifying .webcard-magnifier-lens {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
     }
     .webcard-banner img.webcard-banner-dark {
       display: block !important;
@@ -73,6 +205,66 @@
     }
     [data-theme="light"] .webcard-banner img.webcard-banner-light {
       display: block !important;
+    }
+    .project-tryme-callout,
+    .tryme-callout-text {
+      white-space: normal !important;
+      text-align: center !important;
+      line-height: 1.25 !important;
+      overflow-wrap: break-word !important;
+      word-break: normal !important;
+    }
+    .project-tryme-callout {
+      border-radius: 10px !important;
+      min-height: 32px;
+      padding: 6px 10px !important;
+    }
+    .project-tryme-buttons,
+    .project-footer-links {
+      display: flex !important;
+      align-items: stretch !important;
+      width: 100% !important;
+    }
+    .btn-sys01-popout,
+    .btn-project-widget,
+    .btn-live-launcher,
+    .btn-project-ghost,
+    .btn-project-tab {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex: 1 1 0% !important;
+      min-width: 0 !important;
+      height: auto !important;
+      white-space: normal !important;
+      text-align: center !important;
+      line-height: 1.22 !important;
+      overflow-wrap: break-word !important;
+      word-break: normal !important;
+    }
+    .btn-sys01-popout,
+    .btn-project-widget,
+    .btn-live-launcher {
+      min-height: 44px;
+      padding: 6px 6px !important;
+      font-size: clamp(0.68rem, 0.74vw, 0.76rem) !important;
+    }
+    .btn-project-ghost,
+    .btn-project-tab {
+      min-height: 36px;
+      padding: 6px 8px !important;
+      font-size: clamp(0.7rem, 0.76vw, 0.78rem) !important;
+    }
+    .btn-sys01-popout span,
+    .btn-project-widget span,
+    .btn-live-launcher span,
+    .btn-project-ghost span,
+    .btn-project-tab span {
+      white-space: normal !important;
+      text-align: center !important;
+      line-height: 1.22 !important;
+      display: block !important;
+      width: 100% !important;
     }
     .pipeline-node {
       flex: 1 1 0%;
@@ -320,51 +512,53 @@
         </a>
       </div>
 
-      <div class="about-frames-grid">
-        <!-- Frame 1 (Left Column): Bio, Experience Highlights & Core Tech Stack -->
-        <div class="placeholder-box cv-card about-frame about-frame-left scroll-reveal" data-reveal-delay="90">
-          <!-- Bio & 2-Row Credentials Highlight -->
-          <div class="cv-group">
-            <p class="cv-intro-text scroll-reveal" data-reveal-delay="120">
-              I am an <strong>AI Automation Specialist &amp; Full-Stack Web Developer</strong> who builds custom web dashboards and 24/7 automation workflows that eliminate repetitive manual work. I architected and engineered <strong>GlennBot Automations</strong>&mdash;an all-in-one operations platform combining AI content generation, multi-platform social scheduling, a unified omnichannel inbox, cloud spreadsheet sync, and n8n webhook orchestration. Backed by <strong>11+ years as an Industrial Engineer &amp; Operations Supervisor at EPSON Precision</strong>, I combine Kaizen process optimization with modern full-stack &amp; AI engineering to turn operational bottlenecks into automated digital systems. <em>You can test its core engines live through the interactive widgets below.</em>
-            </p>
-            <div class="experience-credentials-stack" aria-label="Credentials and Experience Highlights">
-              <!-- Row 1: Flagship Engineering Project -->
-              <div class="experience-timeline-bar scroll-reveal" data-reveal-delay="190">
-                <div class="experience-role-info">
-                  <div class="experience-role-main">
-                    <span class="experience-marker" aria-hidden="true"></span>
-                    <strong class="experience-title">AI Automation &amp; Full-Stack Builder</strong>
-                    <span class="experience-divider" aria-hidden="true">|</span>
-                    <span class="experience-org">Creator of GlennBot Automations</span>
-                  </div>
-                  <p class="experience-subtext">
-                    Python (FastAPI) &bull; Gemini AI &bull; n8n Webhooks &bull; 11+ Live Modules
-                  </p>
+      <!-- Standalone Full-Width Web Card: Bio & Experience Highlights -->
+      <div class="placeholder-box cv-card about-frame about-bio-frame scroll-reveal" data-reveal-delay="85">
+        <div class="cv-group">
+          <p class="cv-intro-text scroll-reveal" data-reveal-delay="120">
+            I am an <strong>AI Automation Specialist &amp; Full-Stack Web Developer</strong> who builds custom web dashboards and 24/7 automation workflows that eliminate repetitive manual work. I architected and engineered <strong>GlennBot Automations</strong>&mdash;an all-in-one operations platform combining AI content generation, multi-platform social scheduling, a unified omnichannel inbox, cloud spreadsheet sync, and n8n webhook orchestration. Backed by <strong>11+ years as an Industrial Engineer &amp; Operations Supervisor at EPSON Precision</strong>, I combine Kaizen process optimization with modern full-stack &amp; AI engineering to turn operational bottlenecks into automated digital systems. <em>You can test its core engines live through the interactive widgets below.</em>
+          </p>
+          <div class="experience-credentials-stack" aria-label="Credentials and Experience Highlights">
+            <!-- Row 1: Flagship Engineering Project -->
+            <div class="experience-timeline-bar scroll-reveal" data-reveal-delay="190">
+              <div class="experience-role-info">
+                <div class="experience-role-main">
+                  <span class="experience-marker" aria-hidden="true"></span>
+                  <strong class="experience-title">AI Automation &amp; Full-Stack Builder</strong>
+                  <span class="experience-divider" aria-hidden="true">|</span>
+                  <span class="experience-org">Creator of GlennBot Automations</span>
                 </div>
-                <span class="experience-period">Oct 2026 &ndash; Present</span>
+                <p class="experience-subtext">
+                  Python (FastAPI) &bull; Gemini AI &bull; n8n Webhooks &bull; 11+ Live Modules
+                </p>
               </div>
+              <span class="experience-period">Oct 2026 &ndash; Present</span>
+            </div>
 
-              <!-- Row 2: Industrial Engineering & Process Automation Background -->
-              <div class="experience-timeline-bar scroll-reveal" data-reveal-delay="260">
-                <div class="experience-role-info">
-                  <div class="experience-role-main">
-                    <span class="experience-marker experience-marker-teal" aria-hidden="true"></span>
-                    <strong class="experience-title">Industrial Engineer &amp; Mold Control Supervisor</strong>
-                    <span class="experience-divider" aria-hidden="true">|</span>
-                    <span class="experience-org">EPSON Precision (Philippines) Inc.</span>
-                  </div>
-                  <p class="experience-subtext">
-                    11+ Years Experience &bull; Process Automation &bull; Top Kaizen Coordinator &bull; 30+ Supplier Audits
-                  </p>
+            <!-- Row 2: Industrial Engineering & Process Automation Background -->
+            <div class="experience-timeline-bar scroll-reveal" data-reveal-delay="260">
+              <div class="experience-role-info">
+                <div class="experience-role-main">
+                  <span class="experience-marker experience-marker-teal" aria-hidden="true"></span>
+                  <strong class="experience-title">Industrial Engineer &amp; Mold Control Supervisor</strong>
+                  <span class="experience-divider" aria-hidden="true">|</span>
+                  <span class="experience-org">EPSON Precision (Philippines) Inc.</span>
                 </div>
-                <span class="experience-period">Apr 2015 &ndash; Present</span>
+                <p class="experience-subtext">
+                  11+ Years Experience &bull; Process Automation &bull; Top Kaizen Coordinator &bull; 30+ Supplier Audits
+                </p>
               </div>
+              <span class="experience-period">Apr 2015 &ndash; Present</span>
             </div>
           </div>
+        </div>
+      </div>
 
-          <!-- Core Tech Stack inside Left Frame -->
-          <div class="cv-group">
+      <!-- 2-Column Dual-Frame Grid: Core Tech Stack (Left Web Card) & What I Build (Right Web Card) -->
+      <div class="about-frames-grid">
+        <!-- Frame 1 (Left Column Web Card): Core Tech Stack -->
+        <div class="placeholder-box cv-card about-frame about-frame-left scroll-reveal" data-reveal-delay="100">
+          <div class="cv-group about-stack-group">
             <div class="cv-subheading-row scroll-reveal" data-reveal-delay="80">
               <h3 class="cv-subheading">Core Tech Stack</h3>
               <span class="cv-subheading-line" aria-hidden="true"></span>
@@ -457,8 +651,8 @@
           </div>
         </div>
 
-        <!-- Frame 2 (Right Column): What I Build -->
-        <div class="placeholder-box cv-card about-frame about-frame-right scroll-reveal" data-reveal-delay="160">
+        <!-- Frame 2 (Right Column Web Card): What I Build -->
+        <div class="placeholder-box cv-card about-frame about-frame-right scroll-reveal" data-reveal-delay="115">
           <div class="cv-group about-build-group">
             <div class="cv-subheading-row scroll-reveal" data-reveal-delay="120">
               <h3 class="cv-subheading">What I Build</h3>
@@ -1894,6 +2088,6 @@
   </footer>
 
   <!-- Custom Script -->
-  <script src="/static/js/main.js?v=65"></script>
+  <script src="/static/js/main.js?v=72"></script>
 </body>
 </html>
