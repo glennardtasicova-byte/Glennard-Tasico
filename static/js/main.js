@@ -1853,34 +1853,34 @@ window.launchGlennBotMailto = launchGlennBotMailto;
       "social-scheduler": {
         sysId: "SYS-01",
         category: "Social & AI Publishing",
-        endpoint: "POST /api/schedule • GET /api/scheduled • POST /api/ai/generate",
+        endpoint: "POST /api/ai/ask • POST /api/schedule • GET /api/scheduled",
         demoEndpoint: "/api/demo/ai-caption",
         title: "AI Content & Omnichannel Social Scheduler",
         tagline:
-          "Context-Aware Gemini 2.5 Flash Caption Engine + Zero-RAM Zernio Media Cloud & APScheduler Queue",
+          "Context-Aware Gemini 3.5 Flash Caption Engine + Zero-RAM Zernio Media Cloud & APScheduler Queue",
         pipelineNodes: [
           {
             label: "STEP 01 • 📝 CREATE POST",
-            title: "Gemini 2.5 Flash Caption & Hashtag Generator + Google Drive Vault Media",
+            title: "Gemini 3.5 Flash Viral Title, Caption & Hashtag Generator (/api/ai/ask)",
             accent: false,
           },
           {
-            label: "STEP 02 • ⏳ QUEUE ENGINE",
-            title: "Zero-RAM Stream to Zernio Media Cloud + APScheduler & PostgreSQL Queue",
+            label: "STEP 02 • ⏳ QUEUE",
+            title: "Zero-RAM Stream to Zernio Media Cloud + APScheduler & PostgreSQL Queue (/api/schedule)",
             accent: true,
           },
           {
-            label: "STEP 03 • 📅 CALENDAR SYNC",
-            title: "Live Multi-Platform Publishing (FB • IG • TikTok • YouTube)",
+            label: "STEP 03 • 📅 CALENDAR",
+            title: "Visual Omnichannel Schedule Across FB, IG, TikTok & YouTube (/api/scheduled)",
             accent: false,
           },
         ],
         bottleneck:
           "Content teams and founders spend hours manually generating platform-specific captions, uploading heavy video reels across separate tabs, and tracking scheduled posts across Facebook, Instagram, TikTok, and YouTube.",
         solution:
-          "Architected a unified FastAPI + APScheduler + Zernio Social API publishing engine (`routers/scheduler_routes.py` & `routers/ai_routes.py`) backed by **PostgreSQL (`glennbot_scheduled_posts`)** and **Google Drive Vault**. Directly powers the 3 live interactive modules below:",
+          "Architected a unified FastAPI + APScheduler + Zernio Social API publishing engine (`routers/ai_routes.py` & `routers/scheduler_routes.py`) powered by **Gemini 3.5 Flash (`POST /api/ai/ask`)**, **PostgreSQL (`glennbot_scheduled_posts`)**, and **Google Drive Vault**. Directly powers the 3 live interactive modules below:",
         architectureSteps: [
-          "**📝 Create Post (`#view-scheduler`)**: Generates platform-tailored captions & hashtags via `/api/ai/generate` (`gemini-2.5-flash`) and attaches media via chunked streaming (`/api/schedule/chunked-init` & `/api/schedule/chunked-complete`) or Google Drive Vault (`/api/files`).",
+          "**📝 Create Post (`#view-scheduler`)**: Generates platform-tailored viral titles, captions & hashtags via `POST /api/ai/ask` (`Gemini 3.5 Flash`) and attaches media via chunked streaming (`/api/schedule/chunked-init` & `/api/schedule/chunked-complete`) or Google Drive Vault (`/api/files`).",
           "**Zero-RAM Media Pipeline (`routers/scheduler_routes.py`)**: Streams video/image uploads directly to **Zernio Presigned Media Cloud** or **Google Drive Vault (`1f_3d1208297331d7315be76821c07867`)** without buffering large files in server RAM.",
           "**⏳ Queue (`#view-queue` / `GET /api/scheduled`)**: Persists jobs in PostgreSQL (`glennbot_scheduled_posts`), registers exact execution timers in **APScheduler** (`post_to_facebook`, `post_to_instagram`, `post_to_tiktok`, `post_to_youtube`), and auto-reconciles live publish status with Zernio API (`sync_single_scheduled_row_with_zernio`).",
           "**📅 Calendar (`#view-calendar`)**: Visualizes all queued, scheduled, and published posts across the 4 connected showcase accounts (**Facebook: GlennBot Automations**, **Instagram: @glennard.tasico.va**, **TikTok: @glennbot.automation**, **YouTube: glennardtasico**).",
@@ -1890,8 +1890,8 @@ window.launchGlennBotMailto = launchGlennBotMailto;
           { value: "4 Channels", label: "FB • IG • TikTok • YT" },
           { value: "24/7 Queue", label: "APScheduler + PostgreSQL" },
         ],
-        sourceFile: "routers/scheduler_routes.py • routers/ai_routes.py (GlennBot Automations)",
-        sourceCode: `# glennbot_automations/routers/scheduler_routes.py & routers/ai_routes.py
+        sourceFile: "routers/ai_routes.py • routers/scheduler_routes.py (GlennBot Automations)",
+        sourceCode: `# glennbot_automations/routers/ai_routes.py & routers/scheduler_routes.py
 from fastapi import APIRouter, Form, File, UploadFile, Request
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import text
@@ -1911,13 +1911,13 @@ from services.gdrive_service import _upload_local_file_to_gdrive_temp
 
 router = APIRouter()
 
-# ── 1. 📝 CREATE POST: AI Caption & Hashtag Generator (routers/ai_routes.py) ──
-@router.post("/api/ai/generate")
-async def generate_ai_content(request: Request):
+# ── 1. 📝 CREATE POST: Gemini 3.5 Flash Caption & Hashtag Generator (routers/ai_routes.py) ──
+@router.post("/api/ai/ask")
+async def api_ask_ai(request: Request):
     data = await request.json()
     return await run_in_threadpool(
         lambda: _execute_glennbot_ask_ai_core(
-            user_topic=str(data.get("topic") or "").strip(),
+            user_topic=str(data.get("topic") or data.get("prompt") or "").strip(),
             tone_str=str(data.get("tone") or "engaging").strip(),
             lang_str=str(data.get("language") or "taglish").strip(),
             post_type_str=str(data.get("post_type") or "reels").strip(),
@@ -2048,52 +2048,50 @@ def get_scheduled_posts(month: Optional[int] = None, year: Optional[int] = None)
       "omnichannel-inbox": {
         sysId: "SYS-02",
         category: "Omnichannel & AI Triage",
-        endpoint: "POST /webhooks • /api/v1/comments/reply • /api/v1/messages/send • /api/email/messages",
+        endpoint:
+          "POST /webhooks • POST /api/v1/ai/ask • /api/v1/comments/reply • /api/v1/messages/send • /api/email/messages",
         demoEndpoint: "/api/demo/inbox-triage",
         title: "Unified Omnichannel Inbox & Smart Auto-Responder",
-        tagline: "AI Intent Classification, Priority Scoring & Instant Multi-Channel Reply Engine",
+        tagline: "Gemini 3.5 Flash + Google Drive Excel (Script.xlsx & Conversations.xlsx) + n8n Auto-Responder",
         pipelineNodes: [
           {
             label: "INBOUND CHANNELS",
-            title: "💬 Social Comments (FB/IG/TikTok) • ✉️ DMs (Messenger/IG/WA/SMS) • 📧 Gmail (Composio)",
+            title: "💬 Comments (FB • IG • TikTok) • ✉️ DMs (Messenger • IG • WhatsApp) • 📧 Gmail",
             accent: false,
           },
           {
-            label: "ORCHESTRATION & AI",
-            title: "FastAPI /webhooks + n8n Event Dispatcher + Gemini 2.5 Flash RAG (/api/v1/ai/ask)",
+            label: "AI & KNOWLEDGE BASE",
+            title: "Gemini 3.5 Flash (/api/v1/ai/ask) + Google Drive Script.xlsx & Conversations.xlsx + n8n",
             accent: true,
           },
           {
             label: "AUTO-RESPONDER",
-            title: "Public Comment Reply + Private DM Follow-Up + TextBee SMS + Composio Sent Sync",
+            title: "Live Comment Reply + Messenger/IG/WhatsApp DM Reply + Gmail Sent Folder Sync",
             accent: false,
           },
         ],
         bottleneck:
-          "Inbound leads and customer inquiries arrive simultaneously across Facebook/Instagram/TikTok comments, Messenger/Instagram/WhatsApp DMs, SMS, and Gmail—leading to slow manual replies, missed DMs, and fragmented lead tracking.",
+          "Inbound leads and customer inquiries arrive simultaneously across Facebook, Instagram, and TikTok comments, Messenger/Instagram/WhatsApp DMs, and Gmail—leading to slow manual replies, missed messages, and fragmented conversation tracking.",
         solution:
-          "Engineered an event-driven FastAPI + n8n + Gemini 2.5 Flash omnichannel router (`routers/webhooks_routes.py`, `routers/internal_api_routes.py`, `routers/messages_routes.py`, and `routers/email_accounts_routes.py`) directly powering the 3 live interactive buttons below:",
+          "Engineered an event-driven FastAPI + n8n + **Gemini 3.5 Flash** omnichannel auto-responder (`routers/ai_routes.py`, `routers/webhooks_routes.py`, `routers/internal_api_routes.py`, and `routers/email_accounts_routes.py`) grounded on live **Google Drive Excel sync (`Script.xlsx` & `Conversations.xlsx`)** and directly powering the 3 live interactive buttons below:",
         architectureSteps: [
-          "**💬 Post a Comment (`POST /webhooks` -> `_notify_n8n_new_comment`)**: Captures Facebook, Instagram, and TikTok comments in real time via Zernio webhooks, triggers n8n (`comment.received`), generates a context-aware reply via `/api/v1/ai/ask`, posts a public comment reply (`/api/v1/comments/reply`), and dispatches an automated private DM follow-up (`/api/v1/comments/send-dm`).",
-          "**✉️ Send a DM (`routers/messages_routes.py` & `_notify_n8n_new_message`)**: Aggregates Facebook Messenger, Instagram DM, WhatsApp (via Zernio API), and SMS (via TextBee Gateway) into a unified conversation store synced with Cloudinary & PostgreSQL (`glennbot_contacts`), replying automatically via `/api/v1/messages/send` and `/api/v1/sms/send`.",
-          "**📧 Send an Email (`routers/email_accounts_routes.py` & `routers/email_send_webhooks_routes.py`)**: Powered by **Composio v3 Gmail OAuth2** (`GMAIL_SEND_EMAIL` / `GMAIL_FETCH_EMAILS`) and Google Drive Vault attachments, with live verification in the **Email Hub Dashboard (`glennard.tasico.va@gmail.com` — Sent folder)**.",
-          "**Unified CRM & Audit Trail**: Every inbound comment, DM, SMS, and email automatically upserts the contact record in PostgreSQL (`glennbot_contacts`) and logs the AI response latency.",
+          "**💬 Post a Comment (`openCommentPlatformChooser` • `?popout_mode=comment_thread`)**: Visitors comment live on **Facebook (`GlennBot Automations`)**, **Instagram (`@glennard.tasico.va`)**, or **TikTok (`@glennbot.automation`)**. Zernio webhook (`POST /webhooks`) triggers `_notify_n8n_new_comment` (`comment.received`) -> **Gemini 3.5 Flash** (`POST /api/v1/ai/ask` with Google Drive **`Script.xlsx` Sheet1** keyword/answer lookup, **`Conversations.xlsx`** history, and live web search) -> posts the reply via `POST /api/v1/comments/reply`.",
+          "**✉️ Send a DM (`openDmPlatformChooser` • `?popout_mode=message_thread`)**: Opens the 4-option DM Chooser (**Facebook (`GlennBot Automations`)**, **Instagram (`@glennard.tasico.va`)**, **WhatsApp (`Glennard Tasico • +63 917 549 7760`)**, and **Mock Chat Test** Split-Screen Sandbox). Zernio webhook (`POST /webhooks`) triggers `_notify_n8n_new_message` (`message.received`) -> **Gemini 3.5 Flash** (`POST /api/v1/ai/ask` synced with Google Drive **`Script.xlsx`** & **`Conversations.xlsx`**) -> dispatches the auto-reply via `POST /api/v1/messages/send` and syncs the thread in `/api/messages/conversations`.",
+          "**📧 Send an Email (`openEmailInteractivePopup` • `?popout_mode=workspace_view&tab=email`)**: Opens the **`📧 Test My Live AI Email Chatbot`** modal (`LIVE AI EMAIL AUTO-RESPONDER • GEMINI + GOOGLE DRIVE EXCEL SYNC`) targeting **`glennard.tasico.va@gmail.com`**. Composio Gmail trigger / n8n calls **Gemini 3.5 Flash** (`POST /api/v1/ai/ask` in `email_reply` mode reading **`Script.xlsx` Sheet1** and **`Conversations.xlsx` Sheet3**, formatting replies with `Dear [Name of Sender], ... Regards, Glennard`), sends via Composio Gmail OAuth (`GMAIL_SEND_EMAIL`), and syncs verified replies in `GET /api/email/messages?folder=sent`.",
         ],
         metrics: [
-          { value: "< 2.5s", label: "Gemini AI + n8n Triage Latency" },
-          { value: "3 Live Channels", label: "Comments • DMs/SMS • Gmail" },
-          { value: "100% Automated", label: "Zernio • TextBee • Composio OAuth" },
+          { value: "< 2.5s", label: "Gemini 3.5 Flash + n8n Latency" },
+          { value: "3 Live Channels", label: "Comments • DMs • Gmail" },
+          { value: "100% Automated", label: "Zernio • Composio • GDrive Excel" },
         ],
         sourceFile:
-          "routers/webhooks_routes.py • routers/internal_api_routes.py • routers/email_accounts_routes.py",
-        sourceCode: `# glennbot_automations/routers/webhooks_routes.py & routers/internal_api_routes.py
+          "routers/ai_routes.py • routers/webhooks_routes.py • routers/internal_api_routes.py • routers/email_accounts_routes.py",
+        sourceCode: `# glennbot_automations/routers/ai_routes.py, webhooks_routes.py, internal_api_routes.py & email_accounts_routes.py
 from fastapi import APIRouter, Request, Depends, Query
-from sqlalchemy import text
+from fastapi.concurrency import run_in_threadpool
 from core.security import verify_internal_api_key
-from core.database import db_engine
-from services.comments_service import (
-    _notify_n8n_new_comment, _execute_comment_reply_core, _execute_comment_private_dm_core
-)
+from services.ai_service import _execute_glennbot_ask_ai_core
+from services.comments_service import _notify_n8n_new_comment, _execute_comment_reply_core
 from services.messages_service import (
     _notify_n8n_new_message, _execute_message_reply_core, _upsert_contact_from_interaction
 )
@@ -2103,45 +2101,55 @@ from services.email_service import (
 
 router = APIRouter()
 
-# ── 1. 💬 POST A COMMENT & ✉️ SEND A DM: Unified Webhook Ingest (routers/webhooks_routes.py) ──
+# ── 1. 🤖 GEMINI 3.5 FLASH + GOOGLE DRIVE EXCEL KNOWLEDGE BASE (routers/ai_routes.py) ──
+@router.post("/api/v1/ai/ask", dependencies=[Depends(verify_internal_api_key)])
+async def v1_ask_glennbot_ai(request: Request):
+    data = await request.json()
+    # Grounds Gemini 3.5 Flash on Google Drive Script.xlsx (Sheet1) & Conversations.xlsx (Sheet1/Sheet3)
+    return await run_in_threadpool(
+        lambda: _execute_glennbot_ask_ai_core(
+            user_topic=str(data.get("message") or data.get("prompt") or "").strip(),
+            mode_str=str(data.get("mode") or "chatbot_reply").strip(),  # comment_reply | dm_reply | email_reply
+            sender_name=str(data.get("sender_name") or "Client").strip(),
+            use_excel_kb=True,  # Reads Script.xlsx & appends history to Conversations.xlsx
+            use_search=bool(data.get("use_search", True)),
+        )
+    )
+
+# ── 2. 💬 POST A COMMENT & ✉️ SEND A DM: Zernio Webhook Ingest (routers/webhooks_routes.py) ──
 @router.post("/webhooks")
-async def receive_zernio_and_textbee_webhooks(request: Request):
+async def receive_zernio_webhooks(request: Request):
     payload = await request.json()
     event_type = str(payload.get("event") or payload.get("type") or "").lower()
 
-    # Inbound FB / IG / TikTok Comment -> Trigger n8n AI Auto-Reply + Private DM Follow-Up
+    # Button 1 (💬 Post a Comment): FB / IG / TikTok Showcase Post -> n8n -> /api/v1/ai/ask -> /api/v1/comments/reply
     if "comment" in event_type:
         comment_event = _extract_comment_webhook_payload(payload)
         _notify_n8n_new_comment(comment_event)
-        return {"status": "accepted", "pipeline": "comment_auto_responder", "event": event_type}
+        return {"status": "accepted", "pipeline": "comment_auto_responder", "event": "comment.received"}
 
-    # Inbound FB Messenger / IG DM / WhatsApp / TextBee SMS -> Upsert CRM Contact & Trigger n8n AI
-    if "message" in event_type or "sms" in event_type:
+    # Button 2 (✉️ Send a DM): FB Messenger / IG DM / WhatsApp / Mock Chat -> n8n -> /api/v1/ai/ask -> /api/v1/messages/send
+    if "message" in event_type:
         msg_event = _extract_message_webhook_payload(payload)
         _upsert_contact_from_interaction(msg_event)
         _notify_n8n_new_message(msg_event)
-        return {"status": "accepted", "pipeline": "omnichannel_dm_auto_responder", "event": event_type}
+        return {"status": "accepted", "pipeline": "omnichannel_dm_auto_responder", "event": "message.received"}
 
     return {"status": "ignored"}
 
-# ── 2. 💬 COMMENT & ✉️ DM DISPATCH: Internal n8n Execution Endpoints (routers/internal_api_routes.py) ──
+# ── 3. 💬 COMMENT & ✉️ DM AUTO-REPLY DISPATCH (routers/internal_api_routes.py) ──
 @router.post("/api/v1/comments/reply", dependencies=[Depends(verify_internal_api_key)])
 async def v1_reply_to_comment(request: Request):
     data = await request.json()
-    # Posts public reply on FB/IG/TikTok + optional Private DM via /api/v1/comments/send-dm
     reply_res = _execute_comment_reply_core(
         record_id=data["record_id"], comment_id=data["comment_id"], message=data["message"]
     )
-    if data.get("send_private_dm"):
-        _execute_comment_private_dm_core(
-            record_id=data["record_id"], comment_id=data["comment_id"], message=data["dm_message"]
-        )
     return {"status": "success", "dispatched_via": "zernio_comments_api", "result": reply_res}
 
 @router.post("/api/v1/messages/send", dependencies=[Depends(verify_internal_api_key)])
 async def v1_send_omnichannel_dm(request: Request):
     data = await request.json()
-    # Dispatches AI reply to Facebook Messenger, Instagram DM, WhatsApp, or TextBee SMS
+    # Dispatches Gemini 3.5 Flash reply to Facebook Messenger, Instagram DM, WhatsApp, or Mock Chat
     return _execute_message_reply_core(
         account_id=data["account_id"],
         conversation_id=data["conversation_id"],
@@ -2149,14 +2157,14 @@ async def v1_send_omnichannel_dm(request: Request):
         message=data["message"],
     )
 
-# ── 3. 📧 SEND AN EMAIL: Composio Gmail OAuth2 Auto-Responder & Sent Folder Sync ──
+# ── 4. 📧 SEND AN EMAIL: Composio Gmail OAuth2 & Sent Folder Sync (routers/email_accounts_routes.py) ──
 @router.get("/api/email/messages")
 def api_list_email_messages(
     account_id: str = Query("gmail_glennard_tasico_va"),
     folder: str = Query("sent"),
     limit: int = Query(30),
 ):
-    # Fetches live AI-sent replies from glennard.tasico.va@gmail.com via Composio GMAIL_FETCH_EMAILS
+    # Verifies AI-sent emails (Dear [Sender], ... Regards, Glennard) from glennard.tasico.va@gmail.com
     acct = _resolve_composio_connected_account(account_id, email_filter="glennard.tasico.va@gmail.com")
     messages = _fetch_composio_emails_for_account(acct, folder=folder, limit=limit)
     return {
@@ -2166,20 +2174,20 @@ def api_list_email_messages(
         "messages": messages,
     }`,
         channelPresets: {
-          "💬 Social Comment (Facebook / Instagram / TikTok via Zernio)": {
-            sender: "@client_lead_ph (Instagram / Facebook Post)",
+          "💬 Post a Comment (Facebook / Instagram / TikTok Showcase Posts)": {
+            sender: "@client_lead_ph (Facebook / Instagram / TikTok Post)",
             message:
-              "How much is your AI Omnichannel Automation setup for an e-commerce brand? Can you DM me the details?",
+              "Hi Glennard! Can you build custom webhooks, n8n workflows, and AI chatbots for my business?",
           },
-          "✉️ Direct Message (FB Messenger / Instagram DM / WhatsApp / TextBee SMS)": {
-            sender: "+63 917 555 0194 / @enterprise_buyer_dm",
+          "✉️ Send a DM (Facebook Messenger / Instagram DM / WhatsApp / Mock Chat)": {
+            sender: "@portfolio_client_dm (Messenger / IG DM / WhatsApp +63 917 549 7760)",
             message:
-              "Hi Glenn, we need an automated pipeline that syncs our incoming leads to PostgreSQL and alerts our team on WhatsApp & SMS.",
+              "Hi Glennard! What Virtual Assistant & AI Automation services do you offer and what is your current availability?",
           },
-          "📧 Email Auto-Responder (Composio Gmail OAuth — glennard.tasico.va@gmail.com)": {
-            sender: "ops-director@enterprise-client.io",
+          "📧 Send an Email (Live AI Email Chatbot — glennard.tasico.va@gmail.com)": {
+            sender: "client@enterprise-ops.io -> glennard.tasico.va@gmail.com",
             message:
-              "Hi Glennard, please send over your technical architecture proposal and available schedule for a discovery call this week.",
+              "Hi Glennard! Tell me more about your GlennBot Automations dashboard and custom web app projects.",
           },
         },
         widgetFields: [
@@ -2188,23 +2196,23 @@ def api_list_email_messages(
             label: "Inbound Source Channel",
             type: "select",
             options: [
-              "💬 Social Comment (Facebook / Instagram / TikTok via Zernio)",
-              "✉️ Direct Message (FB Messenger / Instagram DM / WhatsApp / TextBee SMS)",
-              "📧 Email Auto-Responder (Composio Gmail OAuth — glennard.tasico.va@gmail.com)",
+              "💬 Post a Comment (Facebook / Instagram / TikTok Showcase Posts)",
+              "✉️ Send a DM (Facebook Messenger / Instagram DM / WhatsApp / Mock Chat)",
+              "📧 Send an Email (Live AI Email Chatbot — glennard.tasico.va@gmail.com)",
             ],
           },
           {
             name: "sender",
             label: "Sender Handle / Contact",
             type: "text",
-            value: "@client_lead_ph (Instagram / Facebook Post)",
+            value: "@client_lead_ph (Facebook / Instagram / TikTok Post)",
           },
           {
             name: "message",
             label: "Sample Message",
             type: "textarea",
             value:
-              "How much is your AI Omnichannel Automation setup for an e-commerce brand? Can you DM me the details?",
+              "Hi Glennard! Can you build custom webhooks, n8n workflows, and AI chatbots for my business?",
           },
         ],
       },

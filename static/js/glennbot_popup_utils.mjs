@@ -329,8 +329,8 @@ export function filterPortfolioSocialAccounts(rawPayload = {}) {
 }
 
 export const SYS01_PROJECT_SPEC = {
-  endpoint: "POST /api/schedule • GET /api/scheduled • POST /api/ai/generate",
-  tagline: "Context-Aware Gemini 2.5 Flash Caption Engine + Zero-RAM Zernio Media Cloud & APScheduler Queue",
+  endpoint: "POST /api/ai/ask • POST /api/schedule • GET /api/scheduled",
+  tagline: "Context-Aware Gemini 3.5 Flash Caption Engine + Zero-RAM Zernio Media Cloud & APScheduler Queue",
   stackPills: [
     "FastAPI",
     "Gemini 3.5 Flash",
@@ -339,21 +339,21 @@ export const SYS01_PROJECT_SPEC = {
     "Cloudinary & GDrive",
     "APScheduler",
   ],
-  sourceFile: "routers/scheduler_routes.py • routers/ai_routes.py (GlennBot Automations)",
+  sourceFile: "routers/ai_routes.py • routers/scheduler_routes.py (GlennBot Automations)",
   pipelineNodes: [
     {
       label: "STEP 01 • 📝 CREATE POST",
-      title: "Gemini 2.5 Flash Caption & Hashtag Generator + Google Drive Vault Media",
+      title: "Gemini 3.5 Flash Viral Title, Caption & Hashtag Generator (/api/ai/ask)",
       accent: false,
     },
     {
-      label: "STEP 02 • ⏳ QUEUE ENGINE",
-      title: "Zero-RAM Stream to Zernio Media Cloud + APScheduler & PostgreSQL Queue",
+      label: "STEP 02 • ⏳ QUEUE",
+      title: "Zero-RAM Stream to Zernio Media Cloud + APScheduler & PostgreSQL Queue (/api/schedule)",
       accent: true,
     },
     {
-      label: "STEP 03 • 📅 CALENDAR SYNC",
-      title: "Live Multi-Platform Publishing (FB • IG • TikTok • YouTube)",
+      label: "STEP 03 • 📅 CALENDAR",
+      title: "Visual Omnichannel Schedule Across FB, IG, TikTok & YouTube (/api/scheduled)",
       accent: false,
     },
   ],
@@ -1140,72 +1140,73 @@ export function enforceEmailSentFolderUrl(rawUrl = "/api/email/messages") {
 export const SYS02_PROJECT_SPEC = {
   sysId: "SYS-02",
   title: "Unified Omnichannel Inbox & Smart Auto-Responder",
-  endpoint: "POST /webhooks • /api/v1/comments/reply • /api/v1/messages/send • /api/email/messages",
-  sourceFile: "routers/webhooks_routes.py • routers/internal_api_routes.py • routers/email_accounts_routes.py",
+  endpoint:
+    "POST /webhooks • POST /api/v1/ai/ask • /api/v1/comments/reply • /api/v1/messages/send • /api/email/messages",
+  sourceFile:
+    "routers/ai_routes.py • routers/webhooks_routes.py • routers/internal_api_routes.py • routers/email_accounts_routes.py",
   stackPills: [
     "FastAPI",
     "Gemini 3.5 Flash",
     "n8n Webhooks",
-    "Zernio Social API",
+    "Zernio API",
     "Composio Gmail OAuth",
-    "TextBee SMS",
-    "PostgreSQL & Cloudinary",
+    "Google Drive Excel Sync",
   ],
   pipelineNodes: [
     {
       label: "INBOUND CHANNELS",
-      title: "💬 Social Comments (FB/IG/TikTok) • ✉️ DMs (Messenger/IG/WA/SMS) • 📧 Gmail (Composio)",
+      title: "💬 Comments (FB • IG • TikTok) • ✉️ DMs (Messenger • IG • WhatsApp) • 📧 Gmail",
       accent: false,
     },
     {
-      label: "ORCHESTRATION & AI",
-      title: "FastAPI /webhooks + n8n Event Dispatcher + Gemini 2.5 Flash RAG (/api/v1/ai/ask)",
+      label: "AI & KNOWLEDGE BASE",
+      title: "Gemini 3.5 Flash (/api/v1/ai/ask) + Google Drive Script.xlsx & Conversations.xlsx + n8n",
       accent: true,
     },
     {
       label: "AUTO-RESPONDER",
-      title: "Public Comment Reply + Private DM Follow-Up + TextBee SMS + Composio Sent Sync",
+      title: "Live Comment Reply + Messenger/IG/WhatsApp DM Reply + Gmail Sent Folder Sync",
       accent: false,
     },
   ],
   metrics: [
-    { value: "< 2.5s", label: "Gemini AI + n8n Triage Latency" },
-    { value: "3 Live Channels", label: "Comments • DMs/SMS • Gmail" },
-    { value: "100% Automated", label: "Zernio • TextBee • Composio OAuth" },
+    { value: "< 2.5s", label: "Gemini 3.5 Flash + n8n Latency" },
+    { value: "3 Live Channels", label: "Comments • DMs • Gmail" },
+    { value: "100% Automated", label: "Zernio • Composio • GDrive Excel" },
   ],
   channelOptions: [
-    "💬 Social Comment (Facebook / Instagram / TikTok via Zernio)",
-    "✉️ Direct Message (FB Messenger / Instagram DM / WhatsApp / TextBee SMS)",
-    "📧 Email Auto-Responder (Composio Gmail OAuth — glennard.tasico.va@gmail.com)",
+    "💬 Post a Comment (Facebook / Instagram / TikTok Showcase Posts)",
+    "✉️ Send a DM (Facebook Messenger / Instagram DM / WhatsApp / Mock Chat)",
+    "📧 Send an Email (Live AI Email Chatbot — glennard.tasico.va@gmail.com)",
   ],
   channelPresets: {
-    "💬 Social Comment (Facebook / Instagram / TikTok via Zernio)": {
+    "💬 Post a Comment (Facebook / Instagram / TikTok Showcase Posts)": {
       channelKey: "social_comment",
-      sender: "@client_lead_ph (Instagram / Facebook Post)",
+      sender: "@client_lead_ph (Facebook / Instagram / TikTok Post)",
       message:
-        "How much is your AI Omnichannel Automation setup for an e-commerce brand? Can you DM me the details?",
+        "Hi Glennard! Can you build custom webhooks, n8n workflows, and AI chatbots for my business?",
       event: "comment.received",
       n8n_workflow: "GlennBot Comment Auto-Responder",
-      dispatched_via: "POST /api/v1/comments/reply + POST /api/v1/comments/send-dm",
+      dispatched_via: "POST /api/v1/comments/reply",
     },
-    "✉️ Direct Message (FB Messenger / Instagram DM / WhatsApp / TextBee SMS)": {
+    "✉️ Send a DM (Facebook Messenger / Instagram DM / WhatsApp / Mock Chat)": {
       channelKey: "social_dm",
-      sender: "+63 917 555 0194 / @enterprise_buyer_dm",
+      sender: "@portfolio_client_dm (Messenger / IG DM / WhatsApp +63 917 549 7760)",
       message:
-        "Hi Glenn, we need an automated pipeline that syncs our incoming leads to PostgreSQL and alerts our team on WhatsApp & SMS.",
+        "Hi Glennard! What Virtual Assistant & AI Automation services do you offer and what is your current availability?",
       event: "message.received",
-      n8n_workflow: "GlennBot Omnichannel DM & SMS Router",
-      dispatched_via: "/api/v1/messages/send (Zernio / TextBee)",
+      n8n_workflow: "GlennBot Omnichannel DM Auto-Responder",
+      dispatched_via: "POST /api/v1/messages/send",
     },
-    "📧 Email Auto-Responder (Composio Gmail OAuth — glennard.tasico.va@gmail.com)": {
+    "📧 Send an Email (Live AI Email Chatbot — glennard.tasico.va@gmail.com)": {
       channelKey: "email_oauth",
-      sender: "ops-director@enterprise-client.io",
+      sender: "client@enterprise-ops.io -> glennard.tasico.va@gmail.com",
       message:
-        "Hi Glennard, please send over your technical architecture proposal and available schedule for a discovery call this week.",
+        "Hi Glennard! Tell me more about your GlennBot Automations dashboard and custom web app projects.",
       composio_tool: "GMAIL_SEND_EMAIL",
       authenticated_sender: "glennard.tasico.va@gmail.com",
       verified_in_folder: "Sent (/api/email/messages?folder=sent)",
-      dispatched_via: "GMAIL_SEND_EMAIL (Composio Gmail OAuth • glennard.tasico.va@gmail.com)",
+      dispatched_via: "GMAIL_SEND_EMAIL (Composio Gmail OAuth • GET /api/email/messages?folder=sent)",
     },
   },
   footerButtons: ["💬 Post a Comment", "✉️ Send a DM", "📧 Send an Email"],
@@ -1217,17 +1218,17 @@ export function resolveSys02ChannelPreset(channelLabel = "") {
     return SYS02_PROJECT_SPEC.channelPresets[raw];
   }
   const lower = raw.toLowerCase();
-  if (lower.includes("comment") || lower.includes("tiktok")) {
+  if (lower.includes("comment") || lower.includes("tiktok") || lower.includes("showcase")) {
     return SYS02_PROJECT_SPEC.channelPresets[
-      "💬 Social Comment (Facebook / Instagram / TikTok via Zernio)"
+      "💬 Post a Comment (Facebook / Instagram / TikTok Showcase Posts)"
     ];
   }
   if (lower.includes("email") || lower.includes("gmail") || lower.includes("composio")) {
     return SYS02_PROJECT_SPEC.channelPresets[
-      "📧 Email Auto-Responder (Composio Gmail OAuth — glennard.tasico.va@gmail.com)"
+      "📧 Send an Email (Live AI Email Chatbot — glennard.tasico.va@gmail.com)"
     ];
   }
   return SYS02_PROJECT_SPEC.channelPresets[
-    "✉️ Direct Message (FB Messenger / Instagram DM / WhatsApp / TextBee SMS)"
+    "✉️ Send a DM (Facebook Messenger / Instagram DM / WhatsApp / Mock Chat)"
   ];
 }

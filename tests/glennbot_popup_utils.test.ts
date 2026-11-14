@@ -176,11 +176,11 @@ test("resolveCalendarProxyIntercept blocks calendar/meeting endpoints in Portfol
 test("SYS01_PROJECT_SPEC and formatInlineMarkdown match production GlennBot Automations architecture", () => {
   assert.equal(
     SYS01_PROJECT_SPEC.endpoint,
-    "POST /api/schedule • GET /api/scheduled • POST /api/ai/generate"
+    "POST /api/ai/ask • POST /api/schedule • GET /api/scheduled"
   );
   assert.equal(
     SYS01_PROJECT_SPEC.tagline,
-    "Context-Aware Gemini 2.5 Flash Caption Engine + Zero-RAM Zernio Media Cloud & APScheduler Queue"
+    "Context-Aware Gemini 3.5 Flash Caption Engine + Zero-RAM Zernio Media Cloud & APScheduler Queue"
   );
   assert.equal(
     SYS01_EXPANDED_VIEWS.calendar.title,
@@ -200,19 +200,31 @@ test("SYS01_PROJECT_SPEC and formatInlineMarkdown match production GlennBot Auto
   ]);
   assert.equal(
     SYS01_PROJECT_SPEC.sourceFile,
-    "routers/scheduler_routes.py • routers/ai_routes.py (GlennBot Automations)"
+    "routers/ai_routes.py • routers/scheduler_routes.py (GlennBot Automations)"
   );
   assert.equal(
     SYS01_PROJECT_SPEC.pipelineNodes[0].label,
     "STEP 01 • 📝 CREATE POST"
   );
   assert.equal(
+    SYS01_PROJECT_SPEC.pipelineNodes[0].title,
+    "Gemini 3.5 Flash Viral Title, Caption & Hashtag Generator (/api/ai/ask)"
+  );
+  assert.equal(
     SYS01_PROJECT_SPEC.pipelineNodes[1].label,
-    "STEP 02 • ⏳ QUEUE ENGINE"
+    "STEP 02 • ⏳ QUEUE"
+  );
+  assert.equal(
+    SYS01_PROJECT_SPEC.pipelineNodes[1].title,
+    "Zero-RAM Stream to Zernio Media Cloud + APScheduler & PostgreSQL Queue (/api/schedule)"
   );
   assert.equal(
     SYS01_PROJECT_SPEC.pipelineNodes[2].label,
-    "STEP 03 • 📅 CALENDAR SYNC"
+    "STEP 03 • 📅 CALENDAR"
+  );
+  assert.equal(
+    SYS01_PROJECT_SPEC.pipelineNodes[2].title,
+    "Visual Omnichannel Schedule Across FB, IG, TikTok & YouTube (/api/scheduled)"
   );
   assert.deepEqual(SYS01_PROJECT_SPEC.workflowOptions, [
     "📝 Create Post — AI Caption + Multi-Platform Schedule (FB, IG, TikTok, YouTube)",
@@ -749,54 +761,81 @@ test("SYS-02 Email Hub Dashboard Portfolio Demo Mode locks account to glennard.t
 test("SYS-02 Unified Omnichannel Inbox architecture spec, 3 live channel presets, and dispatched_via routing", () => {
   assert.equal(
     SYS02_PROJECT_SPEC.endpoint,
-    "POST /webhooks • /api/v1/comments/reply • /api/v1/messages/send • /api/email/messages"
+    "POST /webhooks • POST /api/v1/ai/ask • /api/v1/comments/reply • /api/v1/messages/send • /api/email/messages"
   );
   assert.deepEqual(SYS02_PROJECT_SPEC.stackPills, [
     "FastAPI",
     "Gemini 3.5 Flash",
     "n8n Webhooks",
-    "Zernio Social API",
+    "Zernio API",
     "Composio Gmail OAuth",
-    "TextBee SMS",
-    "PostgreSQL & Cloudinary",
+    "Google Drive Excel Sync",
   ]);
+  assert.ok(!SYS02_PROJECT_SPEC.stackPills.some((p) => p.toLowerCase().includes("textbee")));
   assert.equal(
     SYS02_PROJECT_SPEC.sourceFile,
-    "routers/webhooks_routes.py • routers/internal_api_routes.py • routers/email_accounts_routes.py"
+    "routers/ai_routes.py • routers/webhooks_routes.py • routers/internal_api_routes.py • routers/email_accounts_routes.py"
+  );
+  assert.equal(
+    SYS02_PROJECT_SPEC.pipelineNodes[0].label,
+    "INBOUND CHANNELS"
   );
   assert.equal(
     SYS02_PROJECT_SPEC.pipelineNodes[0].title,
-    "💬 Social Comments (FB/IG/TikTok) • ✉️ DMs (Messenger/IG/WA/SMS) • 📧 Gmail (Composio)"
+    "💬 Comments (FB • IG • TikTok) • ✉️ DMs (Messenger • IG • WhatsApp) • 📧 Gmail"
+  );
+  assert.equal(
+    SYS02_PROJECT_SPEC.pipelineNodes[1].label,
+    "AI & KNOWLEDGE BASE"
   );
   assert.equal(
     SYS02_PROJECT_SPEC.pipelineNodes[1].title,
-    "FastAPI /webhooks + n8n Event Dispatcher + Gemini 2.5 Flash RAG (/api/v1/ai/ask)"
+    "Gemini 3.5 Flash (/api/v1/ai/ask) + Google Drive Script.xlsx & Conversations.xlsx + n8n"
+  );
+  assert.equal(
+    SYS02_PROJECT_SPEC.pipelineNodes[2].label,
+    "AUTO-RESPONDER"
   );
   assert.equal(
     SYS02_PROJECT_SPEC.pipelineNodes[2].title,
-    "Public Comment Reply + Private DM Follow-Up + TextBee SMS + Composio Sent Sync"
+    "Live Comment Reply + Messenger/IG/WhatsApp DM Reply + Gmail Sent Folder Sync"
   );
   assert.deepEqual(SYS02_PROJECT_SPEC.channelOptions, [
-    "💬 Social Comment (Facebook / Instagram / TikTok via Zernio)",
-    "✉️ Direct Message (FB Messenger / Instagram DM / WhatsApp / TextBee SMS)",
-    "📧 Email Auto-Responder (Composio Gmail OAuth — glennard.tasico.va@gmail.com)",
+    "💬 Post a Comment (Facebook / Instagram / TikTok Showcase Posts)",
+    "✉️ Send a DM (Facebook Messenger / Instagram DM / WhatsApp / Mock Chat)",
+    "📧 Send an Email (Live AI Email Chatbot — glennard.tasico.va@gmail.com)",
   ]);
 
   const commentPreset = resolveSys02ChannelPreset(
-    "💬 Social Comment (Facebook / Instagram / TikTok via Zernio)"
+    "💬 Post a Comment (Facebook / Instagram / TikTok Showcase Posts)"
   );
-  assert.equal(commentPreset.sender, "@client_lead_ph (Instagram / Facebook Post)");
+  assert.equal(commentPreset.sender, "@client_lead_ph (Facebook / Instagram / TikTok Post)");
+  assert.equal(
+    commentPreset.message,
+    "Hi Glennard! Can you build custom webhooks, n8n workflows, and AI chatbots for my business?"
+  );
   assert.ok(commentPreset.dispatched_via.includes("/api/v1/comments/reply"));
 
   const dmPreset = resolveSys02ChannelPreset(
-    "✉️ Direct Message (FB Messenger / Instagram DM / WhatsApp / TextBee SMS)"
+    "✉️ Send a DM (Facebook Messenger / Instagram DM / WhatsApp / Mock Chat)"
   );
-  assert.equal(dmPreset.sender, "+63 917 555 0194 / @enterprise_buyer_dm");
+  assert.equal(
+    dmPreset.sender,
+    "@portfolio_client_dm (Messenger / IG DM / WhatsApp +63 917 549 7760)"
+  );
+  assert.equal(
+    dmPreset.message,
+    "Hi Glennard! What Virtual Assistant & AI Automation services do you offer and what is your current availability?"
+  );
   assert.ok(dmPreset.dispatched_via.includes("/api/v1/messages/send"));
 
   const emailPreset = resolveSys02ChannelPreset(
-    "📧 Email Auto-Responder (Composio Gmail OAuth — glennard.tasico.va@gmail.com)"
+    "📧 Send an Email (Live AI Email Chatbot — glennard.tasico.va@gmail.com)"
   );
-  assert.equal(emailPreset.sender, "ops-director@enterprise-client.io");
+  assert.equal(emailPreset.sender, "client@enterprise-ops.io -> glennard.tasico.va@gmail.com");
+  assert.equal(
+    emailPreset.message,
+    "Hi Glennard! Tell me more about your GlennBot Automations dashboard and custom web app projects."
+  );
   assert.ok(emailPreset.dispatched_via.includes("GMAIL_SEND_EMAIL"));
 });
