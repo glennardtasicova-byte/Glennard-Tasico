@@ -1778,6 +1778,31 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   border-bottom: 1px solid rgba(14, 165, 233, 0.22);
 }
 
+.webcard-banner-placeholder {
+  aspect-ratio: 1024 / 434;
+  position: relative;
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.06) 0%, transparent 70%),
+    linear-gradient(rgba(56, 189, 248, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.04) 1px, transparent 1px);
+  background-size: 100% 100%, 28px 28px, 28px 28px;
+}
+
+[data-theme="light"] .webcard-banner-placeholder {
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(14, 165, 233, 0.06) 0%, transparent 70%),
+    linear-gradient(rgba(14, 165, 233, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(14, 165, 233, 0.06) 1px, transparent 1px);
+  background-size: 100% 100%, 28px 28px, 28px 28px;
+}
+
+.webcard-banner-placeholder-svg {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  display: block !important;
+}
+
 .webcard-banner img {
   width: 100% !important;
   max-width: 100% !important;

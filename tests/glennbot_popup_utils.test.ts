@@ -864,12 +864,17 @@ test("SYS-01 and SYS-02 showcase webcards include full-width .webcard-banner .we
   assert.ok(indexHtml.includes('src="/static/images/sys-02-banner.webp'));
   assert.ok(indexHtml.includes('src="/static/images/sys-02-banner-light.webp'));
   assert.ok(indexHtml.includes('alt="SYS-02 Omnichannel &amp; AI Triage Architecture Banner"'));
+  assert.ok(indexHtml.includes('data-banner-slot="sys-03"'));
+  assert.ok(indexHtml.includes('data-banner-slot="sys-04"'));
+  assert.ok(indexHtml.includes('viewBox="0 0 1024 434"'));
   assert.ok(indexHtml.includes('<span class="project-impact-pill">85% Faster Publishing</span>'));
   assert.ok(indexHtml.includes('<span class="project-impact-pill">24/7 Instant Auto-Reply</span>'));
   assert.ok(!indexHtml.includes("&lt; 2.5s AI Response"));
 
   const styleCss = fs.readFileSync("static/css/style.css", "utf8");
   assert.ok(styleCss.includes(".webcard-banner {"));
+  assert.ok(styleCss.includes(".webcard-banner-placeholder {"));
+  assert.ok(styleCss.includes("aspect-ratio: 1024 / 434;"));
   assert.ok(styleCss.includes('[data-theme="light"] .webcard-banner img.webcard-banner-light'));
   assert.ok(styleCss.includes(".webcard-banner img {"));
   assert.ok(styleCss.includes("border-bottom: 1px solid rgba(56, 189, 248, 0.2);"));
