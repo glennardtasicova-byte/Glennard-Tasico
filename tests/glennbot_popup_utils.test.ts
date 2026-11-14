@@ -839,3 +839,24 @@ test("SYS-02 Unified Omnichannel Inbox architecture spec, 3 live channel presets
   );
   assert.ok(emailPreset.dispatched_via.includes("GMAIL_SEND_EMAIL"));
 });
+
+test("SYS-01 and SYS-02 showcase webcards include full-width .webcard-banner .webp hero banners without cropping", async () => {
+  const fs = await import("node:fs");
+  assert.ok(fs.existsSync("static/images/sys-01-banner.webp"), "sys-01-banner.webp must exist");
+  assert.ok(fs.existsSync("static/images/sys-02-banner.webp"), "sys-02-banner.webp must exist");
+  assert.ok(fs.statSync("static/images/sys-01-banner.webp").size > 10000);
+  assert.ok(fs.statSync("static/images/sys-02-banner.webp").size > 10000);
+
+  const indexHtml = fs.readFileSync("templates/index.html", "utf8");
+  assert.ok(indexHtml.includes('<div class="webcard-banner">'));
+  assert.ok(indexHtml.includes('src="/static/images/sys-01-banner.webp"'));
+  assert.ok(indexHtml.includes('alt="SYS-01 Social &amp; AI Publishing Architecture Banner"'));
+  assert.ok(indexHtml.includes('src="/static/images/sys-02-banner.webp"'));
+  assert.ok(indexHtml.includes('alt="SYS-02 Omnichannel &amp; AI Triage Architecture Banner"'));
+
+  const styleCss = fs.readFileSync("static/css/style.css", "utf8");
+  assert.ok(styleCss.includes(".webcard-banner {"));
+  assert.ok(styleCss.includes(".webcard-banner img {"));
+  assert.ok(styleCss.includes("border-bottom: 1px solid rgba(56, 189, 248, 0.2);"));
+});
+

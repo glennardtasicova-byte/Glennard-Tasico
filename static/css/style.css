@@ -1759,6 +1759,24 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
   box-shadow: 0 20px 38px -8px rgba(45, 36, 24, 0.2), 0 0 0 1px rgba(5, 150, 105, 0.32);
 }
 
+/* 0. Full-Width Hero Banner Header (SYS-01 & SYS-02 21:9 Infographics) */
+.webcard-banner {
+  margin: -24px -24px 0 -24px;
+  width: calc(100% + 48px);
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.2);
+  background-color: #0b1120;
+  flex-shrink: 0;
+}
+
+.webcard-banner img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
 /* 1. Top Meta Row */
 .project-card-topbar {
   display: flex;
