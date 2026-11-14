@@ -1763,18 +1763,22 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
 .webcard-banner {
   margin: -24px -24px 0 -24px;
   width: calc(100% + 48px);
+  max-width: calc(100% + 48px);
   border-top-left-radius: 15px;
   border-top-right-radius: 15px;
   overflow: hidden;
   border-bottom: 1px solid rgba(56, 189, 248, 0.2);
   background-color: #0b1120;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .webcard-banner img {
-  width: 100%;
-  height: auto;
-  display: block;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  display: block !important;
+  object-fit: contain !important;
 }
 
 /* 1. Top Meta Row */
