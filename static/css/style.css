@@ -1839,14 +1839,14 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
 /* Visual Architecture / Pipeline Strip (Shown inside Case Study Modal) */
 .project-pipeline-visual {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   padding: 12px 14px;
   border-radius: 12px;
   background: rgba(11, 17, 32, 0.78);
   border: 1px solid rgba(51, 65, 104, 0.45);
-  overflow-x: auto;
+  overflow: hidden;
 }
 
 .modal-pipeline-strip {
@@ -1861,13 +1861,15 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
 .pipeline-node {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 7px 11px;
+  justify-content: flex-start;
+  gap: 5px;
+  padding: 10px 13px;
   border-radius: 8px;
   background: rgba(22, 28, 54, 0.9);
   border: 1px solid rgba(51, 65, 104, 0.55);
-  flex: 1;
-  min-width: 125px;
+  flex: 1 1 0%;
+  min-width: 0;
+  overflow: hidden;
 }
 
 [data-theme="light"] .pipeline-node {
@@ -1887,27 +1889,48 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
 
 .pipeline-node-label {
   font-family: var(--font-mono);
-  font-size: 0.65rem;
-  font-weight: 600;
+  font-size: 0.66rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
+  line-height: 1.3;
   color: var(--accent-primary);
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .pipeline-node-title {
   font-family: var(--font-mono);
   font-size: 0.74rem;
   font-weight: 600;
+  line-height: 1.45;
   color: var(--text-primary);
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .pipeline-arrow {
   font-family: var(--font-mono);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 700;
   color: var(--accent-primary);
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+}
+
+@media (max-width: 768px) {
+  .project-pipeline-visual {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .pipeline-arrow {
+    transform: rotate(90deg);
+    line-height: 1;
+  }
 }
 
 /* 2. Title & Concise 2-Line Summary */
@@ -2346,11 +2369,15 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
 .modal-endpoint-code {
   font-family: var(--font-mono);
   font-size: 0.74rem;
+  line-height: 1.4;
   padding: 4px 10px;
   border-radius: 6px;
   color: #34d399;
   background: rgba(6, 78, 59, 0.32);
   border: 1px solid rgba(16, 185, 129, 0.32);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 [data-theme="light"] .modal-endpoint-code {
@@ -2707,11 +2734,19 @@ html.js-scroll-ready .web-card.scroll-reveal.is-visible:hover {
 
 .widget-form-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   font-size: 0.82rem;
   font-weight: 600;
+  line-height: 1.45;
   color: var(--text-body);
+  flex-wrap: wrap;
+}
+
+.widget-form-header code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .widget-field {
