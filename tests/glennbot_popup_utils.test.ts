@@ -856,7 +856,7 @@ test("SYS-01 and SYS-02 showcase webcards include full-width .webcard-banner .we
   assert.ok(indexHtml.includes('<div class="webcard-banner">'));
   assert.ok(indexHtml.includes('src="/static/images/sys-01-banner.webp"'));
   assert.ok(indexHtml.includes('alt="SYS-01 Social &amp; AI Publishing Architecture Banner"'));
-  assert.ok(indexHtml.includes('src="/static/images/sys-02-banner.webp"'));
+  assert.ok(indexHtml.includes('src="/static/images/sys-02-banner.webp'));
   assert.ok(indexHtml.includes('alt="SYS-02 Omnichannel &amp; AI Triage Architecture Banner"'));
   assert.ok(indexHtml.includes('<span class="project-impact-pill">85% Faster Publishing</span>'));
   assert.ok(indexHtml.includes('<span class="project-impact-pill">24/7 Instant Auto-Reply</span>'));
