@@ -797,9 +797,18 @@ body {
   gap: 16px;
 }
 
-/* Standalone Bio WebCard + 2-Column Dual-Frame Layout for Core Tech Stack & What I Build */
-.about-bio-frame {
-  width: 100%;
+/* 2-Column Dual-Frame Layout for Core Tech Stack & What I Build */
+.about-section-subtitle {
+  margin-top: 6px;
+  max-width: 82ch;
+  font-size: clamp(0.875rem, 0.96vw, 0.98rem);
+  line-height: 1.65;
+  color: var(--text-desc);
+}
+
+.about-section-subtitle strong {
+  color: var(--accent-primary);
+  font-weight: 700;
 }
 
 .about-frames-grid {

@@ -15,10 +15,18 @@
 
   <!-- Font Awesome Icons & Custom Stylesheet -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <link rel="stylesheet" href="/static/css/style.css?v=73" />
+  <link rel="stylesheet" href="/static/css/style.css?v=74" />
   <style>
-    .about-bio-frame {
-      width: 100%;
+    .about-section-subtitle {
+      margin-top: 6px;
+      max-width: 82ch;
+      font-size: clamp(0.875rem, 0.96vw, 0.98rem);
+      line-height: 1.65;
+      color: var(--text-desc);
+    }
+    .about-section-subtitle strong {
+      color: var(--accent-primary);
+      font-weight: 700;
     }
     .about-frames-grid {
       display: grid;
@@ -528,6 +536,9 @@
         <div class="section-header-titles">
           <span class="section-index">01. Profile &amp; Curriculum Vitae</span>
           <h2 id="about-cv-heading" class="section-title">About Me</h2>
+          <p class="section-subtitle about-section-subtitle text-sm sm:text-base text-slate-400 max-w-3xl mt-1.5 leading-relaxed">
+            Combining <strong>11+ years of Industrial Engineering &amp; Kaizen process optimization</strong> with modern <strong>Python (FastAPI), Google Gemini AI, and n8n workflow automation</strong> to turn operational bottlenecks into 24/7 digital systems.
+          </p>
         </div>
         <a href="/cv/download" class="btn-section-cv">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -537,48 +548,6 @@
           </svg>
           <span>Download Full CV (PDF)</span>
         </a>
-      </div>
-
-      <!-- Standalone Full-Width Web Card: Bio & Experience Highlights -->
-      <div class="placeholder-box cv-card about-frame about-bio-frame scroll-reveal" data-reveal-delay="85">
-        <div class="cv-group">
-          <p class="cv-intro-text scroll-reveal" data-reveal-delay="120">
-            I am an <strong>AI Automation Specialist &amp; Full-Stack Web Developer</strong> who builds custom web dashboards and 24/7 automation workflows that eliminate repetitive manual work. I architected and engineered <strong>GlennBot Automations</strong>&mdash;an all-in-one operations platform combining AI content generation, multi-platform social scheduling, a unified omnichannel inbox, cloud spreadsheet sync, and n8n webhook orchestration. Backed by <strong>11+ years as an Industrial Engineer &amp; Operations Supervisor at EPSON Precision</strong>, I combine Kaizen process optimization with modern full-stack &amp; AI engineering to turn operational bottlenecks into automated digital systems. <em>You can test its core engines live through the interactive widgets below.</em>
-          </p>
-          <div class="experience-credentials-stack" aria-label="Credentials and Experience Highlights">
-            <!-- Row 1: Flagship Engineering Project -->
-            <div class="experience-timeline-bar scroll-reveal" data-reveal-delay="190">
-              <div class="experience-role-info">
-                <div class="experience-role-main">
-                  <span class="experience-marker" aria-hidden="true"></span>
-                  <strong class="experience-title">AI Automation &amp; Full-Stack Builder</strong>
-                  <span class="experience-divider" aria-hidden="true">|</span>
-                  <span class="experience-org">Creator of GlennBot Automations</span>
-                </div>
-                <p class="experience-subtext">
-                  Python (FastAPI) &bull; Gemini AI &bull; n8n Webhooks &bull; 11+ Live Modules
-                </p>
-              </div>
-              <span class="experience-period">Oct 2026 &ndash; Present</span>
-            </div>
-
-            <!-- Row 2: Industrial Engineering & Process Automation Background -->
-            <div class="experience-timeline-bar scroll-reveal" data-reveal-delay="260">
-              <div class="experience-role-info">
-                <div class="experience-role-main">
-                  <span class="experience-marker experience-marker-teal" aria-hidden="true"></span>
-                  <strong class="experience-title">Industrial Engineer &amp; Mold Control Supervisor</strong>
-                  <span class="experience-divider" aria-hidden="true">|</span>
-                  <span class="experience-org">EPSON Precision (Philippines) Inc.</span>
-                </div>
-                <p class="experience-subtext">
-                  11+ Years Experience &bull; Process Automation &bull; Top Kaizen Coordinator &bull; 30+ Supplier Audits
-                </p>
-              </div>
-              <span class="experience-period">Apr 2015 &ndash; Present</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- 2-Column Dual-Frame Grid: Core Tech Stack (Left Web Card) & What I Build (Right Web Card) -->
