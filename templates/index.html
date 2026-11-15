@@ -15,7 +15,7 @@
 
   <!-- Font Awesome Icons & Custom Stylesheet -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  <link rel="stylesheet" href="/static/css/style.css?v=72" />
+  <link rel="stylesheet" href="/static/css/style.css?v=73" />
   <style>
     .about-bio-frame {
       width: 100%;
@@ -60,14 +60,41 @@
       flex-direction: column !important;
       flex-wrap: nowrap !important;
       align-items: flex-start !important;
-      gap: 8px !important;
+      gap: 9px !important;
     }
     .stack-card-list li {
       display: flex !important;
       align-items: center !important;
+      gap: 9px !important;
       width: 100%;
       font-size: 0.82rem !important;
       line-height: 1.45 !important;
+    }
+    .stack-card-list li::before {
+      display: none !important;
+      content: none !important;
+    }
+    .stack-item-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      flex-shrink: 0;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    }
+    [data-theme="light"] .stack-item-logo {
+      background: #ffffff;
+      border-color: rgba(148, 163, 184, 0.35);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    }
+    .stack-item-logo svg {
+      width: 15px;
+      height: 15px;
+      display: block;
     }
     .build-cards-grid .build-card {
       height: 100%;
@@ -577,11 +604,56 @@
                   <h4 class="stack-card-title">Backend &amp; Database</h4>
                 </div>
                 <ul class="stack-card-list">
-                  <li>Python</li>
-                  <li>FastAPI</li>
-                  <li>SQLAlchemy</li>
-                  <li>PostgreSQL (Supabase)</li>
-                  <li>Cloudinary</li>
+                  <li>
+                    <span class="stack-item-logo" aria-hidden="true">
+                      <!-- Official Python Two-Snake Logo -->
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M11.9 2C7.8 2 8.1 3.8 8.1 3.8v2h3.9v.7H6.5S4 6.2 4 10.3s2.2 4 2.2 4h1.3v-1.9s-.1-2.2 2.2-2.2h3.8s2.1 0 2.1-2V4.4S15.9 2 11.9 2zm-2.1 1.4a.75.75 0 1 1 0 1.5.75.75 0 0 1 0-1.5z" fill="#3776AB"/>
+                        <path d="M12.1 22c4.1 0 3.8-1.8 3.8-1.8v-2H12v-.7h5.5S20 17.8 20 13.7s-2.2-4-2.2-4h-1.3v1.9s.1 2.2-2.2 2.2h-3.8s-2.1 0-2.1 2v3.8S8.1 22 12.1 22zm2.1-1.4a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5z" fill="#FFD43B"/>
+                      </svg>
+                    </span>
+                    <span>Python</span>
+                  </li>
+                  <li>
+                    <span class="stack-item-logo" aria-hidden="true">
+                      <!-- Official FastAPI Teal Lightning Shield Logo -->
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" fill="#009688"/>
+                        <path d="M13.2 5.5 7.5 13h4.2l-.9 5.5L16.5 11h-4.2l.9-5.5z" fill="#ffffff"/>
+                      </svg>
+                    </span>
+                    <span>FastAPI</span>
+                  </li>
+                  <li>
+                    <span class="stack-item-logo" aria-hidden="true">
+                      <!-- SQLAlchemy Database & Flask Emblem -->
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <ellipse cx="12" cy="6" rx="7.5" ry="2.8" fill="#D71F00"/>
+                        <path d="M4.5 6v6c0 1.55 3.36 2.8 7.5 2.8s7.5-1.25 7.5-2.8V6" stroke="#EF4444" stroke-width="1.8"/>
+                        <path d="M4.5 12v6c0 1.55 3.36 2.8 7.5 2.8s7.5-1.25 7.5-2.8v-6" stroke="#F59E0B" stroke-width="1.8"/>
+                      </svg>
+                    </span>
+                    <span>SQLAlchemy</span>
+                  </li>
+                  <li>
+                    <span class="stack-item-logo" aria-hidden="true">
+                      <!-- PostgreSQL / Supabase Logo -->
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M13.5 2.5 5 13.2h6.4l-.9 8.3L19 10.8h-6.4l.9-8.3z" fill="#3ECF8E" stroke="#336791" stroke-width="1.1" stroke-linejoin="round"/>
+                      </svg>
+                    </span>
+                    <span>PostgreSQL (Supabase)</span>
+                  </li>
+                  <li>
+                    <span class="stack-item-logo" aria-hidden="true">
+                      <!-- Official Cloudinary Cloud Logo -->
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M17.5 18H7a4.5 4.5 0 0 1-.4-8.98A6 6 0 0 1 18.2 7.5a4.25 4.25 0 0 1-.7 8.45" fill="#3448C5"/>
+                        <path d="M10 18v-4m2.5 4v-5.5M15 18v-3" stroke="#F59E0B" stroke-width="1.7" stroke-linecap="round"/>
+                      </svg>
+                    </span>
+                    <span>Cloudinary</span>
+                  </li>
                 </ul>
               </article>
 
@@ -597,9 +669,36 @@
                   <h4 class="stack-card-title">Frontend</h4>
                 </div>
                 <ul class="stack-card-list">
-                  <li>JavaScript (ES6+)</li>
-                  <li>HTML5</li>
-                  <li>Tailwind CSS</li>
+                  <li>
+                    <span class="stack-item-logo" aria-hidden="true">
+                      <!-- Official JavaScript JS Badge -->
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <rect x="2" y="2" width="20" height="20" rx="3.5" fill="#F7DF1E"/>
+                        <path d="M12.6 16.9c0 1.4-.8 2-2 2-1.1 0-1.7-.6-2-1.3l1.3-.8c.2.4.4.7.8.7.4 0 .7-.2.7-.8v-4.5h1.2v4.7zm4.7 2c-1.3 0-2.1-.6-2.5-1.5l1.3-.7c.3.5.7.9 1.3.9.6 0 .9-.3.9-.7 0-.5-.4-.7-1.1-1l-.4-.2c-1.1-.5-1.8-1.1-1.8-2.3 0-1.1.9-2 2.2-2 1 0 1.7.3 2.2 1.2l-1.2.8c-.3-.5-.6-.7-1-.7-.5 0-.8.3-.8.7 0 .5.3.7 1 .9l.4.2c1.3.6 2 1.1 2 2.4 0 1.4-1.1 2-2.5 2z" fill="#000000"/>
+                      </svg>
+                    </span>
+                    <span>JavaScript (ES6+)</span>
+                  </li>
+                  <li>
+                    <span class="stack-item-logo" aria-hidden="true">
+                      <!-- Official HTML5 Shield Logo -->
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M4 2h16l-1.5 17L12 22l-6.5-3L4 2z" fill="#E34F26"/>
+                        <path d="M12 3.5V20l5.2-2.4L18.4 3.5H12z" fill="#EF652A"/>
+                        <path d="M7.5 7h9l-.2 2.2H9.9l.2 2.3h6l-.6 6.2L12 19l-3.5-1.3-.2-3h2.2l.1 1.5 1.4.4 1.4-.4.2-2.2H7.9L7.5 7z" fill="#ffffff"/>
+                      </svg>
+                    </span>
+                    <span>HTML5</span>
+                  </li>
+                  <li>
+                    <span class="stack-item-logo" aria-hidden="true">
+                      <!-- Official Tailwind CSS Wave Logo -->
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M12 6c-2.67 0-4.33 1.33-5 4 1-1.33 2.17-1.83 3.5-1.5.76.19 1.31.74 1.91 1.35.98 1 2.12 2.15 4.59 2.15 2.67 0 4.33-1.33 5-4-1 1.33-2.17 1.83-3.5 1.5-.76-.19-1.31-.74-1.91-1.35C15.61 7.15 14.47 6 12 6zM7 12c-2.67 0-4.33 1.33-5 4 1-1.33 2.17-1.83 3.5-1.5.76.19 1.31.74 1.91 1.35C8.39 16.85 9.53 18 12 18c2.67 0 4.33-1.33 5-4-1 1.33-2.17 1.83-3.5 1.5-.76-.19-1.31-.74-1.91-1.35C10.61 13.15 9.47 12 7 12z" fill="#38BDF8"/>
+                      </svg>
+                    </span>
+                    <span>Tailwind CSS</span>
+                  </li>
                 </ul>
               </article>
 
@@ -616,11 +715,66 @@
                   <h4 class="stack-card-title">AI &amp; Automation</h4>
                 </div>
                 <ul class="stack-card-list">
-                  <li>n8n</li>
-                  <li>Google Gemini API</li>
-                  <li>REST APIs</li>
-                  <li>Webhooks</li>
-                  <li>APScheduler</li>
+                  <li>
+                    <span class="stack-item-logo" aria-hidden="true">
+                      <!-- Official n8n Workflow Nodes Logo -->
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M6.5 12h4.2c1.2 0 1.8-.8 2.4-2s1.2-2 2.4-2h2" stroke="#EA4B71" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M10.7 12c1.2 0 1.8.8 2.4 2s1.2 2 2.4 2h2" stroke="#EA4B71" stroke-width="2" stroke-linecap="round"/>
+                        <circle cx="4.5" cy="12" r="2.2" fill="#EA4B71"/>
+                        <circle cx="19.5" cy="8" r="2.2" fill="#EA4B71"/>
+                        <circle cx="19.5" cy="16" r="2.2" fill="#EA4B71"/>
+                      </svg>
+                    </span>
+                    <span>n8n</span>
+                  </li>
+                  <li>
+                    <span class="stack-item-logo" aria-hidden="true">
+                      <!-- Official Google Gemini Sparkle Logo -->
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <defs>
+                          <linearGradient id="geminiGradStack" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                            <stop offset="0%" stop-color="#4285F4"/>
+                            <stop offset="50%" stop-color="#9B72CB"/>
+                            <stop offset="100%" stop-color="#D96570"/>
+                          </linearGradient>
+                        </defs>
+                        <path d="M12 2C12 7.52 16.48 12 22 12C16.48 12 12 16.48 12 22C12 16.48 7.52 12 2 12C7.52 12 12 7.52 12 2Z" fill="url(#geminiGradStack)"/>
+                      </svg>
+                    </span>
+                    <span>Google Gemini API</span>
+                  </li>
+                  <li>
+                    <span class="stack-item-logo" aria-hidden="true">
+                      <!-- REST APIs Brackets & Gear Emblem -->
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M8 5 3 12l5 7M16 5l5 7-5 7" stroke="#00D69B" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="12" cy="12" r="2.2" fill="#38BDF8"/>
+                      </svg>
+                    </span>
+                    <span>REST APIs</span>
+                  </li>
+                  <li>
+                    <span class="stack-item-logo" aria-hidden="true">
+                      <!-- Official Webhook Tri-Hook Logo -->
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M12 4.5a3 3 0 1 1 2.6 4.5L11 15" stroke="#E91E63" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M6.5 17.5a3 3 0 1 1 1.5-5.6l6.5 3.6" stroke="#38BDF8" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M17.5 17.5a3 3 0 1 1-4.1-1.1h-6.8" stroke="#10B981" stroke-width="2" stroke-linecap="round"/>
+                      </svg>
+                    </span>
+                    <span>Webhooks</span>
+                  </li>
+                  <li>
+                    <span class="stack-item-logo" aria-hidden="true">
+                      <!-- APScheduler Clock + Lightning Logo -->
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="9" stroke="#F59E0B" stroke-width="2"/>
+                        <path d="M12 7v5l3.5 2" stroke="#38BDF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      </svg>
+                    </span>
+                    <span>APScheduler</span>
+                  </li>
                 </ul>
               </article>
 
@@ -640,11 +794,61 @@
                   <h4 class="stack-card-title">Integrations &amp; Cloud</h4>
                 </div>
                 <ul class="stack-card-list">
-                  <li>Google Drive API</li>
-                  <li>Composio (Calendar / Meet / Zoom)</li>
-                  <li>TextBee SMS</li>
-                  <li>Social Media APIs (Zernio)</li>
-                  <li>Render</li>
+                  <li>
+                    <span class="stack-item-logo" aria-hidden="true">
+                      <!-- Official Google Drive Tricolor Logo -->
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M9.2 3.5h5.6l6.2 10.8h-5.6L9.2 3.5z" fill="#FFBA00"/>
+                        <path d="M3 14.3 9.2 3.5l2.8 4.9-6.2 10.8L3 14.3z" fill="#00AC47"/>
+                        <path d="M5.8 19.2 8.6 14.3h12.4l-2.8 4.9H5.8z" fill="#0066DA"/>
+                      </svg>
+                    </span>
+                    <span>Google Drive API</span>
+                  </li>
+                  <li>
+                    <span class="stack-item-logo" aria-hidden="true">
+                      <!-- Composio / Google Calendar & Meet Logo -->
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="4" width="13" height="15" rx="2.5" fill="#4285F4"/>
+                        <path d="M16 9.5 21 6.5v10l-5-3v-4z" fill="#00AC47"/>
+                        <path d="M6.5 9.5h6M6.5 13h4" stroke="#ffffff" stroke-width="1.7" stroke-linecap="round"/>
+                      </svg>
+                    </span>
+                    <span>Composio (Calendar / Meet / Zoom)</span>
+                  </li>
+                  <li>
+                    <span class="stack-item-logo" aria-hidden="true">
+                      <!-- TextBee SMS Gold & Black Emblem -->
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H9l-4.5 4v-4H6.5A2.5 2.5 0 0 1 4 13.5v-8z" fill="#F59E0B"/>
+                        <path d="M8 8h8M8 11.2h5.5" stroke="#0F172A" stroke-width="1.9" stroke-linecap="round"/>
+                      </svg>
+                    </span>
+                    <span>TextBee SMS</span>
+                  </li>
+                  <li>
+                    <span class="stack-item-logo" aria-hidden="true">
+                      <!-- Social Media APIs (Zernio) Hub Logo -->
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <circle cx="6" cy="12" r="3" fill="#38BDF8"/>
+                        <circle cx="18" cy="6" r="3" fill="#EC4899"/>
+                        <circle cx="18" cy="18" r="3" fill="#A855F7"/>
+                        <path d="M8.7 10.6 15.3 7.4M8.7 13.4l6.6 3.2" stroke="#94A3B8" stroke-width="1.8" stroke-linecap="round"/>
+                      </svg>
+                    </span>
+                    <span>Social Media APIs (Zernio)</span>
+                  </li>
+                  <li>
+                    <span class="stack-item-logo" aria-hidden="true">
+                      <!-- Official Render Cloud Emerald Mark -->
+                      <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M12 3a9 9 0 0 1 9 9h-5a4 4 0 0 0-4-4V3z" fill="#46E3B7"/>
+                        <path d="M3 12a9 9 0 0 1 9-9v9H3z" fill="#2DD4BF"/>
+                        <path d="M3 12h9v9a9 9 0 0 1-9-9z" fill="#0D9488"/>
+                      </svg>
+                    </span>
+                    <span>Render</span>
+                  </li>
                 </ul>
               </article>
             </div>
