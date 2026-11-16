@@ -19,6 +19,7 @@ import {
   computeCenteredPopupFeatures,
   computeMaximizedDirectMessengerFeatures,
   computeRightDockedPopupFeatures,
+  deduplicateDmThreadMessages,
   enforceEmailSentFolderUrl,
   filterPortfolioCommentsList,
   filterPortfolioEmailAccounts,
@@ -635,24 +636,50 @@ test("SYS-02 Send a DM Idea B (Interactive In-Portfolio Facebook Messenger Clien
   const waSessionIds = generateLiveDmSessionIds(
     "wa98765",
     1712345678901,
-    "6adda70399e7b30829e8859c",
+    "6af6210fb722435238788b8f",
     "whatsapp"
   );
   assert.ok(waSessionIds.sessionConvId.startsWith("wa_live_dm_wa98765_"));
-  assert.equal(waSessionIds.accountId, "6adda70399e7b30829e8859c");
+  assert.equal(waSessionIds.accountId, "6af6210fb722435238788b8f");
   const waSplitCfg = buildDmSplitWorkspaceConfig(
     "whatsapp",
     waSessionIds.sessionConvId
   );
   assert.equal(waSplitCfg.platform, "whatsapp");
   assert.equal(waSplitCfg.page_header, "Glennard Tasico (+63 917 549 7760)");
-  assert.equal(waSplitCfg.account_id, "6adda70399e7b30829e8859c");
+  assert.equal(waSplitCfg.account_id, "6af6210fb722435238788b8f");
 
   const waShortPrefixCfg = buildDmSplitWorkspaceConfig(
     "whatsapp",
     "wa_live_custom123"
   );
   assert.equal(waShortPrefixCfg.sessionConvId, "wa_live_custom123");
+
+  const dupedThread = [
+    { id: "u1", is_own: false, sender_name: "Alex", message: "Hi GlennBot!" },
+    { id: "u1_dup", is_own: false, sender_name: "Alex", message: "Hi GlennBot!" },
+    {
+      id: "ai_fb",
+      is_own: true,
+      sender_name: "GlennBot Automations",
+      message:
+        "Hi Alex! Thanks for messaging GlennBot Automations via Facebook. I'm GlennBot (powered by Gemini 3.5 Flash & synced with Conversations.xlsx Sheet2 + Script.xlsx). How can I help you with AI automations, webhooks, or custom web apps today?",
+    },
+    {
+      id: "ai_real",
+      is_own: true,
+      sender_name: "GlennBot Automations",
+      message: "Hello Alex! I offer FastAPI, Gemini AI, and n8n workflow automations.",
+    },
+  ];
+  const dedupedThread = deduplicateDmThreadMessages(dupedThread);
+  assert.equal(dedupedThread.length, 2);
+  assert.equal(dedupedThread[0].is_own, false);
+  assert.equal(dedupedThread[1].is_own, true);
+  assert.equal(
+    dedupedThread[1].message,
+    "Hello Alex! I offer FastAPI, Gemini AI, and n8n workflow automations."
+  );
 });
 
 test("SYS-02 AI Email Chatbot Popup Modal (#gb-email-direct-modal) config, prompt chips, and Gmail/Mailto URL builders", () => {

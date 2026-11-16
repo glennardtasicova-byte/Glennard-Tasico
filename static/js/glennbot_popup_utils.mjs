@@ -677,7 +677,7 @@ export const SYS02_DM_SHOWCASE_CONFIG = {
     platform_label: "WhatsApp Messenger",
     page_header: "Glennard Tasico (+63 917 549 7760)",
     page_subtitle: "+63 917 549 7760 • WhatsApp Direct",
-    account_id: "6adda70399e7b30829e8859c",
+    account_id: "6af6210fb722435238788b8f",
     account_name: "Glennard Tasico (+63 917 549 7760)",
     phone: "+63 917 549 7760",
     direct_whatsapp_url: "https://wa.me/639175497760",
@@ -701,9 +701,9 @@ export const SYS02_DM_SHOWCASE_CONFIG = {
       "🟢 LIVE WHATSAPP SESSION (+63 917 549 7760) • Synced in Real Time with Conversations.xlsx (Sheet2)",
     refresh_btn_label: "🔄 Refresh Live Chat",
     base_popup_url:
-      "/glennbot-popout?popout_mode=message_thread&platform=whatsapp&account_id=6adda70399e7b30829e8859c&account_name=Glennard+Tasico+%28%2B63+917+549+7760%29",
+      "/glennbot-popout?popout_mode=message_thread&platform=whatsapp&account_id=6af6210fb722435238788b8f&account_name=Glennard+Tasico+%28%2B63+917+549+7760%29",
     base_upstream_url:
-      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=whatsapp&account_id=6adda70399e7b30829e8859c&account_name=Glennard+Tasico+%28%2B63+917+549+7760%29",
+      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=whatsapp&account_id=6af6210fb722435238788b8f&account_name=Glennard+Tasico+%28%2B63+917+549+7760%29",
     popup_window_name: "GlennBotMessageThread_WA",
   },
 };
@@ -806,6 +806,42 @@ export function hasOwnReplyAfterLastUserMessage(messagesList = []) {
     }
   }
   return false;
+}
+
+export function deduplicateDmThreadMessages(messagesList = []) {
+  if (!Array.isArray(messagesList) || messagesList.length === 0) return [];
+  const isGenericFallback = (txt) =>
+    String(txt || "").includes(
+      "I'm GlennBot (powered by Gemini 3.5 Flash & synced with Conversations.xlsx Sheet2 + Script.xlsx)."
+    );
+  const deduped = [];
+  const seenIds = new Set();
+  for (const raw of messagesList) {
+    if (!raw || typeof raw !== "object") continue;
+    const msgText = String(raw.message || raw.text || raw.content || "").trim();
+    if (!msgText) continue;
+    const msgId = String(raw.id || raw.message_id || "").trim();
+    if (msgId && seenIds.has(msgId)) continue;
+    const isOwn = Boolean(raw.is_own);
+    if (deduped.length > 0) {
+      const prev = deduped[deduped.length - 1];
+      const prevIsOwn = Boolean(prev.is_own);
+      const prevText = String(prev.message || prev.text || prev.content || "").trim();
+      if (!isOwn && !prevIsOwn && prevText.toLowerCase() === msgText.toLowerCase()) {
+        continue;
+      }
+      if (isOwn && prevIsOwn) {
+        if (isGenericFallback(prevText) && !isGenericFallback(msgText)) {
+          deduped[deduped.length - 1] = { ...raw };
+          if (msgId) seenIds.add(msgId);
+        }
+        continue;
+      }
+    }
+    if (msgId) seenIds.add(msgId);
+    deduped.push({ ...raw });
+  }
+  return deduped;
 }
 
 export function buildDmSplitWorkspaceConfig(

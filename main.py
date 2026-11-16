@@ -2100,7 +2100,8 @@ def _build_calendar_lock_body_script() -> str:
         "if(liveConvId){"
         "var liveConvKey=String(p.conv_key||(accId+'_'+liveConvId)).trim();"
         "var curId=(typeof selectedConversationId!=='undefined')?String(selectedConversationId||''):'';"
-        "if(!curId||curId!==liveConvId||forceReload){"
+        "var hasScrollBox=Boolean(document.getElementById('conversation-messages-scroll-box'));"
+        "if(!curId||curId!==liveConvId||!hasScrollBox){"
         "if(typeof window.selectMessageConversation==='function'){"
         "await window.selectMessageConversation(liveConvKey,liveConvId,accId);"
         "}else if(typeof window.refreshOpenConversationSilently==='function'){"
@@ -2108,8 +2109,6 @@ def _build_calendar_lock_body_script() -> str:
         "}"
         "}else if(typeof window.refreshOpenConversationSilently==='function'){"
         "await window.refreshOpenConversationSilently(liveConvId,accId);"
-        "}else if(typeof window.selectMessageConversation==='function'){"
-        "await window.selectMessageConversation(liveConvKey,liveConvId,accId);"
         "}"
         "return;"
         "}"
@@ -2126,7 +2125,8 @@ def _build_calendar_lock_body_script() -> str:
         "if(!messagesConversationsList.some(function(x){return x&&x.conv_key===latest.conv_key;})){messagesConversationsList.unshift(latest);}"
         "}"
         "var curKeyFallback=(typeof selectedConversationKey!=='undefined')?String(selectedConversationKey||''):'';"
-        "if(!curKeyFallback||curKeyFallback!==targetKey){"
+        "var hasScrollBoxFallback=Boolean(document.getElementById('conversation-messages-scroll-box'));"
+        "if(!curKeyFallback||curKeyFallback!==targetKey||!hasScrollBoxFallback){"
         "if(typeof window.selectMessageConversation==='function'){"
         "await window.selectMessageConversation(targetKey,targetId,targetAcc);"
         "}"
@@ -2153,8 +2153,8 @@ def _build_calendar_lock_body_script() -> str:
         "if(ev.data.conv_key)window.gbActivePopoutParams.conv_key=String(ev.data.conv_key);"
         "if(ev.data.account_id)window.gbActivePopoutParams.account_id=String(ev.data.account_id);"
         "}"
-        "_syncLatestActiveMessengerThread(true);"
-        "setTimeout(function(){_syncLatestActiveMessengerThread(true);},600);"
+        "_syncLatestActiveMessengerThread(false);"
+        "setTimeout(function(){_syncLatestActiveMessengerThread(false);},600);"
         "}"
         "});"
         "}"
@@ -3209,16 +3209,33 @@ def _filter_whitelisted_records_in_proxy_json(clean_path: str, data: dict) -> di
             cached_msgs = cached_entry.get("messages")
             cached_list = cached_msgs if isinstance(cached_msgs, list) else []
             if isinstance(msgs, list) and len(msgs) > 0:
-                has_own_upstream = any(isinstance(m, dict) and bool(m.get("is_own")) for m in msgs)
-                if len(msgs) >= len(cached_list) or has_own_upstream:
-                    _PORTFOLIO_MESSAGES_THREAD_CACHE.setdefault(conv_id_key, {})["messages"] = list(msgs)
-                    _DM_TEST_SESSIONS.setdefault(conv_id_key, {})["messages"] = list(msgs)
-                    if isinstance(data.get("conversation"), dict):
-                        _PORTFOLIO_MESSAGES_THREAD_CACHE[conv_id_key]["conversation"] = dict(data["conversation"])
-                elif len(cached_list) > len(msgs):
-                    data["messages"] = list(cached_list)
+                deduped_msgs = _deduplicate_dm_thread_messages(msgs)
+                data["messages"] = deduped_msgs
+                has_own_upstream = any(isinstance(m, dict) and bool(m.get("is_own")) for m in deduped_msgs)
+                if len(deduped_msgs) >= len(cached_list) or has_own_upstream:
+                    _PORTFOLIO_MESSAGES_THREAD_CACHE.setdefault(conv_id_key, {})["messages"] = list(deduped_msgs)
+                    _DM_TEST_SESSIONS.setdefault(conv_id_key, {})["messages"] = list(deduped_msgs)
+                elif len(cached_list) > len(deduped_msgs):
+                    data["messages"] = _deduplicate_dm_thread_messages(cached_list)
             elif isinstance(msgs, list) and len(msgs) == 0 and len(cached_list) > 0:
-                data["messages"] = list(cached_list)
+                data["messages"] = _deduplicate_dm_thread_messages(cached_list)
+            elif not isinstance(msgs, list):
+                data["messages"] = _deduplicate_dm_thread_messages(cached_list)
+
+            existing_conv = data.get("conversation") if isinstance(data.get("conversation"), dict) else None
+            if not existing_conv and isinstance(cached_entry.get("conversation"), dict):
+                existing_conv = cached_entry.get("conversation")
+            acc_hint = str(
+                data.get("account_id")
+                or (existing_conv or {}).get("account_id")
+                or cached_entry.get("account_id")
+                or ""
+            ).strip()
+            conv_obj = _build_fallback_dm_conversation_dict(conv_id_key, acc_hint, existing_conv)
+            data["conversation"] = conv_obj
+            data.setdefault("conversation_id", conv_id_key)
+            data.setdefault("account_id", conv_obj["account_id"])
+            _PORTFOLIO_MESSAGES_THREAD_CACHE.setdefault(conv_id_key, {})["conversation"] = dict(conv_obj)
         return data
 
     if clean_path == "analytics":
@@ -3271,7 +3288,7 @@ _DM_TEST_PLATFORM_META: dict[str, dict[str, str]] = {
     },
     "whatsapp": {
         "platform": "whatsapp",
-        "account_id": "6adda70399e7b30829e8859c",
+        "account_id": "6af6210fb722435238788b8f",
         "account_name": "Glennard Tasico (+63 917 549 7760)",
         "conv_prefix": "wa_live_dm_",
     },
@@ -3286,6 +3303,109 @@ def _is_live_portfolio_dm_conv_id(conv_id: str) -> bool:
         or cid.startswith("wa_live_dm_")
         or cid.startswith("wa_live_")
     )
+
+
+def _infer_dm_platform_meta_for_conv(conv_id: str, account_id: str = "") -> dict[str, str]:
+    cid = str(conv_id or "").strip()
+    aid = str(account_id or "").strip()
+    if cid.startswith("wa_live_dm_") or cid.startswith("wa_live_") or aid in (
+        "6af6210fb722435238788b8f",
+        "6adda70399e7b30829e8859c",
+    ):
+        return _DM_TEST_PLATFORM_META["whatsapp"]
+    if cid.startswith("ig_live_") or aid == "6ad9e9b2e5d470e468e58d87":
+        return _DM_TEST_PLATFORM_META["instagram"]
+    return _DM_TEST_PLATFORM_META["facebook"]
+
+
+def _build_fallback_dm_conversation_dict(
+    conv_id_key: str,
+    acc_id_param: str = "",
+    existing_conv: dict | None = None,
+) -> dict[str, object]:
+    clean_cid = str(conv_id_key or "").strip()
+    cached_entry = (
+        _PORTFOLIO_MESSAGES_THREAD_CACHE.get(clean_cid)
+        or _DM_TEST_SESSIONS.get(clean_cid)
+        or {}
+    )
+    meta = _infer_dm_platform_meta_for_conv(clean_cid, acc_id_param or str(cached_entry.get("account_id") or ""))
+    resolved_acc_id = (
+        str(acc_id_param or "").strip()
+        or str((existing_conv or {}).get("account_id") or "").strip()
+        or str(cached_entry.get("account_id") or "").strip()
+        or meta["account_id"]
+    )
+    platform_name = (
+        str((existing_conv or {}).get("platform") or "").strip().lower()
+        or str(cached_entry.get("platform") or "").strip().lower()
+        or meta["platform"]
+    )
+    account_display_name = (
+        str((existing_conv or {}).get("account_name") or "").strip()
+        or str(cached_entry.get("account_name") or "").strip()
+        or meta["account_name"]
+    )
+    participant_name = (
+        str((existing_conv or {}).get("participant_name") or "").strip()
+        or "Portfolio Client"
+    )
+    conv_obj: dict[str, object] = {}
+    if isinstance(existing_conv, dict):
+        conv_obj.update(existing_conv)
+    conv_obj.update(
+        {
+            "conv_key": str((existing_conv or {}).get("conv_key") or f"{resolved_acc_id}_{clean_cid}").strip(),
+            "conversation_id": clean_cid,
+            "platform": platform_name,
+            "account_id": resolved_acc_id,
+            "account_name": account_display_name,
+            "participant_name": participant_name,
+            "is_portfolio_live_dm": True,
+        }
+    )
+    return conv_obj
+
+
+def _is_generic_dm_fallback_text(text: str) -> bool:
+    t = str(text or "").strip()
+    return "I'm GlennBot (powered by Gemini 3.5 Flash & synced with Conversations.xlsx Sheet2 + Script.xlsx)." in t
+
+
+def _deduplicate_dm_thread_messages(messages: list) -> list:
+    if not isinstance(messages, list) or not messages:
+        return []
+    deduped: list[dict] = []
+    seen_ids: set[str] = set()
+    for raw_item in messages:
+        if not isinstance(raw_item, dict):
+            continue
+        item = dict(raw_item)
+        msg_text = str(item.get("message") or item.get("text") or item.get("content") or "").strip()
+        if not msg_text:
+            continue
+        msg_id = str(item.get("id") or item.get("message_id") or "").strip()
+        if msg_id and msg_id in seen_ids:
+            continue
+        is_own = bool(item.get("is_own"))
+        if deduped:
+            prev = deduped[-1]
+            prev_is_own = bool(prev.get("is_own"))
+            prev_text = str(prev.get("message") or prev.get("text") or prev.get("content") or "").strip()
+            if not is_own and not prev_is_own and prev_text.lower() == msg_text.lower():
+                continue
+            if is_own and prev_is_own:
+                # Only allow ONE AI reply bubble per user message turn.
+                # If the previous AI bubble was a fallback and the new one is a real Gemini reply, replace it.
+                if _is_generic_dm_fallback_text(prev_text) and not _is_generic_dm_fallback_text(msg_text):
+                    deduped[-1] = item
+                    if msg_id:
+                        seen_ids.add(msg_id)
+                continue
+        if msg_id:
+            seen_ids.add(msg_id)
+        deduped.append(item)
+    return deduped
 
 
 def _thread_has_own_reply_after_last_user(messages: list) -> bool:
@@ -3309,12 +3429,26 @@ def _save_dm_session_cache(
     platform: str,
     account_id: str,
     account_name: str,
-) -> None:
+) -> list:
     if not conv_id:
-        return
-    msg_copy = list(messages)
+        return list(messages)
+    deduped_copy = _deduplicate_dm_thread_messages(messages)
+    conv_obj = _build_fallback_dm_conversation_dict(
+        conv_id,
+        account_id,
+        {
+            "conv_key": f"{account_id}_{conv_id}",
+            "conversation_id": conv_id,
+            "platform": platform,
+            "account_id": account_id,
+            "account_name": account_name,
+            "participant_name": "Portfolio Client",
+            "is_portfolio_live_dm": True,
+        },
+    )
     entry = {
-        "messages": msg_copy,
+        "messages": deduped_copy,
+        "conversation": conv_obj,
         "platform": platform,
         "account_id": account_id,
         "account_name": account_name,
@@ -3322,6 +3456,7 @@ def _save_dm_session_cache(
     }
     _PORTFOLIO_MESSAGES_THREAD_CACHE[conv_id] = dict(entry)
     _DM_TEST_SESSIONS[conv_id] = dict(entry)
+    return deduped_copy
 
 
 @app.post("/api/glennbot/dm-test/send")
@@ -3329,8 +3464,8 @@ async def glennbot_dm_test_send(request: Request):
     """
     Accepts platform ('facebook', 'instagram', 'whatsapp'), conversation_id, participant_name, and message,
     forwards to GlennBot's /api/messages/portfolio_live_dm (syncing Conversations.xlsx Sheet2 + Script.xlsx Sheet1),
-    polls GET /api/messages/{conv_id}/thread up to 6 times (every 1.2s) if the AI reply is still generating
-    on upstream GlennBot, and updates _PORTFOLIO_MESSAGES_THREAD_CACHE and _DM_TEST_SESSIONS.
+    polls GET /api/messages/{conv_id}/thread if the AI reply is still generating
+    on upstream GlennBot, deduplicates is_own=True AI replies, and updates _PORTFOLIO_MESSAGES_THREAD_CACHE and _DM_TEST_SESSIONS.
     """
     try:
         body = await request.json()
@@ -3345,6 +3480,8 @@ async def glennbot_dm_test_send(request: Request):
     if not conv_id:
         conv_id = f"{meta['conv_prefix']}{int(time.time() * 1000)}"
     target_acc_id = str(body.get("account_id") or meta["account_id"]).strip()
+    if raw_plat == "whatsapp" and target_acc_id == "6adda70399e7b30829e8859c":
+        target_acc_id = meta["account_id"]
     account_name = str(body.get("account_name") or meta["account_name"]).strip()
     participant_name = str(body.get("participant_name") or "Portfolio Client").strip() or "Portfolio Client"
     message_text = str(body.get("message") or "").strip()
@@ -3382,19 +3519,19 @@ async def glennbot_dm_test_send(request: Request):
                 if isinstance(parsed, dict):
                     upstream_data = parsed
                     if isinstance(parsed.get("messages"), list):
-                        upstream_msgs = list(parsed["messages"])
-                        _save_dm_session_cache(
+                        upstream_msgs = _save_dm_session_cache(
                             conv_id,
-                            upstream_msgs,
+                            list(parsed["messages"]),
                             meta["platform"],
                             target_acc_id,
                             account_name,
                         )
+                        upstream_data["messages"] = upstream_msgs
 
-            # If upstream returned before the asynchronous Gemini AI workflow finished appending is_own=True,
-            # poll GET /api/messages/{conv_id}/thread up to 6 times (every 1.2s) to capture the real GlennBot AI reply.
+            # Upstream GlennBot already waits up to 13.5s for Gemini 3.5 Flash.
+            # Only poll GET /api/messages/{conv_id}/thread if no is_own=True reply was included yet.
             if upstream_data is not None and not _thread_has_own_reply_after_last_user(upstream_msgs):
-                for _ in range(6):
+                for _ in range(4):
                     await asyncio.sleep(1.2)
                     poll_ts = int(time.time() * 1000)
                     poll_url = (
@@ -3415,29 +3552,44 @@ async def glennbot_dm_test_send(request: Request):
                         if poll_resp.status_code == 200:
                             poll_json = poll_resp.json()
                             if isinstance(poll_json, dict) and isinstance(poll_json.get("messages"), list):
-                                polled_msgs = list(poll_json["messages"])
-                                if len(polled_msgs) >= len(upstream_msgs):
-                                    upstream_msgs = polled_msgs
-                                    upstream_data["messages"] = upstream_msgs
-                                    _save_dm_session_cache(
+                                polled_msgs = _deduplicate_dm_thread_messages(list(poll_json["messages"]))
+                                if len(polled_msgs) >= len(upstream_msgs) or _thread_has_own_reply_after_last_user(polled_msgs):
+                                    upstream_msgs = _save_dm_session_cache(
                                         conv_id,
-                                        upstream_msgs,
+                                        polled_msgs,
                                         meta["platform"],
                                         target_acc_id,
                                         account_name,
                                     )
+                                    upstream_data["messages"] = upstream_msgs
                                 if _thread_has_own_reply_after_last_user(upstream_msgs):
                                     break
                     except Exception:
                         pass
 
-            if upstream_data is not None and _thread_has_own_reply_after_last_user(upstream_msgs):
+            if upstream_data is not None and (
+                _thread_has_own_reply_after_last_user(upstream_msgs)
+                or any(isinstance(m, dict) and bool(m.get("is_own")) for m in upstream_msgs)
+            ):
+                upstream_msgs = _save_dm_session_cache(
+                    conv_id,
+                    upstream_msgs,
+                    meta["platform"],
+                    target_acc_id,
+                    account_name,
+                )
+                upstream_data["messages"] = upstream_msgs
+                upstream_data["conversation"] = _build_fallback_dm_conversation_dict(
+                    conv_id,
+                    target_acc_id,
+                    upstream_data.get("conversation") if isinstance(upstream_data.get("conversation"), dict) else None,
+                )
                 return JSONResponse(content=upstream_data, status_code=200)
     except Exception:
         pass
 
     now_iso = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-    existing_msgs = (
+    existing_msgs = _deduplicate_dm_thread_messages(
         upstream_msgs
         if upstream_msgs
         else list((_PORTFOLIO_MESSAGES_THREAD_CACHE.get(conv_id) or {}).get("messages") or [])
@@ -3455,7 +3607,9 @@ async def glennbot_dm_test_send(request: Request):
                 "timestamp": now_iso,
             }
         )
-    if not _thread_has_own_reply_after_last_user(existing_msgs):
+    if not _thread_has_own_reply_after_last_user(existing_msgs) and not any(
+        isinstance(m, dict) and bool(m.get("is_own")) for m in upstream_msgs
+    ):
         existing_msgs.append(
             {
                 "id": f"msg_{int(time.time() * 1000)}_ai",
@@ -3469,7 +3623,8 @@ async def glennbot_dm_test_send(request: Request):
                 "timestamp": now_iso,
             }
         )
-    _save_dm_session_cache(conv_id, existing_msgs, meta["platform"], target_acc_id, account_name)
+    existing_msgs = _save_dm_session_cache(conv_id, existing_msgs, meta["platform"], target_acc_id, account_name)
+    conv_obj = _build_fallback_dm_conversation_dict(conv_id, target_acc_id)
     return JSONResponse(
         content={
             "status": "success",
@@ -3477,6 +3632,7 @@ async def glennbot_dm_test_send(request: Request):
             "platform": meta["platform"],
             "account_id": target_acc_id,
             "account_name": account_name,
+            "conversation": conv_obj,
             "messages": existing_msgs,
         },
         status_code=200,
@@ -3836,16 +3992,18 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
                 )
 
             if is_message_thread_get and resp.status_code != 200:
-                cached_fallback = (
+                cached_fallback = _deduplicate_dm_thread_messages(
                     (_PORTFOLIO_MESSAGES_THREAD_CACHE.get(thread_conv_id_key) or {}).get("messages")
                     or (_DM_TEST_SESSIONS.get(thread_conv_id_key) or {}).get("messages")
                     or []
                 )
+                conv_obj = _build_fallback_dm_conversation_dict(thread_conv_id_key, thread_acc_param)
                 return JSONResponse(
                     content={
                         "status": "success",
                         "conversation_id": thread_conv_id_key,
                         "account_id": thread_acc_param,
+                        "conversation": conv_obj,
                         "messages": list(cached_fallback),
                     },
                     status_code=200,
@@ -3870,6 +4028,8 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
                 try:
                     parsed_json = json.loads(content_bytes.decode("utf-8", errors="replace"))
                     if isinstance(parsed_json, dict):
+                        if is_message_thread_get and not parsed_json.get("account_id"):
+                            parsed_json["account_id"] = thread_acc_param
                         filtered_json = _filter_whitelisted_records_in_proxy_json(clean_path, parsed_json)
                         resp_headers = (
                             {"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"}
@@ -3891,16 +4051,18 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
             )
     except Exception:
         if is_message_thread_get:
-            cached_fallback = (
+            cached_fallback = _deduplicate_dm_thread_messages(
                 (_PORTFOLIO_MESSAGES_THREAD_CACHE.get(thread_conv_id_key) or {}).get("messages")
                 or (_DM_TEST_SESSIONS.get(thread_conv_id_key) or {}).get("messages")
                 or []
             )
+            conv_obj = _build_fallback_dm_conversation_dict(thread_conv_id_key, thread_acc_param)
             return JSONResponse(
                 content={
                     "status": "success",
                     "conversation_id": thread_conv_id_key,
                     "account_id": thread_acc_param,
+                    "conversation": conv_obj,
                     "messages": list(cached_fallback),
                 },
                 status_code=200,

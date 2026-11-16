@@ -428,7 +428,7 @@ const DM_SPLIT_PLATFORMS = {
     pageHeader: "Glennard Tasico (+63 917 549 7760)",
     pageSubtitle: "+63 917 549 7760 • WhatsApp Direct",
     handle: "+63 917 549 7760 • WhatsApp Direct",
-    accountId: "6adda70399e7b30829e8859c",
+    accountId: "6af6210fb722435238788b8f",
     accountName: "Glennard Tasico (+63 917 549 7760)",
     externalUrl: "https://wa.me/639175497760",
     externalBtnText: "Open WhatsApp (+63 917 549 7760) ↗",
@@ -450,9 +450,9 @@ const DM_SPLIT_PLATFORMS = {
       "🟢 LIVE WHATSAPP SESSION (+63 917 549 7760) • Synced in Real Time with Conversations.xlsx (Sheet2)",
     refreshBtnLabel: "🔄 Refresh Live Chat",
     baseProxyDashboardUrl:
-      "/glennbot-popout?popout_mode=message_thread&platform=whatsapp&account_id=6adda70399e7b30829e8859c&account_name=Glennard+Tasico+%28%2B63+917+549+7760%29",
+      "/glennbot-popout?popout_mode=message_thread&platform=whatsapp&account_id=6af6210fb722435238788b8f&account_name=Glennard+Tasico+%28%2B63+917+549+7760%29",
     baseUpstreamDashboardUrl:
-      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=whatsapp&account_id=6adda70399e7b30829e8859c&account_name=Glennard+Tasico+%28%2B63+917+549+7760%29",
+      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=whatsapp&account_id=6af6210fb722435238788b8f&account_name=Glennard+Tasico+%28%2B63+917+549+7760%29",
     directMessengerUrl: "https://wa.me/639175497760",
     directMessengerWindowName: "GlennBotDirectWhatsAppDmFullView",
     dashboardWindowName: "GlennBotMessageThread_WA",
@@ -754,7 +754,7 @@ function applyServerThreadMessages(serverMessages) {
 
   const cfg =
     DM_SPLIT_PLATFORMS[activeDmSplitPlatform] || DM_SPLIT_PLATFORMS.facebook;
-  dmClientMessages = serverMessages.map((m, idx) => ({
+  const normalizedList = serverMessages.map((m, idx) => ({
     id: m.id || m.message_id || `srv_${idx}`,
     is_own: Boolean(m.is_own),
     sender_name:
@@ -763,6 +763,37 @@ function applyServerThreadMessages(serverMessages) {
     message: String(m.message || m.text || m.content || ""),
     timestamp: m.timestamp || m.created_at || new Date().toISOString(),
   }));
+
+  const dedupedList = [];
+  const seenIds = new Set();
+  for (const item of normalizedList) {
+    const cleanText = String(item.message || "").trim();
+    if (!cleanText) continue;
+    const msgId = String(item.id || "").trim();
+    if (msgId && !msgId.startsWith("srv_") && seenIds.has(msgId)) continue;
+    if (dedupedList.length > 0) {
+      const prev = dedupedList[dedupedList.length - 1];
+      const prevText = String(prev.message || "").trim();
+      if (!item.is_own && !prev.is_own && prevText.toLowerCase() === cleanText.toLowerCase()) {
+        continue;
+      }
+      if (item.is_own && prev.is_own) {
+        const isGenericFallback = (txt) =>
+          txt.includes(
+            "I'm GlennBot (powered by Gemini 3.5 Flash & synced with Conversations.xlsx Sheet2 + Script.xlsx)."
+          );
+        if (isGenericFallback(prevText) && !isGenericFallback(cleanText)) {
+          dedupedList[dedupedList.length - 1] = item;
+          if (msgId) seenIds.add(msgId);
+        }
+        continue;
+      }
+    }
+    if (msgId) seenIds.add(msgId);
+    dedupedList.push(item);
+  }
+
+  dmClientMessages = dedupedList;
   activeDmClientMessages = dmClientMessages;
 
   const newOwnCount = dmClientMessages.filter((m) => m && m.is_own).length;
