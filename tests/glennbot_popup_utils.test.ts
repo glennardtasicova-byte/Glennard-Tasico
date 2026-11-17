@@ -40,6 +40,7 @@ import {
   CLIENT_CUSTOM_MESSAGE_CACHE_KEY,
   SYS03_IMPORT_CONTACTS_CONFIG,
   SYS03_CUSTOM_MESSAGE_ATTRIBUTES,
+  SYS03_PROJECT_SPEC,
   buildSampleApolloCsvContent,
   parseApolloCsvToClientContacts,
   mergeClientContactsCache,
@@ -1174,6 +1175,106 @@ test("SYS-03 Import Contacts modal stays open on import, auto-renders inline cac
   assert.ok(
     mainPy.includes(
       "_pre_transform_popout_html_shell = _apply_instant_popout_dom_transforms"
+    )
+  );
+});
+
+test("SYS-03 Case Study Modal (Tab 01 Case Study & Architecture, Tab 02 Backend Source Code, and Tab 03 Interactive API Widget) reflects Import Contacts, Create Custom Message, and Send Batch Email", async () => {
+  const fs = await import("node:fs");
+  const mainJs = fs.readFileSync("static/js/main.js", "utf8");
+  const mainPy = fs.readFileSync("main.py", "utf8");
+
+  // 1. Verify SYS03_PROJECT_SPEC header & Tab 01 Case Study & Architecture
+  assert.equal(SYS03_PROJECT_SPEC.sysId, "SYS-03");
+  assert.equal(SYS03_PROJECT_SPEC.category, "CRM & Batch Emailing");
+  assert.equal(
+    SYS03_PROJECT_SPEC.endpoint,
+    "POST /api/v1/spreadsheets/append-row • POST /api/email/send"
+  );
+  assert.equal(
+    SYS03_PROJECT_SPEC.title,
+    "CRM Contact Hub & Automated Batch Email Outreach"
+  );
+  assert.equal(
+    SYS03_PROJECT_SPEC.tagline,
+    "Privacy-First Lead Importing (Google Contacts & Apollo CSV), Dynamic [[Attribute]] Message Composer & Live Batch Email Dispatch Synced to Compose.xlsx"
+  );
+  assert.deepEqual(SYS03_PROJECT_SPEC.pipelineNodes, [
+    {
+      label: "01 • Import Contacts",
+      title: "Google OAuth & Apollo CSV → Browser Cache",
+      accent: false,
+    },
+    {
+      label: "02 • Create Custom Message",
+      title: "[[Attributes]] Composer → Compose.xlsx (Sheet1)",
+      accent: true,
+    },
+    {
+      label: "03 • Send Batch Email",
+      title: "Waiting → Sending → Done (Sheet2 + Gmail)",
+      accent: false,
+    },
+  ]);
+  assert.equal(SYS03_PROJECT_SPEC.architectureSteps.length, 4);
+  assert.deepEqual(SYS03_PROJECT_SPEC.metrics, [
+    { value: "0% Server Retention", label: "Browser-Cache Contact Privacy" },
+    { value: "6 [[Attributes]]", label: "Dynamic CRM Merge Tokens" },
+    { value: "Waiting → Sending → Done", label: "Live Compose.xlsx (Sheet2) Sync" },
+  ]);
+
+  // 2. Verify Tab 02 Backend Source Code (FastAPI)
+  assert.equal(
+    SYS03_PROJECT_SPEC.sourceFile,
+    "glennbot_automations/routers/sys03_crm_batch_outreach.py (Import Contacts + Custom Message + Batch Email)"
+  );
+  assert.ok(
+    SYS03_PROJECT_SPEC.sourceCode.includes(
+      "GLENNBOT AUTOMATIONS — SYS-03: CRM CONTACT HUB & BATCH EMAIL OUTREACH ENGINE"
+    )
+  );
+  assert.ok(
+    SYS03_PROJECT_SPEC.sourceCode.includes(
+      '@router.post("/api/contacts/import/google")'
+    )
+  );
+  assert.ok(
+    SYS03_PROJECT_SPEC.sourceCode.includes(
+      '@router.post("/api/glennbot/sys03/save-custom-message")'
+    )
+  );
+  assert.ok(
+    SYS03_PROJECT_SPEC.sourceCode.includes(
+      '@router.post("/api/glennbot/sys03/batch-step")'
+    )
+  );
+
+  // 3. Verify Tab 03 Interactive API Widget fields & presets
+  assert.equal(SYS03_PROJECT_SPEC.widgetFields.length, 3);
+  assert.equal(SYS03_PROJECT_SPEC.widgetFields[0].name, "stage");
+  assert.equal(SYS03_PROJECT_SPEC.widgetFields[0].options.length, 3);
+
+  // 4. Verify static/js/main.js and main.py contain the updated SYS-03 definition & endpoints
+  assert.ok(
+    mainJs.includes(
+      'endpoint: "POST /api/v1/spreadsheets/append-row • POST /api/email/send"'
+    )
+  );
+  assert.ok(
+    mainJs.includes(
+      'sourceFile:\n          "glennbot_automations/routers/sys03_crm_batch_outreach.py (Import Contacts + Custom Message + Batch Email)"'
+    )
+  );
+  assert.ok(
+    mainJs.includes(
+      'PROJECTS_DATA["crm-batch-outreach"] = PROJECTS_DATA["calendar-orchestrator"];'
+    )
+  );
+  assert.ok(mainPy.includes('@app.post("/api/demo/calendar-schedule")'));
+  assert.ok(mainPy.includes('@app.post("/api/demo/crm-batch-outreach")'));
+  assert.ok(
+    mainPy.includes(
+      '"engine": "GlennBot CRM Contact Hub & Automated Batch Email Outreach Engine"'
     )
   );
 });

@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import uuid
 
@@ -776,39 +777,133 @@ async def demo_inbox_triage(request: Request):
 
 
 @app.post("/api/demo/calendar-schedule")
+@app.post("/api/demo/crm-batch-outreach")
 async def demo_calendar_schedule(request: Request):
-    """Live API showcase endpoint for Project 03: Automated Calendar Booking & n8n Webhook Orchestrator."""
+    """Live API showcase endpoint for Project 03 (SYS-03): CRM Contact Hub & Automated Batch Email Outreach."""
     t0 = time.perf_counter()
     try:
         body = await request.json()
     except Exception:
         body = {}
 
-    lead_name = (body.get("name") or "Alex Rivera (Operations VP)").strip()
-    session_type = (body.get("session_type") or "AI Workflow & FastAPI Architecture Audit (30 min)").strip()
-    preferred_slot = (body.get("slot") or "2026-11-10T10:00:00+08:00").strip()
+    stage_raw = str(
+        body.get("stage")
+        or "📥 01. Import Contacts — Google OAuth & 20-Col Apollo CSV -> Browser Cache (localStorage)"
+    ).strip()
+    contact_sample = str(
+        body.get("contact_sample")
+        or "Sophia Reyes | Nexus Logistics PH | sophia.reyes@nexuslogistics.example.com | +63 917 555 0142"
+    ).strip()
+    template_message = str(
+        body.get("template_message")
+        or "Hi [[First Name]] [[Last Name]], I noticed [[Company Name]] is scaling operations—would love to share how GlennBot Automations can streamline your workflows! Reachable at [[Email Address]] / [[Contact Number]]."
+    ).strip()
 
-    elapsed_ms = round((time.perf_counter() - t0) * 1000 + 21.7, 1)
+    parts = [p.strip() for p in contact_sample.split("|")]
+    full_name = parts[0] if len(parts) >= 1 and parts[0] else "Sophia Reyes"
+    company_name = parts[1] if len(parts) >= 2 and parts[1] else "Nexus Logistics PH"
+    email_addr = (
+        parts[2]
+        if len(parts) >= 3 and parts[2]
+        else "sophia.reyes@nexuslogistics.example.com"
+    )
+    phone_num = parts[3] if len(parts) >= 4 and parts[3] else "+63 917 555 0142"
+
+    name_tokens = [t for t in full_name.split(" ") if t]
+    first_name = name_tokens[0] if name_tokens else "Sophia"
+    middle_name = " ".join(name_tokens[1:-1]) if len(name_tokens) >= 3 else ""
+    last_name = name_tokens[-1] if len(name_tokens) >= 2 else ""
+
+    attr_map = {
+        "first name": first_name,
+        "middle name": middle_name,
+        "last name": last_name,
+        "company name": company_name,
+        "email address": email_addr,
+        "contact number": phone_num,
+    }
+    resolved_message = re.sub(
+        r"\[\[\s*([^\[\]]+?)\s*\]\]",
+        lambda m: attr_map.get(
+            re.sub(r"\s+", " ", m.group(1).strip().lower()), m.group(0)
+        ),
+        template_message,
+    )
+
+    batch_row_key = f"portfolio_row_demo_0_{re.sub(r'[^a-z0-9@._-]', '', email_addr.lower())}"
+    elapsed_ms = round((time.perf_counter() - t0) * 1000 + 19.4, 1)
+
+    stage_lower = stage_raw.lower()
+    if "02" in stage_lower or "custom message" in stage_lower:
+        active_stage = "02_create_custom_message"
+    elif "03" in stage_lower or "batch email" in stage_lower:
+        active_stage = "03_send_batch_email"
+    else:
+        active_stage = "01_import_contacts"
 
     return {
         "status": "success",
-        "engine": "Composio Calendar + n8n Webhook Orchestrator v1.8",
-        "endpoint": "POST /api/v1/calendar/schedule",
+        "sys_id": "SYS-03",
+        "engine": "GlennBot CRM Contact Hub & Automated Batch Email Outreach Engine",
+        "endpoint": "POST /api/v1/spreadsheets/append-row • POST /api/email/send",
+        "active_stage": active_stage,
+        "selected_workflow": stage_raw,
         "latency_ms": elapsed_ms,
-        "booking_confirmation": {
-            "booking_id": "GB-CAL-2026-8841",
-            "attendee": lead_name,
-            "session_type": session_type,
-            "confirmed_slot_pht": preferred_slot,
-            "conference_provider": "Google Meet (Composio Auto-Provisioned)",
-            "meet_url": "https://meet.google.com/gba-auto-sync",
+        "privacy_sandbox": {
+            "client_contacts_cache_key": "gb_portfolio_client_contacts_v1",
+            "client_message_cache_key": "gb_portfolio_client_custom_message_v1",
+            "server_db_retention": "0% (Browser-Cache Isolated)",
         },
-        "webhook_dispatches": [
-            {"target": "n8n_workflow_lead_enrichment", "status": "200 OK"},
-            {"target": "google_calendar_event_insert", "status": "CONFIRMED"},
-            {"target": "textbee_sms_reminder_queue", "status": "SCHEDULED_24H_PRIOR"},
-        ],
+        "parsed_contact_record": {
+            "first_name": first_name,
+            "middle_name": middle_name,
+            "last_name": last_name,
+            "company_name": company_name,
+            "email_address": email_addr,
+            "contact_number": phone_num,
+            "source": "Apollo CSV (20-Col Parser: Col A/B Name, Col E Company, Col F Email, Col T Phone) / Google Contacts OAuth2",
+        },
+        "custom_message_composer": {
+            "supported_attributes": [
+                "[[First Name]]",
+                "[[Middle Name]]",
+                "[[Last Name]]",
+                "[[Company Name]]",
+                "[[Email Address]]",
+                "[[Contact Number]]",
+            ],
+            "raw_template": template_message,
+            "resolved_preview": resolved_message,
+            "compose_xlsx_sheet1_sync": {
+                "workbook_id": "Compose.xlsx",
+                "sheet_name": "Sheet1",
+                "row": {"A": template_message},
+            },
+        },
+        "batch_email_dispatch_queue": {
+            "fifo_lock": "_SYS03_COMPOSE_SHEET_LOCK (asyncio.Lock)",
+            "status_lifecycle": ["Waiting", "Sending", "Done"],
+            "delivery_channel": "POST /api/email/send (Composio Gmail OAuth2)",
+            "compose_xlsx_sheet2_row": {
+                "workbook_id": "Compose.xlsx",
+                "sheet_name": "Sheet2",
+                "match_column": "I",
+                "match_value": batch_row_key,
+                "row": {
+                    "A": "Done" if active_stage == "03_send_batch_email" else "Waiting",
+                    "B": first_name,
+                    "C": middle_name,
+                    "D": last_name,
+                    "E": company_name,
+                    "F": email_addr,
+                    "G": phone_num,
+                    "H": resolved_message,
+                    "I": batch_row_key,
+                },
+            },
+        },
     }
+
 
 
 @app.post("/api/demo/sheets-sync")

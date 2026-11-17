@@ -4063,92 +4063,169 @@ def api_list_email_messages(
       "calendar-orchestrator": {
         sysId: "SYS-03",
         category: "CRM & Batch Emailing",
-        endpoint: "POST /api/v1/calendar/schedule",
+        endpoint: "POST /api/v1/spreadsheets/append-row • POST /api/email/send",
         demoEndpoint: "/api/demo/calendar-schedule",
         title: "CRM Contact Hub & Automated Batch Email Outreach",
-        tagline: "Centralized Lead Importing, Custom Email Templates & 1-Click Batch Outreach via Composio Gmail OAuth & n8n",
+        tagline:
+          "Privacy-First Lead Importing (Google Contacts & Apollo CSV), Dynamic [[Attribute]] Message Composer & Live Batch Email Dispatch Synced to Compose.xlsx",
         pipelineNodes: [
-          { label: "Booking Request", title: "Client Slot Selection", accent: false },
-          { label: "Orchestrator", title: "Composio + n8n Webhook", accent: true },
-          { label: "Provisioned", title: "Google Meet + SMS Alert", accent: false },
-        ],
-        bottleneck:
-          "Back-and-forth timezone emails, manual Google Meet link creation, and forgotten CRM updates were slowing down technical discovery calls and client onboarding.",
-        solution:
-          "Engineered a zero-touch FastAPI booking endpoint integrated with Composio (Google Calendar / Meet / Zoom) and n8n webhooks. Every confirmed slot automatically provisions a video room, logs the prospect in PostgreSQL, and queues a 24-hour SMS reminder via TextBee.",
-        architectureSteps: [
-          "Client selects consultation slot from portfolio widget or intake form",
-          "FastAPI queries Composio Google Calendar integration to verify zero conflicts",
-          "Composio provisions Google Meet / Zoom conference link & sends calendar invite",
-          "n8n webhook triggers CRM lead enrichment and schedules TextBee SMS reminder",
-        ],
-        metrics: [
-          { value: "Zero-Touch", label: "Meeting Provisioning" },
-          { value: "3 Webhooks", label: "Calendar • CRM • SMS" },
-          { value: "100% Synced", label: "Google Meet / Zoom" },
-        ],
-        sourceFile: "glennbot_automations/routers/calendar_orchestrator.py",
-        sourceCode: `from fastapi import APIRouter, Header
-from pydantic import BaseModel
-import httpx
-
-router = APIRouter(prefix="/api/v1/calendar", tags=["Calendar & n8n Orchestrator"])
-
-class ConsultationBookingRequest(BaseModel):
-    name: str
-    session_type: str
-    slot: str
-
-@router.post("/schedule")
-async def schedule_discovery_session(
-    payload: ConsultationBookingRequest,
-    x_api_key: str = Header(..., alias="X-API-Key"),
-):
-    async with httpx.AsyncClient(timeout=15.0) as http:
-        # 1. Provision Google Calendar Event + Meet link via Composio
-        composio_res = await http.post(
-            "https://backend.composio.dev/api/v2/actions/googlecalendar_create_event/execute",
-            headers={"X-API-Key": x_api_key},
-            json={
-                "summary": f"{payload.session_type} — {payload.name}",
-                "start_datetime": payload.slot,
-                "create_conference_link": True,
-            },
-        )
-        # 2. Trigger downstream n8n Webhook for CRM + TextBee SMS reminder
-        await http.post(
-            "https://n8n.glennbot.io/webhook/calendar-booking-sync",
-            json=payload.model_dump(),
-        )
-
-    return {
-        "status": "CONFIRMED",
-        "attendee": payload.name,
-        "slot": payload.slot,
-        "conference": "Google Meet Auto-Provisioned",
-    }`,
-        widgetFields: [
           {
-            name: "name",
-            label: "Attendee Name & Role",
-            type: "text",
-            value: "Alex Rivera (Operations VP)",
+            label: "01 • Import Contacts",
+            title: "Google OAuth & Apollo CSV → Browser Cache",
+            accent: false,
           },
           {
-            name: "session_type",
-            label: "Consultation / Audit Type",
+            label: "02 • Create Custom Message",
+            title: "[[Attributes]] Composer → Compose.xlsx (Sheet1)",
+            accent: true,
+          },
+          {
+            label: "03 • Send Batch Email",
+            title: "Waiting → Sending → Done (Sheet2 + Gmail)",
+            accent: false,
+          },
+        ],
+        bottleneck:
+          "Sales and operations teams waste hours manually cleaning Apollo CSV exports, copy-pasting prospect names and company details into repetitive outreach emails, and losing track of which leads are Waiting, Sending, or Done across spreadsheets—while demo users hesitate to test live CRM tools if their uploaded contact lists are permanently stored on a public server.",
+        solution:
+          "Engineered a 3-stage privacy-first CRM & Batch Email Outreach pipeline powered by FastAPI, Composio Gmail OAuth2, n8n workflows, and Google Drive Excel sync. Stage 1 ('Import Contacts') ingests leads via Google Contacts OAuth or a 20-column Apollo CSV parser strictly into the client's browser cache (localStorage) with 0% server/Cloudinary retention. Stage 2 ('Create Custom Message') provides a dynamic template composer with clickable [[First Name]], [[Middle Name]], [[Last Name]], [[Company Name]], [[Email Address]], and [[Contact Number]] merge chips—isolating the active template in the client's browser while logging templates to Compose.xlsx (Sheet1, Column A). Stage 3 ('Send Batch Email') executes a sequential FIFO batch queue that resolves [[Attributes]] per contact, dispatches personalized emails via Composio Gmail OAuth, and updates status badges in-place from Waiting -> Sending -> Done in both the live UI and Compose.xlsx (Sheet2).",
+        architectureSteps: [
+          "📥 Import Contacts (Client Sandbox): Authenticates Google Contacts OAuth 2.0 or parses 20-column Apollo.io CSV exports (First/Last Name, Col E Company, Col F Email, Col T Phone) strictly into browser localStorage (gb_portfolio_client_contacts_v1) and auto-opens the isolated Contacts CRM view",
+          "✍️ Create Custom Message ([[Attributes]] Engine): Composes outreach templates using clickable [[First Name]], [[Middle Name]], [[Last Name]], [[Company Name]], [[Email Address]], and [[Contact Number]] chips—cached locally per client and appended to Compose.xlsx -> Sheet1 (Column A)",
+          "🚀 Send Batch Email (Phase 1 — Queue Waiting): Initializes deterministic batchRowKey IDs (portfolio_row_<session>_<idx>_<email>) and queues all imported contacts into Compose.xlsx -> Sheet2 with Column A status set to 'Waiting'",
+          "⚡ Live Sequential Dispatch (Phase 2 — Sending -> Done): Iterates through each cached contact under an asyncio FIFO lock, updating Compose.xlsx (Sheet2) in-place (match_column='I') to 'Sending', dispatching the personalized email via POST /api/email/send (Composio Gmail OAuth), and marking the row 'Done'",
+        ],
+        metrics: [
+          { value: "0% Server Retention", label: "Browser-Cache Contact Privacy" },
+          { value: "6 [[Attributes]]", label: "Dynamic CRM Merge Tokens" },
+          { value: "Waiting → Sending → Done", label: "Live Compose.xlsx (Sheet2) Sync" },
+        ],
+        sourceFile:
+          "glennbot_automations/routers/sys03_crm_batch_outreach.py (Import Contacts + Custom Message + Batch Email)",
+        sourceCode: `# ══════════════════════════════════════════════════════════════════════════════
+# GLENNBOT AUTOMATIONS — SYS-03: CRM CONTACT HUB & BATCH EMAIL OUTREACH ENGINE
+# Powers all 3 Portfolio Live Actions:
+#   1) 📥 Import Contacts        -> Google Contacts OAuth2 & 20-Col Apollo CSV Sandbox
+#   2) ✍️ Create Custom Message  -> [[Attributes]] Engine + Compose.xlsx (Sheet1 Col A)
+#   3) 🚀 Send Batch Email       -> Waiting -> Sending -> Done (Sheet2 + Gmail OAuth)
+# ══════════════════════════════════════════════════════════════════════════════
+import asyncio
+import re
+from fastapi import APIRouter, UploadFile, File, Request
+import httpx
+
+router = APIRouter()
+_SYS03_COMPOSE_SHEET_LOCK = asyncio.Lock()
+
+# ── 1. 📥 IMPORT CONTACTS: Ephemeral Google OAuth & Apollo CSV Parser (0% DB Retention) ──
+@router.post("/api/contacts/import/google")
+async def import_google_contacts_ephemeral(request: Request):
+    body = await request.json()
+    # Fetches Google Contacts via Composio People API strictly for client browser localStorage
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        resp = await client.post(
+            f"{GLENNBOT_BASE_URL}/api/contacts/import/google?ephemeral=1&client_cache_only=1",
+            headers=get_glennbot_headers(),
+            json={**body, "ephemeral": True, "client_cache_only": True},
+        )
+        return resp.json()
+
+# ── 2. ✍️ CREATE CUSTOM MESSAGE: Save Template to Browser Cache + Compose.xlsx (Sheet1 Col A) ──
+@router.post("/api/glennbot/sys03/save-custom-message")
+async def glennbot_sys03_save_custom_message(request: Request):
+    payload = await request.json()
+    composed_message = str((payload.get("row") or {}).get("A") or payload.get("message") or "").strip()
+    sheet1_payload = {
+        "workbook_id": "Compose.xlsx",
+        "sheet_name": "Sheet1",
+        "actionMode": "save_custom_message",
+        "row": {"A": composed_message},
+    }
+    async with _SYS03_COMPOSE_SHEET_LOCK:
+        ok, data = await _sync_glennbot_compose_spreadsheet(sheet1_payload)
+    return {"status": "success", "workbook_id": "Compose.xlsx", "sheet_name": "Sheet1", "synced": ok}
+
+# ── 3. 🚀 SEND BATCH EMAIL: Resolve [[Attributes]] + Sync Waiting -> Sending -> Done (Sheet2) ──
+def resolve_custom_message_attributes(template: str, contact: dict) -> str:
+    tokens = {
+        "first name": contact.get("firstName", ""),
+        "middle name": contact.get("middleName", ""),
+        "last name": contact.get("lastName", ""),
+        "company name": contact.get("companyName", ""),
+        "email address": contact.get("emailAddress", ""),
+        "contact number": contact.get("contactNumber", ""),
+    }
+    return re.sub(
+        r"\\[\\[\\s*([^\\[\\]]+?)\\s*\\]\\]",
+        lambda m: tokens.get(re.sub(r"\\s+", " ", m.group(1).strip().lower()), m.group(0)),
+        template or "",
+    )
+
+@router.post("/api/glennbot/sys03/batch-step")
+async def glennbot_sys03_batch_step(request: Request):
+    payload = await request.json()
+    action_mode = payload.get("actionMode", "send_and_mark_done")
+    batch_key = payload["batchRowKey"]  # e.g. portfolio_row_<session>_<idx>_<email>
+    row_data = payload["row"]           # Col A: Waiting | Sending | Done, Col B..H: CRM + Message, Col I: batchRowKey
+
+    async with _SYS03_COMPOSE_SHEET_LOCK:
+        if action_mode == "send_and_mark_done":
+            await _dispatch_glennbot_single_email(
+                to_email=row_data["F"], subject=payload["subject"], body_text=row_data["H"]
+            )
+        await _sync_glennbot_compose_spreadsheet({
+            "workbook_id": "Compose.xlsx",
+            "sheet_name": "Sheet2",
+            "match_column": "I",
+            "match_value": batch_key,
+            "row": row_data,
+        })
+    return {"status": "success", "actionMode": action_mode, "batchRowKey": batch_key, "sheet_status": row_data["A"]}`,
+        stagePresets: {
+          "📥 01. Import Contacts — Google OAuth & 20-Col Apollo CSV -> Browser Cache (localStorage)": {
+            contact_sample:
+              "Sophia Reyes | Nexus Logistics PH | sophia.reyes@nexuslogistics.example.com | +63 917 555 0142",
+            template_message:
+              "Hi [[First Name]] [[Last Name]], I noticed [[Company Name]] is scaling operations—would love to share how GlennBot Automations can streamline your workflows! Reachable at [[Email Address]] / [[Contact Number]].",
+          },
+          "✍️ 02. Create Custom Message — Dynamic [[Attributes]] Composer -> Compose.xlsx (Sheet1 Col A)": {
+            contact_sample:
+              "Marcus Vance | CloudScale SaaS Inc. | m.vance@cloudscalesaas.example.io | +1 512-555-0198",
+            template_message:
+              "Hello [[First Name]], quick note for the [[Company Name]] RevOps team—our FastAPI + n8n batch outreach engine personalizes every email using [[Email Address]] and [[Contact Number]] tokens.",
+          },
+          "🚀 03. Send Batch Email — Sequential Waiting -> Sending -> Done (Compose.xlsx Sheet2 + Gmail OAuth)": {
+            contact_sample:
+              "Elena Rostova | FinEdge Payments | elena@finedgepay.example.com | +65 8123 4567",
+            template_message:
+              "Dear [[First Name]] [[Last Name]], following up with [[Company Name]] regarding automated CRM pipelines and 1-click Gmail OAuth outreach. Best regards, Glennard.",
+          },
+        },
+        widgetFields: [
+          {
+            name: "stage",
+            label: "Select SYS-03 Pipeline Stage to Simulate",
             type: "select",
             options: [
-              "AI Workflow & FastAPI Architecture Audit (30 min)",
-              "Custom CRM & Web Dashboard Discovery (45 min)",
-              "Manufacturing & Supplier Data Automation Call (30 min)",
+              "📥 01. Import Contacts — Google OAuth & 20-Col Apollo CSV -> Browser Cache (localStorage)",
+              "✍️ 02. Create Custom Message — Dynamic [[Attributes]] Composer -> Compose.xlsx (Sheet1 Col A)",
+              "🚀 03. Send Batch Email — Sequential Waiting -> Sending -> Done (Compose.xlsx Sheet2 + Gmail OAuth)",
             ],
           },
           {
-            name: "slot",
-            label: "Preferred ISO Slot (PHT / UTC+8)",
+            name: "contact_sample",
+            label:
+              "Sample Lead Record (First/Last Name | Col E Company | Col F Email | Col T Phone)",
             type: "text",
-            value: "2026-11-10T10:00:00+08:00",
+            value:
+              "Sophia Reyes | Nexus Logistics PH | sophia.reyes@nexuslogistics.example.com | +63 917 555 0142",
+          },
+          {
+            name: "template_message",
+            label: "Custom Outreach Template with [[Attributes]]",
+            type: "textarea",
+            value:
+              "Hi [[First Name]] [[Last Name]], I noticed [[Company Name]] is scaling operations—would love to share how GlennBot Automations can streamline your workflows! Reachable at [[Email Address]] / [[Contact Number]].",
           },
         ],
       },
@@ -4228,6 +4305,8 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         ],
       },
     };
+    PROJECTS_DATA["crm-batch-outreach"] = PROJECTS_DATA["calendar-orchestrator"];
+    window.projectCaseStudies = PROJECTS_DATA;
 
     let activeProjectId = "social-scheduler";
     let activeTab = "case-study";
@@ -4571,7 +4650,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
             <span>📧 Send an Email</span>
           </button>
         </div>`
-          : projectId === "calendar-orchestrator"
+          : projectId === "calendar-orchestrator" || projectId === "crm-batch-outreach"
           ? `
         <div class="modal-case-footer modal-case-footer-sys02">
           <button
@@ -4584,14 +4663,14 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
           <button
             type="button"
             class="btn-sys01-popout btn-live-launcher"
-            onclick="event.stopPropagation();"
+            onclick="event.stopPropagation(); openSys03CreateCustomMessageModal(this);"
           >
             <span>✍️ Create Custom Message</span>
           </button>
           <button
             type="button"
             class="btn-sys01-popout btn-live-launcher"
-            onclick="event.stopPropagation();"
+            onclick="event.stopPropagation(); openSys03SendBatchEmailModal(this);"
           >
             <span>🚀 Send Batch Email</span>
           </button>
@@ -4797,6 +4876,26 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
               if (preset) {
                 if (senderInput) senderInput.value = preset.sender;
                 if (messageInput) messageInput.value = preset.message;
+              }
+              executeDemoRequest();
+            });
+          }
+        }
+
+        if (proj.stagePresets) {
+          const stageSelect = form.querySelector('select[name="stage"]');
+          const contactSampleInput = form.querySelector('input[name="contact_sample"]');
+          const templateMsgInput = form.querySelector('textarea[name="template_message"]');
+          if (stageSelect) {
+            stageSelect.addEventListener("change", () => {
+              const preset = proj.stagePresets[stageSelect.value];
+              if (preset) {
+                if (contactSampleInput && preset.contact_sample) {
+                  contactSampleInput.value = preset.contact_sample;
+                }
+                if (templateMsgInput && preset.template_message) {
+                  templateMsgInput.value = preset.template_message;
+                }
               }
               executeDemoRequest();
             });
