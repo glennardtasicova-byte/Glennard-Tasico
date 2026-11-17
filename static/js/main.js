@@ -1,4 +1,15 @@
 // Portfolio Theme Switcher, Viewport-Aware Scroll Reveal, Role Typing Illumination & Animated Circuit Engine
+const GLENNBOT_BASE_URL = (
+  (window.__GLENNBOT_ENV__ && window.__GLENNBOT_ENV__.GLENNBOT_BASE_URL) ||
+  ""
+).replace(/\/+$/, "");
+const GLENNBOT_API_BASE_URL = (
+  (window.__GLENNBOT_ENV__ && window.__GLENNBOT_ENV__.GLENNBOT_API_BASE_URL) ||
+  (GLENNBOT_BASE_URL ? `${GLENNBOT_BASE_URL}/api/v1` : "")
+).replace(/\/+$/, "");
+window.GLENNBOT_BASE_URL = GLENNBOT_BASE_URL;
+window.GLENNBOT_API_BASE_URL = GLENNBOT_API_BASE_URL;
+
 function openGlennBotLivePopup(tabName, mode = "workspace_view", width = 1240, height = 860) {
   const isFullOrRelativeUrl =
     typeof tabName === "string" && /^(\/|https?:\/\/)/i.test(tabName.trim());
@@ -52,7 +63,7 @@ const COMMENT_SPLIT_PLATFORMS = {
     proxyDashboardUrl:
       "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023",
     upstreamDashboardUrl:
-      "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023",
+      `${GLENNBOT_BASE_URL}/?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023`,
     actualPostUrl: "https://www.facebook.com/61595021080265/posts/122118104811500702/",
     primaryBtnText: "Open / Focus Actual Facebook Post Window",
     dashboardWindowName: "GlennBotCommentThread_FB",
@@ -71,7 +82,7 @@ const COMMENT_SPLIT_PLATFORMS = {
     proxyDashboardUrl:
       "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683",
     upstreamDashboardUrl:
-      "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683",
+      `${GLENNBOT_BASE_URL}/?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683`,
     actualPostUrl: "https://www.instagram.com/p/DfkfvyEvx3b/",
     primaryBtnText: "Open / Focus Actual Instagram Post Window",
     dashboardWindowName: "GlennBotCommentThread_IG",
@@ -90,7 +101,7 @@ const COMMENT_SPLIT_PLATFORMS = {
     proxyDashboardUrl:
       "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260",
     upstreamDashboardUrl:
-      "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260",
+      `${GLENNBOT_BASE_URL}/?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260`,
     actualPostUrl: "https://www.tiktok.com/@glennbot.automation/photo/7706791793546906901",
     primaryBtnText: "Open / Focus Actual TikTok Post Window",
     dashboardWindowName: "GlennBotCommentThread_TT",
@@ -360,7 +371,7 @@ const DM_SPLIT_PLATFORMS = {
     iconClass: "fab fa-facebook-messenger",
     liveDmPostEndpoint: "/api/messages/portfolio_live_dm",
     upstreamLiveDmPostEndpoint:
-      "https://glennbotautomations.onrender.com/api/messages/portfolio_live_dm",
+      `${GLENNBOT_BASE_URL}/api/messages/portfolio_live_dm`,
     pollIntervalMs: 2500,
     statusBarText:
       "🟢 LIVE MESSENGER SESSION • Synced in Real Time with Your Client Chat",
@@ -368,7 +379,7 @@ const DM_SPLIT_PLATFORMS = {
     baseProxyDashboardUrl:
       "/glennbot-popout?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations",
     baseUpstreamDashboardUrl:
-      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations",
+      `${GLENNBOT_BASE_URL}/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations`,
     directMessengerUrl: "https://www.facebook.com/messages/t/1340688402467466",
     directMessengerWindowName: "GlennBotDirectFacebookMessengerFullView",
     dashboardWindowName: "GlennBotMessageThread_FB",
@@ -402,7 +413,7 @@ const DM_SPLIT_PLATFORMS = {
     iconClass: "fab fa-instagram",
     liveDmPostEndpoint: "/api/messages/portfolio_live_dm",
     upstreamLiveDmPostEndpoint:
-      "https://glennbotautomations.onrender.com/api/messages/portfolio_live_dm",
+      `${GLENNBOT_BASE_URL}/api/messages/portfolio_live_dm`,
     pollIntervalMs: 2500,
     statusBarText:
       "🟢 LIVE INSTAGRAM DM SESSION • Synced in Real Time with Conversations.xlsx (Sheet2)",
@@ -410,7 +421,7 @@ const DM_SPLIT_PLATFORMS = {
     baseProxyDashboardUrl:
       "/glennbot-popout?popout_mode=message_thread&platform=instagram&account_id=6ad9e9b2e5d470e468e58d87&account_name=%40glennard.tasico.va",
     baseUpstreamDashboardUrl:
-      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=instagram&account_id=6ad9e9b2e5d470e468e58d87&account_name=%40glennard.tasico.va",
+      `${GLENNBOT_BASE_URL}/?popout_mode=message_thread&platform=instagram&account_id=6ad9e9b2e5d470e468e58d87&account_name=%40glennard.tasico.va`,
     directMessengerUrl: "https://www.instagram.com/direct/t/18131808028702166/",
     directMessengerWindowName: "GlennBotDirectInstagramDmFullView",
     dashboardWindowName: "GlennBotMessageThread_IG",
@@ -444,7 +455,7 @@ const DM_SPLIT_PLATFORMS = {
     iconClass: "fab fa-whatsapp",
     liveDmPostEndpoint: "/api/messages/portfolio_live_dm",
     upstreamLiveDmPostEndpoint:
-      "https://glennbotautomations.onrender.com/api/messages/portfolio_live_dm",
+      `${GLENNBOT_BASE_URL}/api/messages/portfolio_live_dm`,
     pollIntervalMs: 2500,
     statusBarText:
       "🟢 LIVE WHATSAPP SESSION (+63 917 549 7760) • Synced in Real Time with Conversations.xlsx (Sheet2)",
@@ -452,7 +463,7 @@ const DM_SPLIT_PLATFORMS = {
     baseProxyDashboardUrl:
       "/glennbot-popout?popout_mode=message_thread&platform=whatsapp&account_id=6af6210fb722435238788b8f&account_name=Glennard+Tasico+%28%2B63+917+549+7760%29",
     baseUpstreamDashboardUrl:
-      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=whatsapp&account_id=6af6210fb722435238788b8f&account_name=Glennard+Tasico+%28%2B63+917+549+7760%29",
+      `${GLENNBOT_BASE_URL}/?popout_mode=message_thread&platform=whatsapp&account_id=6af6210fb722435238788b8f&account_name=Glennard+Tasico+%28%2B63+917+549+7760%29`,
     directMessengerUrl: "https://wa.me/639175497760",
     directMessengerWindowName: "GlennBotDirectWhatsAppDmFullView",
     dashboardWindowName: "GlennBotMessageThread_WA",
@@ -1041,7 +1052,7 @@ function updateDmSplitWorkspaceDOM(
     clientCard.setAttribute("data-platform", platKey);
     clientCard.setAttribute(
       "data-thread-poll-url",
-      `https://glennbotautomations.onrender.com/api/messages/${encodeURIComponent(activeDmSessionConvId)}/thread?account_id=${encodeURIComponent(cfg.accountId)}&force=false`
+      `${GLENNBOT_BASE_URL}/api/messages/${encodeURIComponent(activeDmSessionConvId)}/thread?account_id=${encodeURIComponent(cfg.accountId)}&force=false`
     );
   }
 
@@ -3311,7 +3322,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         width: 1240,
         height: 860,
         url: "/glennbot-popout?popout_mode=workspace_view&tab=scheduler",
-        upstreamUrl: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=scheduler",
+        upstreamUrl: `${GLENNBOT_BASE_URL}/?popout_mode=workspace_view&tab=scheduler`,
       },
       queue: {
         tab: "queue",
@@ -3323,7 +3334,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         width: 1220,
         height: 840,
         url: "/glennbot-popout?popout_mode=workspace_view&tab=queue",
-        upstreamUrl: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=queue",
+        upstreamUrl: `${GLENNBOT_BASE_URL}/?popout_mode=workspace_view&tab=queue`,
       },
       calendar: {
         tab: "calendar",
@@ -3335,7 +3346,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         width: 1260,
         height: 860,
         url: "/glennbot-popout?popout_mode=workspace_view&tab=calendar",
-        upstreamUrl: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=calendar",
+        upstreamUrl: `${GLENNBOT_BASE_URL}/?popout_mode=workspace_view&tab=calendar`,
       },
     };
 
@@ -3458,7 +3469,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
             ${cardsHtml}
           </div>
 
-          <!-- Embedded Live Workspace Frame connected directly to glennbotautomations.onrender.com -->
+          <!-- Embedded Live Workspace Frame connected directly to GLENNBOT_BASE_URL -->
           <div class="gb-live-iframe-shell">
             <div class="gb-live-iframe-toolbar">
               <div class="gb-live-iframe-meta">

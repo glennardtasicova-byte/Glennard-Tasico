@@ -1,4 +1,41 @@
-export const GLENNBOT_LIVE_ORIGIN = "https://glennbotautomations.onrender.com";
+export function getGlennBotBaseUrl() {
+  if (
+    typeof window !== "undefined" &&
+    window.__GLENNBOT_ENV__ &&
+    window.__GLENNBOT_ENV__.GLENNBOT_BASE_URL
+  ) {
+    return String(window.__GLENNBOT_ENV__.GLENNBOT_BASE_URL).replace(/\/+$/, "");
+  }
+  if (
+    typeof process !== "undefined" &&
+    process.env &&
+    process.env.GLENNBOT_BASE_URL
+  ) {
+    return String(process.env.GLENNBOT_BASE_URL).replace(/\/+$/, "");
+  }
+  return "";
+}
+
+export function getGlennBotApiBaseUrl() {
+  if (
+    typeof window !== "undefined" &&
+    window.__GLENNBOT_ENV__ &&
+    window.__GLENNBOT_ENV__.GLENNBOT_API_BASE_URL
+  ) {
+    return String(window.__GLENNBOT_ENV__.GLENNBOT_API_BASE_URL).replace(/\/+$/, "");
+  }
+  if (
+    typeof process !== "undefined" &&
+    process.env &&
+    process.env.GLENNBOT_API_BASE_URL
+  ) {
+    return String(process.env.GLENNBOT_API_BASE_URL).replace(/\/+$/, "");
+  }
+  const base = getGlennBotBaseUrl();
+  return base ? `${base}/api/v1` : "";
+}
+
+export const GLENNBOT_LIVE_ORIGIN = getGlennBotBaseUrl();
 export const GLENNBOT_POPOUT_PROXY_PATH = "/glennbot-popout";
 
 export const SYS01_EXPANDED_VIEWS = {
@@ -11,7 +48,9 @@ export const SYS01_EXPANDED_VIEWS = {
     width: 1240,
     height: 860,
     baseUrl: "/glennbot-popout?popout_mode=workspace_view&tab=scheduler",
-    upstreamUrl: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=scheduler",
+    get upstreamUrl() {
+      return `${getGlennBotBaseUrl() || GLENNBOT_LIVE_ORIGIN}/?popout_mode=workspace_view&tab=scheduler`;
+    },
   },
   queue: {
     tab: "queue",
@@ -22,7 +61,9 @@ export const SYS01_EXPANDED_VIEWS = {
     width: 1220,
     height: 840,
     baseUrl: "/glennbot-popout?popout_mode=workspace_view&tab=queue",
-    upstreamUrl: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=queue",
+    get upstreamUrl() {
+      return `${getGlennBotBaseUrl() || GLENNBOT_LIVE_ORIGIN}/?popout_mode=workspace_view&tab=queue`;
+    },
   },
   calendar: {
     tab: "calendar",
@@ -33,7 +74,9 @@ export const SYS01_EXPANDED_VIEWS = {
     width: 1260,
     height: 860,
     baseUrl: "/glennbot-popout?popout_mode=workspace_view&tab=calendar",
-    upstreamUrl: "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=calendar",
+    get upstreamUrl() {
+      return `${getGlennBotBaseUrl() || GLENNBOT_LIVE_ORIGIN}/?popout_mode=workspace_view&tab=calendar`;
+    },
   },
 };
 
@@ -394,8 +437,9 @@ export const SYS02_SHOWCASE_POSTS = {
     primary_btn_label: "Open / Focus Actual Facebook Post Window",
     popup_url:
       "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023",
-    upstream_url:
-      "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023",
+    get upstream_url() {
+      return `${getGlennBotBaseUrl() || GLENNBOT_LIVE_ORIGIN}/?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023`;
+    },
     popup_window_name: "GlennBotCommentThread_FB",
     docked_window_name: "GlennBotDockedSocialPost_facebook",
     caption: SHARED_SHOWCASE_CAPTION,
@@ -415,8 +459,9 @@ export const SYS02_SHOWCASE_POSTS = {
     primary_btn_label: "Open / Focus Actual Instagram Post Window",
     popup_url:
       "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683",
-    upstream_url:
-      "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683",
+    get upstream_url() {
+      return `${getGlennBotBaseUrl() || GLENNBOT_LIVE_ORIGIN}/?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683`;
+    },
     popup_window_name: "GlennBotCommentThread_IG",
     docked_window_name: "GlennBotDockedSocialPost_instagram",
     caption: SHARED_SHOWCASE_CAPTION,
@@ -436,8 +481,9 @@ export const SYS02_SHOWCASE_POSTS = {
     primary_btn_label: "Open / Focus Actual TikTok Post Window",
     popup_url:
       "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260",
-    upstream_url:
-      "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260",
+    get upstream_url() {
+      return `${getGlennBotBaseUrl() || GLENNBOT_LIVE_ORIGIN}/?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260`;
+    },
     popup_window_name: "GlennBotCommentThread_TT",
     docked_window_name: "GlennBotDockedSocialPost_tiktok",
     caption: SHARED_SHOWCASE_CAPTION,
@@ -623,8 +669,9 @@ export const SYS02_DM_SHOWCASE_CONFIG = {
     typing_indicator_text: "GlennBot Automations is typing via Gemini 3.5 Flash...",
     composer_placeholder: "Write a message to GlennBot Automations...",
     live_dm_post_endpoint: "/api/messages/portfolio_live_dm",
-    upstream_live_dm_post_endpoint:
-      "https://glennbotautomations.onrender.com/api/messages/portfolio_live_dm",
+    get upstream_live_dm_post_endpoint() {
+      return `${getGlennBotBaseUrl() || GLENNBOT_LIVE_ORIGIN}/api/messages/portfolio_live_dm`;
+    },
     poll_interval_ms: 2500,
     quick_starter_hints: [
       "Hi GlennBot! What automation services do you offer?",
@@ -636,8 +683,9 @@ export const SYS02_DM_SHOWCASE_CONFIG = {
     refresh_btn_label: "🔄 Refresh Live Chat",
     base_popup_url:
       "/glennbot-popout?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations",
-    base_upstream_url:
-      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations",
+    get base_upstream_url() {
+      return `${getGlennBotBaseUrl() || GLENNBOT_LIVE_ORIGIN}/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations`;
+    },
     popup_window_name: "GlennBotMessageThread_FB",
   },
   instagram: {
@@ -655,8 +703,9 @@ export const SYS02_DM_SHOWCASE_CONFIG = {
     typing_indicator_text: "@glennard.tasico.va is typing via Gemini 3.5 Flash...",
     composer_placeholder: "Message @glennard.tasico.va on Instagram...",
     live_dm_post_endpoint: "/api/messages/portfolio_live_dm",
-    upstream_live_dm_post_endpoint:
-      "https://glennbotautomations.onrender.com/api/messages/portfolio_live_dm",
+    get upstream_live_dm_post_endpoint() {
+      return `${getGlennBotBaseUrl() || GLENNBOT_LIVE_ORIGIN}/api/messages/portfolio_live_dm`;
+    },
     poll_interval_ms: 2500,
     quick_starter_hints: [
       "Hi GlennBot! What automation services do you offer?",
@@ -668,8 +717,9 @@ export const SYS02_DM_SHOWCASE_CONFIG = {
     refresh_btn_label: "🔄 Refresh Live Chat",
     base_popup_url:
       "/glennbot-popout?popout_mode=message_thread&platform=instagram&account_id=6ad9e9b2e5d470e468e58d87&account_name=%40glennard.tasico.va",
-    base_upstream_url:
-      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=instagram&account_id=6ad9e9b2e5d470e468e58d87&account_name=%40glennard.tasico.va",
+    get base_upstream_url() {
+      return `${getGlennBotBaseUrl() || GLENNBOT_LIVE_ORIGIN}/?popout_mode=message_thread&platform=instagram&account_id=6ad9e9b2e5d470e468e58d87&account_name=%40glennard.tasico.va`;
+    },
     popup_window_name: "GlennBotMessageThread_IG",
   },
   whatsapp: {
@@ -689,8 +739,9 @@ export const SYS02_DM_SHOWCASE_CONFIG = {
     typing_indicator_text: "Glennard Tasico (+63 917 549 7760) is typing via Gemini 3.5 Flash...",
     composer_placeholder: "Message Glennard Tasico (+63 917 549 7760) on WhatsApp...",
     live_dm_post_endpoint: "/api/messages/portfolio_live_dm",
-    upstream_live_dm_post_endpoint:
-      "https://glennbotautomations.onrender.com/api/messages/portfolio_live_dm",
+    get upstream_live_dm_post_endpoint() {
+      return `${getGlennBotBaseUrl() || GLENNBOT_LIVE_ORIGIN}/api/messages/portfolio_live_dm`;
+    },
     poll_interval_ms: 2500,
     quick_starter_hints: [
       "Hi Glennard! Can you build webhooks & automations?",
@@ -702,8 +753,9 @@ export const SYS02_DM_SHOWCASE_CONFIG = {
     refresh_btn_label: "🔄 Refresh Live Chat",
     base_popup_url:
       "/glennbot-popout?popout_mode=message_thread&platform=whatsapp&account_id=6af6210fb722435238788b8f&account_name=Glennard+Tasico+%28%2B63+917+549+7760%29",
-    base_upstream_url:
-      "https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=whatsapp&account_id=6af6210fb722435238788b8f&account_name=Glennard+Tasico+%28%2B63+917+549+7760%29",
+    get base_upstream_url() {
+      return `${getGlennBotBaseUrl() || GLENNBOT_LIVE_ORIGIN}/?popout_mode=message_thread&platform=whatsapp&account_id=6af6210fb722435238788b8f&account_name=Glennard+Tasico+%28%2B63+917+549+7760%29`;
+    },
     popup_window_name: "GlennBotMessageThread_WA",
   },
 };
@@ -872,7 +924,7 @@ export function buildDmSplitWorkspaceConfig(
     iframeUrl: `${cfg.base_popup_url}${queryTail}`,
     upstreamIframeUrl: `${cfg.base_upstream_url}${queryTail}`,
     threadPollUrl: `/api/messages/${encodeURIComponent(resolvedConvId)}/thread?account_id=${encodeURIComponent(cfg.account_id)}&force=false`,
-    upstreamThreadPollUrl: `https://glennbotautomations.onrender.com/api/messages/${encodeURIComponent(resolvedConvId)}/thread?account_id=${encodeURIComponent(cfg.account_id)}&force=false`,
+    upstreamThreadPollUrl: `${getGlennBotBaseUrl() || GLENNBOT_LIVE_ORIGIN}/api/messages/${encodeURIComponent(resolvedConvId)}/thread?account_id=${encodeURIComponent(cfg.account_id)}&force=false`,
   };
 }
 
@@ -903,18 +955,21 @@ export const SYS02_SAVVY_FINDS_COMMENT_DEMO = {
   glennBotAuthorName: "GlennBot Automations",
   popupUrl:
     "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023",
-  upstreamUrl:
-    "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023",
+  get upstreamUrl() {
+    return `${getGlennBotBaseUrl() || GLENNBOT_LIVE_ORIGIN}/?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023`;
+  },
   popupWindowName: "GlennBotCommentThread_FB",
   igPopupUrl:
     "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683",
-  igUpstreamUrl:
-    "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683",
+  get igUpstreamUrl() {
+    return `${getGlennBotBaseUrl() || GLENNBOT_LIVE_ORIGIN}/?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683`;
+  },
   igPopupWindowName: "GlennBotCommentThread_IG",
   ttPopupUrl:
     "/glennbot-popout?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260",
-  ttUpstreamUrl:
-    "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260",
+  get ttUpstreamUrl() {
+    return `${getGlennBotBaseUrl() || GLENNBOT_LIVE_ORIGIN}/?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260`;
+  },
   ttPopupWindowName: "GlennBotCommentThread_TT",
   footerButtons: ["💬 Post a Comment", "✉️ Send a DM", "📧 Send an Email"],
 };

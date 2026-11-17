@@ -26,21 +26,26 @@ if __name__ == "__main__" and "--bootstrap-pip" not in sys.argv:
         _EARLY_SERVER_SOCKET = None
 
 
+os.environ.setdefault("PIP_BREAK_SYSTEM_PACKAGES", "1")
+os.environ.setdefault("PIP_ROOT_USER_ACTION", "ignore")
+
+
 def _write_quiet_pip_wrappers() -> None:
     if os.name == "nt":
         return
     wrapper = (
         "#!/bin/sh\n"
+        "export PIP_BREAK_SYSTEM_PACKAGES=1\n"
         "export PIP_ROOT_USER_ACTION=ignore\n"
         "export PIP_QUIET=1\n"
         "export PIP_DISABLE_PIP_VERSION_CHECK=1\n"
         "if ! python3 -m pip --version >/dev/null 2>&1; then\n"
         "  python3 -c \"import urllib.request,subprocess,sys; "
         "urllib.request.urlretrieve('https://bootstrap.pypa.io/get-pip.py','/tmp/get-pip-w.py'); "
-        "subprocess.run([sys.executable,'/tmp/get-pip-w.py','-q','--root-user-action=ignore'],"
+        "subprocess.run([sys.executable,'/tmp/get-pip-w.py','-q','--break-system-packages','--root-user-action=ignore'],"
         "stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,check=False)\" >/dev/null 2>&1 || true\n"
         "fi\n"
-        "exec python3 -m pip -q --root-user-action=ignore \"$@\"\n"
+        "exec python3 -m pip -q --break-system-packages --root-user-action=ignore \"$@\"\n"
     )
     for bp in ("/usr/local/bin/pip3", "/usr/bin/pip3", "/usr/local/bin/pip", "/usr/bin/pip"):
         try:
@@ -154,14 +159,14 @@ import time
 import uuid
 from fastapi.responses import FileResponse, JSONResponse, Response
 
-GLENNBOT_BASE_URL = os.getenv(
-    "GLENNBOT_BASE_URL",
-    "https://glennbotautomations.onrender.com",
-).rstrip("/")
-GLENNBOT_API_BASE_URL = os.getenv(
-    "GLENNBOT_API_BASE_URL",
-    f"{GLENNBOT_BASE_URL}/api/v1",
-).rstrip("/")
+GLENNBOT_BASE_URL = (
+    os.getenv("GLENNBOT_BASE_URL", "").strip().rstrip("/")
+    or "https://glennbotautomations-3wq8.onrender.com"
+)
+GLENNBOT_API_BASE_URL = (
+    os.getenv("GLENNBOT_API_BASE_URL", f"{GLENNBOT_BASE_URL}/api/v1").strip().rstrip("/")
+    or f"{GLENNBOT_BASE_URL}/api/v1"
+)
 DASHBOARD_USER_ID = (
     os.getenv("DASHBOARD_USER_ID")
     or os.getenv("DASHBOARD_USER")
@@ -316,6 +321,7 @@ async def index(request: Request):
         "page_title": "GLENNARD TASICO",
         "glennbot_configured": bool(GLENNBOT_INTERNAL_API_KEY or DASHBOARD_USER_ID),
         "glennbot_base_url": GLENNBOT_BASE_URL,
+        "glennbot_api_base_url": GLENNBOT_API_BASE_URL,
     }
     try:
         return templates.TemplateResponse(
@@ -603,7 +609,7 @@ async def launch_social_scheduler_batch(request: Request):
         "latency_ms": elapsed_ms,
         "scheduled_count": len(posts),
         "post_type": post_type,
-        "storage": "Synced with glennbotautomations.onrender.com (Supabase PostgreSQL)",
+        "storage": f"Synced with {GLENNBOT_BASE_URL} (Supabase PostgreSQL)",
         "items": posts,
     }
 

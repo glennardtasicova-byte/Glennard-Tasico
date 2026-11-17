@@ -1,6 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+
+if (!process.env.GLENNBOT_BASE_URL) {
+  process.env.GLENNBOT_BASE_URL = "https://glennbotautomations-3wq8.onrender.com";
+}
+
 import {
+  getGlennBotBaseUrl,
+  getGlennBotApiBaseUrl,
   SYS01_EXPANDED_VIEWS,
   SYS01_PROJECT_SPEC,
   SYS02_PROJECT_SPEC,
@@ -36,6 +43,8 @@ import {
   mergeClientContactsCache,
 } from "../static/js/glennbot_popup_utils.mjs";
 
+const TEST_BASE_URL = getGlennBotBaseUrl();
+
 test("SYS-01 defines the 3 auto-authenticated /glennbot-popout Expanded View URLs and upstream URLs", () => {
   assert.equal(
     SYS01_EXPANDED_VIEWS.scheduler.baseUrl,
@@ -51,7 +60,7 @@ test("SYS-01 defines the 3 auto-authenticated /glennbot-popout Expanded View URL
   );
   assert.equal(
     SYS01_EXPANDED_VIEWS.scheduler.upstreamUrl,
-    "https://glennbotautomations.onrender.com/?popout_mode=workspace_view&tab=scheduler"
+    `${TEST_BASE_URL}/?popout_mode=workspace_view&tab=scheduler`
   );
 });
 
@@ -259,7 +268,7 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
   );
   assert.equal(
     SYS02_SAVVY_FINDS_COMMENT_DEMO.upstreamUrl,
-    "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023"
+    `${TEST_BASE_URL}/?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023`
   );
   assert.equal(
     SYS02_SAVVY_FINDS_COMMENT_DEMO.permalink,
@@ -275,7 +284,7 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
   );
   assert.equal(
     SYS02_SAVVY_FINDS_COMMENT_DEMO.igUpstreamUrl,
-    "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683"
+    `${TEST_BASE_URL}/?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683`
   );
   assert.equal(
     SYS02_SAVVY_FINDS_COMMENT_DEMO.igPermalink,
@@ -291,7 +300,7 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
   );
   assert.equal(
     SYS02_SAVVY_FINDS_COMMENT_DEMO.ttUpstreamUrl,
-    "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260"
+    `${TEST_BASE_URL}/?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260`
   );
   assert.equal(
     SYS02_SAVVY_FINDS_COMMENT_DEMO.ttPermalink,
@@ -310,7 +319,7 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
   const fbSplit = buildCommentSplitWorkspaceConfig("facebook", 1710000000000);
   assert.equal(
     fbSplit.upstreamIframeUrl,
-    "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023&_ts=1710000000000"
+    `${TEST_BASE_URL}/?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023&_ts=1710000000000`
   );
   assert.equal(
     fbSplit.actualPostUrl,
@@ -322,7 +331,7 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
   const igSplit = buildCommentSplitWorkspaceConfig("instagram", 1710000000000);
   assert.equal(
     igSplit.upstreamIframeUrl,
-    "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683&_ts=1710000000000"
+    `${TEST_BASE_URL}/?popout_mode=comment_thread&record_id=post_ext_b10078462e&comment_id=18198560143393683&_ts=1710000000000`
   );
   assert.equal(igSplit.actualPostUrl, "https://www.instagram.com/p/DfkfvyEvx3b/");
   assert.equal(igSplit.badge_label, "GlennBot Automations — Instagram");
@@ -331,7 +340,7 @@ test("SYS-02 GlennBot Automations FB & IG comment thread whitelisting, Previous 
   const ttSplit = buildCommentSplitWorkspaceConfig("tiktok", 1710000000000);
   assert.equal(
     ttSplit.upstreamIframeUrl,
-    "https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260&_ts=1710000000000"
+    `${TEST_BASE_URL}/?popout_mode=comment_thread&record_id=post_ext_19fdfb7f26&comment_id=7706797468532458260&_ts=1710000000000`
   );
   assert.equal(
     ttSplit.actualPostUrl,
@@ -496,7 +505,7 @@ test("SYS-02 Send a DM Idea B (Interactive In-Portfolio Facebook Messenger Clien
   ]);
   assert.equal(
     dmCfg.upstreamIframeUrl,
-    `https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&conv_key=${sessionIds.sessionConvKey}&conv_id=${sessionIds.sessionConvId}`
+    `${TEST_BASE_URL}/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations&conv_key=${sessionIds.sessionConvKey}&conv_id=${sessionIds.sessionConvId}`
   );
   assert.equal(
     dmCfg.iframeUrl,
@@ -504,7 +513,7 @@ test("SYS-02 Send a DM Idea B (Interactive In-Portfolio Facebook Messenger Clien
   );
   assert.equal(
     dmCfg.upstreamThreadPollUrl,
-    `https://glennbotautomations.onrender.com/api/messages/${sessionIds.sessionConvId}/thread?account_id=6af0b109818eb5c88d1e87a6&force=false`
+    `${TEST_BASE_URL}/api/messages/${sessionIds.sessionConvId}/thread?account_id=6af0b109818eb5c88d1e87a6&force=false`
   );
   assert.equal(
     dmCfg.threadPollUrl,
@@ -970,6 +979,13 @@ test("SYS-03 Import Contacts Client Sandbox parses 20-column Apollo CSV (Col A, 
   assert.ok(mainPy.includes("async def _purge_upstream_google_contacts("));
   assert.ok(mainPy.includes("/api/contacts/bulk-delete"));
   assert.ok(mainPy.includes("window.addEventListener('storage'"));
+
+  const popupUtilsMjs = fs.readFileSync("static/js/glennbot_popup_utils.mjs", "utf8");
+  assert.ok(!mainPy.includes("glennbotautomations.onrender.com"));
+  assert.ok(!indexHtml.includes("glennbotautomations.onrender.com"));
+  assert.ok(!popupUtilsMjs.includes("glennbotautomations.onrender.com"));
+  assert.ok(!mainJs.includes("glennbotautomations.onrender.com"));
+  assert.equal(getGlennBotApiBaseUrl(), `${TEST_BASE_URL}/api/v1`);
 });
 
 

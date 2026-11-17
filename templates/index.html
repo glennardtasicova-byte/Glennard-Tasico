@@ -16,6 +16,12 @@
   <!-- Font Awesome Icons & Custom Stylesheet -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <link rel="stylesheet" href="/static/css/style.css?v=75" />
+  <script>
+    window.__GLENNBOT_ENV__ = {
+      GLENNBOT_BASE_URL: "{{ glennbot_base_url }}",
+      GLENNBOT_API_BASE_URL: "{{ glennbot_api_base_url }}"
+    };
+  </script>
   <style>
     .about-section-subtitle {
       margin-top: 6px;
@@ -1570,7 +1576,7 @@
             id="gb-comment-split-iframe"
             class="gb-comment-split-iframe w-full h-full rounded-xl border border-cyan-500/30"
             src="about:blank"
-            data-upstream-url="https://glennbotautomations.onrender.com/?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023"
+            data-upstream-url="{{ glennbot_base_url }}/?popout_mode=comment_thread&record_id=post_ext_dc6a96869a&comment_id=122118104811500702_1150007564513023"
             title="Live GlennBot Dashboard — Real-Time Comment Sync"
             allow="clipboard-read; clipboard-write"
           ></iframe>
@@ -2094,7 +2100,7 @@
           <div
             id="gb-dm-messenger-client-card"
             class="gb-dm-messenger-card"
-            data-post-endpoint="https://glennbotautomations.onrender.com/api/messages/portfolio_live_dm"
+            data-post-endpoint="{{ glennbot_base_url }}/api/messages/portfolio_live_dm"
           >
             <!-- 1. Top Messenger Header -->
             <div class="gb-dm-messenger-header">
@@ -2270,7 +2276,7 @@
             id="gb-dm-split-iframe"
             class="gb-comment-split-iframe gb-dm-split-iframe w-full h-full rounded-xl border border-cyan-500/30"
             src="about:blank"
-            data-upstream-url="https://glennbotautomations.onrender.com/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations"
+            data-upstream-url="{{ glennbot_base_url }}/?popout_mode=message_thread&platform=facebook&account_id=6af0b109818eb5c88d1e87a6&account_name=GlennBot+Automations"
             title="Live GlennBot Dashboard — Isolated Visitor Messenger Session Sync"
             allow="clipboard-read; clipboard-write"
           ></iframe>
@@ -2412,6 +2418,6 @@
   </footer>
 
   <!-- Custom Script -->
-  <script src="/static/js/main.js?v=79"></script>
+  <script src="/static/js/main.js?v=80"></script>
 </body>
 </html>
