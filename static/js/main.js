@@ -2354,6 +2354,29 @@ function buildSys03BatchRowKey(sessionId = "", index = 0, email = "") {
 }
 window.buildSys03BatchRowKey = buildSys03BatchRowKey;
 
+function isValidSys03Sheet2Row(row = {}) {
+  if (!row || typeof row !== "object") return false;
+  const firstName = String(row.B ?? row.firstName ?? row.first_name ?? "").trim();
+  const emailAddress = String(
+    row.F ?? row.emailAddress ?? row.email_address ?? row.email ?? ""
+  ).trim();
+  const personalizedMessage = String(
+    row.H ?? row.personalizedMessage ?? row.body ?? row.message ?? ""
+  ).trim();
+
+  if (!firstName && !emailAddress) {
+    return false;
+  }
+  if (
+    personalizedMessage.startsWith("{'id':") ||
+    personalizedMessage.startsWith('{"id":')
+  ) {
+    return false;
+  }
+  return true;
+}
+window.isValidSys03Sheet2Row = isValidSys03Sheet2Row;
+
 function getClientCachedCustomMessage() {
   try {
     const raw = window.localStorage.getItem(CLIENT_CUSTOM_MESSAGE_CACHE_KEY);
@@ -2848,8 +2871,8 @@ function setSys03BatchBanner(text, tone = "info") {
 
 async function startSys03BatchEmailSend() {
   if (_sys03BatchSendInFlight) return;
-  const contacts = getClientCachedContacts();
-  if (!Array.isArray(contacts) || contacts.length === 0) {
+  const rawContacts = getClientCachedContacts();
+  if (!Array.isArray(rawContacts) || rawContacts.length === 0) {
     openSys03PrereqGuardModal("import_contacts");
     return;
   }
@@ -2860,12 +2883,23 @@ async function startSys03BatchEmailSend() {
     return;
   }
 
+  // Filter out any malformed/blank contacts where both First Name and Email Address are empty
+  const contacts = rawContacts.filter((c) => {
+    const f = extractNormalizedContactFields(c);
+    return Boolean(f.firstName || f.emailAddress);
+  });
+  if (contacts.length === 0) {
+    openSys03PrereqGuardModal("import_contacts");
+    return;
+  }
+
   _sys03BatchSendInFlight = true;
   const startBtn = document.getElementById("gb-sys03-start-batch-send-btn");
   const startLabel = document.getElementById("gb-sys03-start-batch-send-label");
   if (startBtn) startBtn.disabled = true;
   if (startLabel) startLabel.textContent = "Dispatching Batch Emails...";
 
+  // Generate sessionId ONCE at the start of the batch run for deterministic batchRowKeys
   const sessionId = Date.now().toString(36);
   const subjectTemplate =
     cachedMsg.subject || SYS03_DEFAULT_SUBJECT_TEMPLATE;
@@ -2892,34 +2926,41 @@ async function startSys03BatchEmailSend() {
     renderSys03BatchEmailQueueTable();
 
     setSys03BatchBanner(
-      `Phase 1/2: Queued ${queuedContacts.length} contact(s) as 'Waiting' in Compose.xlsx (Sheet2)...`,
+      `Phase 1/2: Queueing ${queuedContacts.length} contact(s) as 'Waiting' in Compose.xlsx (Sheet2)...`,
       "info"
     );
 
-    const waitingSheetRows = queuedContacts.map((c) => {
-      const fields = extractNormalizedContactFields(c);
-      const resolvedMessage = resolveCustomMessageAttributes(bodyTemplate, c);
-      return {
-        workbook_id: "Compose.xlsx",
-        sheet_name: "Sheet2",
-        match_column: "I",
-        match_value: c.batch_row_key,
-        row: {
-          A: "Waiting",
-          B: fields.firstName,
-          C: fields.middleName,
-          D: fields.lastName,
-          E: fields.companyName,
-          F: fields.emailAddress,
-          G: fields.contactNumber,
-          H: resolvedMessage,
-          I: c.batch_row_key,
-        },
-      };
-    });
+    const waitingSheetRows = queuedContacts
+      .map((c, idx) => {
+        const fields = extractNormalizedContactFields(c);
+        const batchRowKey =
+          c.batch_row_key ||
+          buildSys03BatchRowKey(sessionId, idx, fields.emailAddress);
+        const resolvedMessage = resolveCustomMessageAttributes(bodyTemplate, c);
+        return {
+          workbook_id: "Compose.xlsx",
+          sheet_name: "Sheet2",
+          match_column: "I",
+          match_value: batchRowKey,
+          batchRowKey,
+          row: {
+            A: "Waiting",
+            B: fields.firstName,
+            C: fields.middleName,
+            D: fields.lastName,
+            E: fields.companyName,
+            F: fields.emailAddress,
+            G: fields.contactNumber,
+            H: resolvedMessage,
+            I: batchRowKey,
+          },
+        };
+      })
+      .filter((item) => isValidSys03Sheet2Row(item.row));
 
+    // Wait for Phase 1 to 100% resolve before entering the Phase 2 loop
     try {
-      await fetch("/api/glennbot/sys03/batch-progress", {
+      const phase1Resp = await fetch("/api/glennbot/sys03/batch-progress", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -2932,6 +2973,7 @@ async function startSys03BatchEmailSend() {
           rows: waitingSheetRows,
         }),
       });
+      await phase1Resp.json().catch(() => ({}));
     } catch (_) {}
 
     // =========================================================================
@@ -2940,7 +2982,11 @@ async function startSys03BatchEmailSend() {
     for (let i = 0; i < queuedContacts.length; i += 1) {
       const currentContact = queuedContacts[i];
       const fields = extractNormalizedContactFields(currentContact);
-      const batchRowKey = currentContact.batch_row_key;
+      const batchRowKey =
+        currentContact.batch_row_key ||
+        buildSys03BatchRowKey(sessionId, i, fields.emailAddress);
+      currentContact.batch_row_key = batchRowKey;
+
       const resolvedSubject = resolveCustomMessageAttributes(
         subjectTemplate,
         currentContact
@@ -2949,6 +2995,21 @@ async function startSys03BatchEmailSend() {
         bodyTemplate,
         currentContact
       );
+
+      const stepARow = {
+        A: "Sending",
+        B: fields.firstName,
+        C: fields.middleName,
+        D: fields.lastName,
+        E: fields.companyName,
+        F: fields.emailAddress,
+        G: fields.contactNumber,
+        H: resolvedBody,
+        I: batchRowKey,
+      };
+      if (!isValidSys03Sheet2Row(stepARow)) {
+        continue;
+      }
 
       // Step A: Mark current contact as "Sending" in UI, localStorage, and Compose.xlsx (Sheet2)
       queuedContacts[i].batch_status = "Sending";
@@ -2963,7 +3024,7 @@ async function startSys03BatchEmailSend() {
       );
 
       try {
-        await fetch("/api/glennbot/sys03/batch-step", {
+        const stepAResp = await fetch("/api/glennbot/sys03/batch-step", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -2976,24 +3037,26 @@ async function startSys03BatchEmailSend() {
             match_column: "I",
             match_value: batchRowKey,
             batchRowKey,
-            row: {
-              A: "Sending",
-              B: fields.firstName,
-              C: fields.middleName,
-              D: fields.lastName,
-              E: fields.companyName,
-              F: fields.emailAddress,
-              G: fields.contactNumber,
-              H: resolvedBody,
-              I: batchRowKey,
-            },
+            row: stepARow,
           }),
         });
+        await stepAResp.json().catch(() => ({}));
       } catch (_) {}
 
       // Step B: Send Personalized Email via GlennBot + Update Compose.xlsx (Sheet2) to "Done"
+      const stepBRow = {
+        A: "Done",
+        B: fields.firstName,
+        C: fields.middleName,
+        D: fields.lastName,
+        E: fields.companyName,
+        F: fields.emailAddress,
+        G: fields.contactNumber,
+        H: resolvedBody,
+        I: batchRowKey,
+      };
       try {
-        await fetch("/api/glennbot/sys03/batch-step", {
+        const stepBResp = await fetch("/api/glennbot/sys03/batch-step", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -3009,19 +3072,10 @@ async function startSys03BatchEmailSend() {
             to: fields.emailAddress,
             subject: resolvedSubject,
             body: resolvedBody,
-            row: {
-              A: "Done",
-              B: fields.firstName,
-              C: fields.middleName,
-              D: fields.lastName,
-              E: fields.companyName,
-              F: fields.emailAddress,
-              G: fields.contactNumber,
-              H: resolvedBody,
-              I: batchRowKey,
-            },
+            row: stepBRow,
           }),
         });
+        await stepBResp.json().catch(() => ({}));
       } catch (_) {}
 
       queuedContacts[i].batch_status = "Done";

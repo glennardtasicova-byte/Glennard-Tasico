@@ -46,6 +46,7 @@ import {
   extractNormalizedContactFields,
   resolveCustomMessageAttributes,
   buildSys03BatchRowKey,
+  isValidSys03Sheet2Row,
   buildComposeSheet2RowPayload,
 } from "../static/js/glennbot_popup_utils.mjs";
 
@@ -1057,6 +1058,7 @@ test("SYS-03 Create Custom Message, [[Attributes]] Parser, and Send Batch Email 
     sheet_name: "Sheet2",
     match_column: "I",
     match_value: rowKey,
+    batchRowKey: rowKey,
     row: {
       A: "Waiting",
       B: "Sophia",
@@ -1069,8 +1071,28 @@ test("SYS-03 Create Custom Message, [[Attributes]] Parser, and Send Batch Email 
       I: rowKey,
     },
   });
+  assert.equal(isValidSys03Sheet2Row(sheet2Row.row), true);
+  assert.equal(isValidSys03Sheet2Row({ A: "Waiting", B: "", F: "", H: "Hi there" }), false);
+  assert.equal(
+    isValidSys03Sheet2Row({
+      A: "Waiting",
+      B: "Sophia",
+      F: "sophia@example.com",
+      H: "{'id': 'raw_non_crm_payload'}",
+    }),
+    false
+  );
+  assert.equal(
+    isValidSys03Sheet2Row({
+      A: "Waiting",
+      B: "Sophia",
+      F: "sophia@example.com",
+      H: '{"id": "raw_non_crm_payload"}',
+    }),
+    false
+  );
 
-  // 5. Verify HTML and Backend Route wiring
+  // 5. Verify HTML and Backend Route wiring + _SYS03_COMPOSE_SHEET_LOCK
   const fs = await import("node:fs");
   const indexHtml = fs.readFileSync("templates/index.html", "utf8");
   assert.ok(indexHtml.includes('id="project3CreateCustomMsgBtn"'));
@@ -1082,8 +1104,14 @@ test("SYS-03 Create Custom Message, [[Attributes]] Parser, and Send Batch Email 
   assert.ok(indexHtml.includes("Send Batch Email — Live CRM Dispatch Queue"));
 
   const mainPy = fs.readFileSync("main.py", "utf8");
+  assert.ok(mainPy.includes("_SYS03_COMPOSE_SHEET_LOCK = asyncio.Lock()"));
+  assert.ok(mainPy.includes("async with _SYS03_COMPOSE_SHEET_LOCK:"));
+  assert.ok(mainPy.includes("def _is_valid_sys03_sheet2_crm_row(row_dict: dict) -> bool:"));
+  assert.ok(!mainPy.includes("_await_or_background"));
+  assert.ok(!mainPy.includes("timeout_sec=0.8"));
   assert.ok(mainPy.includes('@app.post("/api/glennbot/sys03/save-custom-message")'));
   assert.ok(mainPy.includes('@app.post("/api/glennbot/sys03/batch-progress")'));
   assert.ok(mainPy.includes('@app.post("/api/glennbot/sys03/batch-step")'));
   assert.ok(mainPy.includes('"Compose.xlsx"'));
 });
+

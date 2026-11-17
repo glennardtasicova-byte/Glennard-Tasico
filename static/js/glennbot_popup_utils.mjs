@@ -1809,24 +1809,49 @@ export function buildSys03BatchRowKey(sessionId = "", index = 0, email = "") {
   return `portfolio_row_${cleanSession}_${cleanIdx}_${cleanEmail}`;
 }
 
+export function isValidSys03Sheet2Row(row = {}) {
+  if (!row || typeof row !== "object") return false;
+  const firstName = String(row.B ?? row.firstName ?? row.first_name ?? "").trim();
+  const emailAddress = String(
+    row.F ?? row.emailAddress ?? row.email_address ?? row.email ?? ""
+  ).trim();
+  const personalizedMessage = String(
+    row.H ?? row.personalizedMessage ?? row.body ?? row.message ?? ""
+  ).trim();
+
+  if (!firstName && !emailAddress) {
+    return false;
+  }
+  if (
+    personalizedMessage.startsWith("{'id':") ||
+    personalizedMessage.startsWith('{"id":')
+  ) {
+    return false;
+  }
+  return true;
+}
+
 export function buildComposeSheet2RowPayload(
   contact = {},
   status = "Waiting",
   templateText = "",
-  batchRowKey = ""
+  batchRowKey = "",
+  index = 0,
+  sessionId = "batch"
 ) {
   const fields = extractNormalizedContactFields(contact);
   const resolvedMessage = resolveCustomMessageAttributes(templateText, contact);
   const cleanStatus = String(status || "Waiting").trim() || "Waiting";
   const cleanKey =
     String(batchRowKey || "").trim() ||
-    buildSys03BatchRowKey("batch", 0, fields.emailAddress);
+    buildSys03BatchRowKey(sessionId, index, fields.emailAddress);
 
   return {
     workbook_id: "Compose.xlsx",
     sheet_name: "Sheet2",
     match_column: "I",
     match_value: cleanKey,
+    batchRowKey: cleanKey,
     row: {
       A: cleanStatus,
       B: fields.firstName,
@@ -1840,5 +1865,6 @@ export function buildComposeSheet2RowPayload(
     },
   };
 }
+
 
 
