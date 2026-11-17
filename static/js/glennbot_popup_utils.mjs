@@ -1268,3 +1268,395 @@ export function resolveSys02ChannelPreset(channelLabel = "") {
     "✉️ Send a DM (Facebook Messenger / Instagram DM / WhatsApp / Mock Chat)"
   ];
 }
+
+export const CLIENT_CONTACTS_CACHE_KEY = "gb_portfolio_client_contacts_v1";
+
+export const SYS03_IMPORT_CONTACTS_CONFIG = {
+  modalId: "gb-sys03-import-contacts-modal",
+  title: "Import Contacts — Client Sandbox",
+  privacyBadge:
+    "🔒 Data Privacy Protected: Imported contacts are stored ONLY in your browser cache (localStorage) for this live demo and are never saved to GlennBot's database or Cloudinary.",
+  cacheKey: CLIENT_CONTACTS_CACHE_KEY,
+  popupUrl:
+    "/glennbot-popout?popout_mode=workspace_view&tab=contacts&client_cache_only=1",
+  popupWindowName: "GlennBotClientContactsPopup",
+  popupWidth: 1260,
+  popupHeight: 860,
+  contactsViewBadgeText: "🔒 Saved in Your Browser Cache Only (Client Demo)",
+  options: [
+    {
+      id: "gb-sys03-import-google-btn",
+      title: "Import Google Contacts",
+      subtitle:
+        "Authenticate via Google OAuth 2.0 to preview your contacts in an isolated browser-cache session",
+      action: "startSys03GoogleContactsImport()",
+    },
+    {
+      id: "gb-sys03-import-apollo-csv-btn",
+      title: "Import via Apollo CSV",
+      subtitle:
+        "Upload an Apollo.io .csv export — auto-extracts First Name, Last Name, Col E Company, Col F Email Address & Col T Contact Number",
+      action: "triggerSys03ApolloCsvPicker()",
+    },
+  ],
+};
+
+export function buildSampleApolloCsvContent() {
+  // 20-column (Col A = index 0 ... Col E = index 4 Company, Col F = index 5 Email, ... Col T = index 19 Contact Number)
+  const headers = [
+    "First Name", // Col A (0)
+    "Last Name", // Col B (1)
+    "Title", // Col C (2)
+    "Seniority", // Col D (3)
+    "Company", // Col E (4)
+    "Email", // Col F (5)
+    "Email Status", // Col G (6)
+    "Stage", // Col H (7)
+    "Lists", // Col I (8)
+    "Industry", // Col J (9)
+    "Employees", // Col K (10)
+    "Person Linkedin Url", // Col L (11)
+    "Website", // Col M (12)
+    "City", // Col N (13)
+    "State", // Col O (14)
+    "Country", // Col P (15)
+    "Company Address", // Col Q (16)
+    "Company City", // Col R (17)
+    "Company Country", // Col S (18)
+    "Work Direct Phone", // Col T (19)
+  ];
+  const rows = [
+    [
+      "Sophia",
+      "Reyes",
+      "VP of Operations",
+      "VP",
+      "Nexus Logistics PH",
+      "sophia.reyes@nexuslogistics.example.com",
+      "Verified",
+      "Cold",
+      "Q4 Automation Leads",
+      "Logistics & Supply Chain",
+      "120",
+      "https://linkedin.com/in/sophiareyes-demo",
+      "https://nexuslogistics.example.com",
+      "Makati",
+      "Metro Manila",
+      "Philippines",
+      "Ayala Ave",
+      "Makati",
+      "Philippines",
+      "+63 917 555 0142",
+    ],
+    [
+      "Marcus",
+      "Vance",
+      "Head of RevOps",
+      "Director",
+      "CloudScale SaaS Inc.",
+      "m.vance@cloudscalesaas.example.io",
+      "Verified",
+      "Cold",
+      "Q4 Automation Leads",
+      "Computer Software",
+      "85",
+      "https://linkedin.com/in/marcusvance-demo",
+      "https://cloudscalesaas.example.io",
+      "Austin",
+      "Texas",
+      "United States",
+      "Congress Ave",
+      "Austin",
+      "United States",
+      "+1 512-555-0198",
+    ],
+    [
+      "Elena",
+      "Rostova",
+      "Chief Technology Officer",
+      "C-Suite",
+      "FinEdge Payments",
+      "elena@finedgepay.example.com",
+      "Verified",
+      "Warm",
+      "Q4 Automation Leads",
+      "Financial Services",
+      "210",
+      "https://linkedin.com/in/elenarostova-demo",
+      "https://finedgepay.example.com",
+      "Singapore",
+      "Central",
+      "Singapore",
+      "Raffles Place",
+      "Singapore",
+      "Singapore",
+      "+65 8123 4567",
+    ],
+    [
+      "David",
+      "Chen",
+      "Director of Supply Chain",
+      "Director",
+      "Precision Manufacturing Group",
+      "dchen@precisionmfg.example.com",
+      "Verified",
+      "Cold",
+      "Q4 Automation Leads",
+      "Industrial Automation",
+      "450",
+      "https://linkedin.com/in/davidchen-demo",
+      "https://precisionmfg.example.com",
+      "Laguna",
+      "Calabarzon",
+      "Philippines",
+      "Carmelray Industrial Park",
+      "Calamba",
+      "Philippines",
+      "+63 918 555 0239",
+    ],
+    [
+      "Hannah",
+      "Alvarez",
+      "Founder & Managing Partner",
+      "Founder",
+      "BrightPeak Digital Agency",
+      "hannah@brightpeak.example.co",
+      "Verified",
+      "Warm",
+      "Q4 Automation Leads",
+      "Marketing & Advertising",
+      "35",
+      "https://linkedin.com/in/hannahalvarez-demo",
+      "https://brightpeak.example.co",
+      "Taguig",
+      "Metro Manila",
+      "Philippines",
+      "BGC High Street",
+      "Taguig",
+      "Philippines",
+      "+63 917 555 0891",
+    ],
+  ];
+  const escapeCsvCell = (val) => {
+    const str = String(val ?? "");
+    if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+  return [
+    headers.map(escapeCsvCell).join(","),
+    ...rows.map((r) => r.map(escapeCsvCell).join(",")),
+  ].join("\r\n");
+}
+
+export function parseCsvRows(csvText = "") {
+  const text = String(csvText || "").replace(/^\uFEFF/, "");
+  const rows = [];
+  let curRow = [];
+  let curCell = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    const nextCh = text[i + 1];
+    if (inQuotes) {
+      if (ch === '"' && nextCh === '"') {
+        curCell += '"';
+        i += 1;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        curCell += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ",") {
+      curRow.push(curCell.trim());
+      curCell = "";
+    } else if (ch === "\r" && nextCh === "\n") {
+      curRow.push(curCell.trim());
+      if (curRow.some((c) => c !== "")) rows.push(curRow);
+      curRow = [];
+      curCell = "";
+      i += 1;
+    } else if (ch === "\n" || ch === "\r") {
+      curRow.push(curCell.trim());
+      if (curRow.some((c) => c !== "")) rows.push(curRow);
+      curRow = [];
+      curCell = "";
+    } else {
+      curCell += ch;
+    }
+  }
+  curRow.push(curCell.trim());
+  if (curRow.some((c) => c !== "")) {
+    rows.push(curRow);
+  }
+  return rows;
+}
+
+export function parseApolloCsvToClientContacts(
+  csvText = "",
+  nowIso = new Date().toISOString()
+) {
+  const rows = parseCsvRows(csvText);
+  if (rows.length < 2) return [];
+
+  const headerRow = rows[0].map((h) => String(h || "").trim().toLowerCase());
+  const findColIdx = (candidates, fallbackIdx) => {
+    for (const cand of candidates) {
+      const idx = headerRow.indexOf(cand);
+      if (idx !== -1) return idx;
+    }
+    for (const cand of candidates) {
+      const idx = headerRow.findIndex((h) => h.includes(cand));
+      if (idx !== -1) return idx;
+    }
+    return fallbackIdx;
+  };
+
+  const firstNameIdx = findColIdx(["first name", "firstname", "first_name"], 0);
+  const lastNameIdx = findColIdx(["last name", "lastname", "last_name"], 1);
+  const titleIdx = findColIdx(["title", "job title", "role", "position"], 2);
+  // Column E (index 4) is Company in Apollo exports
+  const companyIdx =
+    headerRow[4] && (headerRow[4].includes("company") || headerRow[4].includes("organization"))
+      ? 4
+      : findColIdx(["company", "company name", "company_name", "organization", "account name"], 4);
+  // Column F (index 5) is Email Address in Apollo exports
+  const emailIdx =
+    headerRow[5] && headerRow[5].includes("email")
+      ? 5
+      : findColIdx(["email", "email address", "work email", "primary email"], 5);
+  // Column T (index 19) is Contact Number in Apollo exports
+  const phoneIdx =
+    headerRow[19] !== undefined &&
+    (headerRow[19].includes("phone") ||
+      headerRow[19].includes("contact") ||
+      headerRow[19].includes("mobile") ||
+      headerRow.length >= 20)
+      ? 19
+      : findColIdx(
+          [
+            "work direct phone",
+            "corporate phone",
+            "mobile phone",
+            "first phone",
+            "contact number",
+            "phone",
+          ],
+          19
+        );
+
+  const contacts = [];
+  for (let rIdx = 1; rIdx < rows.length; rIdx += 1) {
+    const row = rows[rIdx];
+    const firstName = String(row[firstNameIdx] || "").trim();
+    const lastName = String(row[lastNameIdx] || "").trim();
+    const jobTitle = String(row[titleIdx] || "").trim();
+    const companyName = String(row[companyIdx] || row[4] || "").trim();
+    const emailAddr = String(row[emailIdx] || row[5] || "").trim();
+    let phoneNum = String(row[phoneIdx] || row[19] || "").trim();
+    if (!phoneNum) {
+      const altPhoneIdx = findColIdx(
+        ["phone", "mobile", "contact number", "direct phone"],
+        -1
+      );
+      if (altPhoneIdx >= 0 && row[altPhoneIdx]) {
+        phoneNum = String(row[altPhoneIdx]).trim();
+      }
+    }
+
+    const fullName =
+      [firstName, lastName].filter(Boolean).join(" ").trim() ||
+      (emailAddr ? emailAddr.split("@")[0] : "") ||
+      `Contact ${rIdx}`;
+
+    if (!firstName && !lastName && !emailAddr && !phoneNum && !companyName) {
+      continue;
+    }
+
+    const contactId = `client_csv_${Date.now()}_${rIdx}`;
+    contacts.push({
+      id: contactId,
+      contact_id: contactId,
+      first_name: firstName || fullName.split(" ")[0] || "",
+      last_name: lastName || fullName.split(" ").slice(1).join(" ") || "",
+      name: fullName,
+      full_name: fullName,
+      company: companyName,
+      company_name: companyName,
+      email: emailAddr,
+      email_address: emailAddr,
+      phone: phoneNum,
+      contact_number: phoneNum,
+      title: jobTitle || "Lead",
+      category: jobTitle || "Apollo CSV Lead",
+      source: "Apollo CSV (Client Cache)",
+      platform: "apollo_csv",
+      created_at: nowIso,
+      ephemeral_client_cache: true,
+    });
+  }
+  return contacts;
+}
+
+export function mergeClientContactsCache(existingContacts = [], incomingContacts = []) {
+  const safeExisting = Array.isArray(existingContacts) ? existingContacts : [];
+  const safeIncoming = Array.isArray(incomingContacts) ? incomingContacts : [];
+  const byKey = new Map();
+  const order = [];
+
+  const computeKey = (c, idx) => {
+    const email = String(c.email || c.email_address || "").trim().toLowerCase();
+    if (email) return `email:${email}`;
+    const phone = String(c.phone || c.contact_number || "").replace(/\s+/g, "");
+    if (phone) return `phone:${phone}`;
+    const nameComp = `${String(c.name || c.full_name || "").trim().toLowerCase()}|${String(c.company || c.company_name || "").trim().toLowerCase()}`;
+    if (nameComp !== "|") return `nc:${nameComp}`;
+    return `id:${String(c.id || c.contact_id || idx)}`;
+  };
+
+  [...safeExisting, ...safeIncoming].forEach((raw, idx) => {
+    if (!raw || typeof raw !== "object") return;
+    const firstName = String(raw.first_name || "").trim();
+    const lastName = String(raw.last_name || "").trim();
+    const fullName =
+      String(raw.name || raw.full_name || "").trim() ||
+      [firstName, lastName].filter(Boolean).join(" ").trim() ||
+      "Client Contact";
+    const company = String(raw.company || raw.company_name || "").trim();
+    const email = String(raw.email || raw.email_address || "").trim();
+    const phone = String(raw.phone || raw.contact_number || "").trim();
+    const id = String(raw.id || raw.contact_id || `client_contact_${Date.now()}_${idx}`);
+    const normalized = {
+      ...raw,
+      id,
+      contact_id: id,
+      first_name: firstName || fullName.split(" ")[0] || "",
+      last_name: lastName || fullName.split(" ").slice(1).join(" ") || "",
+      name: fullName,
+      full_name: fullName,
+      company,
+      company_name: company,
+      email,
+      email_address: email,
+      phone,
+      contact_number: phone,
+      title: String(raw.title || raw.category || "Lead").trim(),
+      category: String(raw.category || raw.title || "Client Imported").trim(),
+      source: String(raw.source || "Client Browser Cache").trim(),
+      platform: String(raw.platform || "apollo_csv").trim(),
+      ephemeral_client_cache: true,
+    };
+    const key = computeKey(normalized, idx);
+    if (!byKey.has(key)) {
+      order.push(key);
+    }
+    byKey.set(key, { ...(byKey.get(key) || {}), ...normalized });
+  });
+
+  return order.map((k) => byKey.get(k));
+}
+

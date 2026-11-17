@@ -1231,13 +1231,15 @@
               <div class="project-tryme-buttons">
                 <button
                   type="button"
+                  id="btn-sys03-import-contacts"
                   class="btn-sys01-popout btn-live-launcher"
-                  onclick="event.stopPropagation();"
+                  onclick="event.stopPropagation(); openSys03ImportContactsModal(this);"
                 >
                   <span>📥 Import Contacts</span>
                 </button>
                 <button
                   type="button"
+                  id="btn-sys03-create-custom-message"
                   class="btn-sys01-popout btn-live-launcher"
                   onclick="event.stopPropagation();"
                 >
@@ -1245,6 +1247,7 @@
                 </button>
                 <button
                   type="button"
+                  id="btn-sys03-send-batch-email"
                   class="btn-sys01-popout btn-live-launcher"
                   onclick="event.stopPropagation();"
                 >
@@ -2276,6 +2279,117 @@
     </div>
   </div>
 
+  <!-- SYS-03: Import Contacts — Client Sandbox Chooser Modal (Strict Browser Cache-Only Privacy) -->
+  <div
+    id="gb-sys03-import-contacts-modal"
+    class="gb-comment-chooser-backdrop"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="gb-sys03-import-contacts-title"
+    onclick="if(event.target===this) closeSys03ImportContactsModal();"
+    hidden
+  >
+    <div class="gb-comment-chooser-dialog" style="max-width: 640px;" onclick="event.stopPropagation();">
+      <div class="gb-comment-chooser-header">
+        <div>
+          <span class="gb-comment-chooser-eyebrow">SYS-03 &bull; CRM CONTACT HUB &amp; BATCH OUTREACH</span>
+          <h3 id="gb-sys03-import-contacts-title" class="gb-comment-chooser-title">Import Contacts — Client Sandbox</h3>
+        </div>
+        <button
+          type="button"
+          class="gb-comment-chooser-close"
+          onclick="closeSys03ImportContactsModal()"
+          aria-label="Close Import Contacts Sandbox Modal"
+        >
+          <span>&times;</span>
+        </button>
+      </div>
+
+      <!-- Privacy Notice Badge -->
+      <div
+        id="gb-sys03-privacy-notice-badge"
+        style="margin: 0 0 14px 0; padding: 10px 14px; border-radius: 10px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.4); color: #a7f3d0; font-size: 12px; line-height: 1.5; font-weight: 600;"
+      >
+        🔒 Data Privacy Protected: Imported contacts are stored ONLY in your browser cache (<code style="color:#34d399; font-weight:700;">localStorage</code>) for this live demo and are never saved to GlennBot's database or Cloudinary.
+      </div>
+
+      <p class="gb-comment-chooser-subtitle" style="margin-bottom: 14px;">
+        Choose how you would like to import leads into your isolated client browser sandbox. Once imported, the <strong>GlennBot Contacts CRM</strong> will launch in a dedicated popup window displaying only your cached contacts:
+      </p>
+
+      <!-- Hidden CSV File Input -->
+      <input
+        type="file"
+        id="gb-sys03-apollo-csv-file-input"
+        accept=".csv,text/csv"
+        hidden
+        onchange="handleSys03ApolloCsvFileSelect(event)"
+      />
+
+      <!-- 2 Main Import Options -->
+      <div class="gb-comment-chooser-options">
+        <!-- Option 1: Import Google Contacts -->
+        <button
+          type="button"
+          id="gb-sys03-option-google-contacts"
+          class="gb-comment-option-card gb-comment-option-fb"
+          onclick="startSys03GoogleContactsImport()"
+        >
+          <span class="gb-comment-option-icon" aria-hidden="true" style="background: rgba(59, 130, 246, 0.16); color: #60a5fa; border-color: rgba(59, 130, 246, 0.38);">
+            <i class="fab fa-google"></i>
+          </span>
+          <span class="gb-comment-option-body">
+            <strong class="gb-comment-option-name">Import Google Contacts</strong>
+            <small class="gb-comment-option-meta">Authenticate via Google OAuth 2.0 to preview your contacts in an isolated browser-cache session</small>
+          </span>
+          <span class="gb-comment-option-cta">Connect &rarr;</span>
+        </button>
+
+        <!-- Option 2: Import via Apollo CSV -->
+        <button
+          type="button"
+          id="gb-sys03-option-apollo-csv"
+          class="gb-comment-option-card gb-comment-option-ig"
+          onclick="triggerSys03ApolloCsvPicker()"
+        >
+          <span class="gb-comment-option-icon" aria-hidden="true" style="background: rgba(16, 185, 129, 0.16); color: #34d399; border-color: rgba(16, 185, 129, 0.4);">
+            <i class="fas fa-file-csv"></i>
+          </span>
+          <span class="gb-comment-option-body">
+            <strong class="gb-comment-option-name">Import via Apollo CSV</strong>
+            <small class="gb-comment-option-meta">Upload an Apollo.io <code>.csv</code> export — auto-extracts First Name, Last Name, Col E Company, Col F Email Address &amp; Col T Contact Number</small>
+          </span>
+          <span class="gb-comment-option-cta">Upload CSV &rarr;</span>
+        </button>
+      </div>
+
+      <!-- Secondary Actions Row: Sample Apollo CSV Download + Status Feedback -->
+      <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(148, 163, 184, 0.16); display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <button
+            type="button"
+            id="gb-sys03-download-sample-csv-btn"
+            onclick="event.stopPropagation(); downloadSampleApolloCsv();"
+            style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 8px; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(56, 189, 248, 0.4); color: #38bdf8; font-size: 12px; font-weight: 700; cursor: pointer;"
+          >
+            <i class="fas fa-download" aria-hidden="true"></i>
+            <span>Download Sample Apollo CSV</span>
+          </button>
+          <button
+            type="button"
+            id="gb-sys03-open-cached-contacts-btn"
+            onclick="event.stopPropagation(); launchSys03ClientContactsPopup();"
+            style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 8px; background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(148, 163, 184, 0.3); color: #cbd5e1; font-size: 12px; font-weight: 600; cursor: pointer;"
+          >
+            <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+            <span id="gb-sys03-cached-count-label">View Cached Contacts (0)</span>
+          </button>
+        </div>
+        <span id="gb-sys03-import-status-msg" style="font-size: 11px; color: #94a3b8; font-weight: 600;">Ready for browser-cache import</span>
+      </div>
+    </div>
+  </div>
+
   <!-- Minimal Footer -->
   <footer class="site-footer">
     <div class="container footer-inner scroll-reveal" data-reveal-delay="60">
@@ -2286,6 +2400,6 @@
   </footer>
 
   <!-- Custom Script -->
-  <script src="/static/js/main.js?v=76"></script>
+  <script src="/static/js/main.js?v=77"></script>
 </body>
 </html>
