@@ -2249,11 +2249,11 @@ def api_list_email_messages(
       },
       "calendar-orchestrator": {
         sysId: "SYS-03",
-        category: "Workflow & Booking",
+        category: "CRM & Batch Emailing",
         endpoint: "POST /api/v1/calendar/schedule",
         demoEndpoint: "/api/demo/calendar-schedule",
-        title: "Automated Calendar Booking & n8n Webhook Orchestrator",
-        tagline: "Zero-Touch Consultation Scheduling with Composio Meet/Zoom & n8n Pipelines",
+        title: "CRM Contact Hub & Automated Batch Email Outreach",
+        tagline: "Centralized Lead Importing, Custom Email Templates & 1-Click Batch Outreach via Composio Gmail OAuth & n8n",
         pipelineNodes: [
           { label: "Booking Request", title: "Client Slot Selection", accent: false },
           { label: "Orchestrator", title: "Composio + n8n Webhook", accent: true },
