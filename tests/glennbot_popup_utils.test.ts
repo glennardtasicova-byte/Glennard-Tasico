@@ -29,6 +29,11 @@ import {
   resolveCalendarProxyIntercept,
   resolveDirectSocialDmTargetUrl,
   resolveSys02ChannelPreset,
+  CLIENT_CONTACTS_CACHE_KEY,
+  SYS03_IMPORT_CONTACTS_CONFIG,
+  buildSampleApolloCsvContent,
+  parseApolloCsvToClientContacts,
+  mergeClientContactsCache,
 } from "../static/js/glennbot_popup_utils.mjs";
 
 test("SYS-01 defines the 3 auto-authenticated /glennbot-popout Expanded View URLs and upstream URLs", () => {
@@ -905,5 +910,52 @@ test("SYS-01 and SYS-02 showcase webcards include full-width .webcard-banner .we
   assert.ok(styleCss.includes('[data-theme="light"] .webcard-banner img.webcard-banner-light'));
   assert.ok(styleCss.includes(".webcard-banner img {"));
   assert.ok(styleCss.includes("border-bottom: 1px solid rgba(56, 189, 248, 0.2);"));
+});
+
+test("SYS-03 Import Contacts Client Sandbox parses 20-column Apollo CSV (Col A, B, E, F, T) and merges exclusively for gb_portfolio_client_contacts_v1", async () => {
+  assert.equal(CLIENT_CONTACTS_CACHE_KEY, "gb_portfolio_client_contacts_v1");
+  assert.equal(
+    SYS03_IMPORT_CONTACTS_CONFIG.popupUrl,
+    "/glennbot-popout?popout_mode=workspace_view&tab=contacts&client_cache_only=1"
+  );
+  assert.equal(
+    SYS03_IMPORT_CONTACTS_CONFIG.contactsViewBadgeText,
+    "🔒 Saved in Your Browser Cache Only (Client Demo)"
+  );
+
+  const sampleCsv = buildSampleApolloCsvContent();
+  const parsed = parseApolloCsvToClientContacts(sampleCsv, "2026-11-17T00:00:00.000Z");
+  assert.equal(parsed.length, 5);
+  assert.equal(parsed[0].first_name, "Sophia");
+  assert.equal(parsed[0].last_name, "Reyes");
+  assert.equal(parsed[0].company, "Nexus Logistics PH");
+  assert.equal(parsed[0].email, "sophia.reyes@nexuslogistics.example.com");
+  assert.equal(parsed[0].phone, "+63 917 555 0142");
+  assert.equal(parsed[0].ephemeral_client_cache, true);
+
+  const merged = mergeClientContactsCache(parsed.slice(0, 2), [
+    parsed[1],
+    parsed[2],
+  ]);
+  assert.equal(merged.length, 3);
+
+  const fs = await import("node:fs");
+  const indexHtml = fs.readFileSync("templates/index.html", "utf8");
+  assert.ok(
+    indexHtml.includes('onclick="event.stopPropagation(); openSys03ImportContactsModal(this);"'),
+    "Project 03 Import Contacts button must call openSys03ImportContactsModal(this)"
+  );
+  assert.ok(
+    indexHtml.includes('id="gb-sys03-import-contacts-modal"'),
+    "Import Contacts modal must exist in templates/index.html"
+  );
+  assert.ok(
+    indexHtml.includes("Import Contacts — Client Sandbox"),
+    "Modal title must be Import Contacts — Client Sandbox"
+  );
+
+  const mainJs = fs.readFileSync("static/js/main.js", "utf8");
+  assert.ok(mainJs.includes("window.openSys03ImportContactsModal = openSys03ImportContactsModal;"));
+  assert.ok(mainJs.includes('const CLIENT_CONTACTS_CACHE_KEY = "gb_portfolio_client_contacts_v1";'));
 });
 

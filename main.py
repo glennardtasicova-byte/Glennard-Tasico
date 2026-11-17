@@ -873,7 +873,7 @@ _GLENNBOT_WORKSPACE_VIEW_META: dict[str, dict[str, str]] = {
     },
     "contacts": {
         "title": "CRM Contacts Database — Expanded View",
-        "subtitle": "Unified Directory of Social Leads, Email Senders & SMS Contacts",
+        "subtitle": "🔒 Saved in Your Browser Cache Only (Client Demo) • Zero Server/Cloudinary Persistence",
         "icon": "fa-address-book",
     },
     "automations": {
@@ -1353,6 +1353,10 @@ def _apply_instant_popout_dom_transforms(
     html_text = html_text.replace(
         "Connect a Gmail, Microsoft, or IMAP account",
         "Loading sent emails for glennard.tasico.va@gmail.com...",
+    )
+    html_text = html_text.replace(
+        "Synced to DB + Cloudinary",
+        "🔒 Saved in Your Browser Cache Only (Client Demo)",
     )
 
     return html_text
@@ -2159,26 +2163,142 @@ def _build_calendar_lock_body_script() -> str:
         "});"
         "}"
         "}"
+        "function _lockContactsClientCacheSandbox(){"
+        "var CACHE_KEY='gb_portfolio_client_contacts_v1';"
+        "window.gbPortfolioClientCacheOnly=true;"
+        "function _readClientCacheContacts(){"
+        "try{var raw=localStorage.getItem(CACHE_KEY);if(!raw)return[];var arr=JSON.parse(raw);return Array.isArray(arr)?arr:[];}catch(_){return[];}"
+        "}"
+        "function _writeClientCacheContacts(list){"
+        "var safe=Array.isArray(list)?list:[];"
+        "try{localStorage.setItem(CACHE_KEY,JSON.stringify(safe));}catch(_){}"
+        "return safe;"
+        "}"
+        "function _mergeClientCacheContacts(existing,incoming){"
+        "var byKey={};var order=[];"
+        "var all=(Array.isArray(existing)?existing:[]).concat(Array.isArray(incoming)?incoming:[]);"
+        "all.forEach(function(c,idx){"
+        "if(!c||typeof c!=='object')return;"
+        "var fn=String(c.first_name||'').trim();"
+        "var ln=String(c.last_name||'').trim();"
+        "var nm=String(c.name||c.full_name||'').trim()||[fn,ln].filter(Boolean).join(' ').trim()||'Client Contact';"
+        "var comp=String(c.company||c.company_name||'').trim();"
+        "var em=String(c.email||c.email_address||'').trim();"
+        "var ph=String(c.phone||c.contact_number||'').trim();"
+        "var id=String(c.id||c.contact_id||('client_contact_'+Date.now()+'_'+idx));"
+        "var norm=Object.assign({},c,{id:id,contact_id:id,first_name:fn||nm.split(' ')[0]||'',last_name:ln||nm.split(' ').slice(1).join(' ')||'',name:nm,full_name:nm,company:comp,company_name:comp,email:em,email_address:em,phone:ph,contact_number:ph,title:String(c.title||c.category||'Lead').trim(),category:String(c.category||c.title||'Client Imported').trim(),source:String(c.source||'Client Browser Cache').trim(),platform:String(c.platform||'apollo_csv').trim(),ephemeral_client_cache:true});"
+        "var k=em?('em:'+em.toLowerCase()):(ph?('ph:'+ph.replace(/\\s+/g,'')):('id:'+id));"
+        "if(!byKey[k])order.push(k);"
+        "byKey[k]=Object.assign({},byKey[k]||{},norm);"
+        "});"
+        "return order.map(function(k){return byKey[k];});"
+        "}"
+        "if(!window.__gbClientContactsFetchPatched&&typeof window.fetch==='function'){"
+        "window.__gbClientContactsFetchPatched=true;"
+        "var _origFetch=window.fetch.bind(window);"
+        "window.fetch=async function(input,init){"
+        "var urlStr=typeof input==='string'?input:((input&&input.url)?input.url:'');"
+        "var method=String((init&&init.method)||(input&&input.method)||'GET').toUpperCase();"
+        "if(urlStr.indexOf('/api/contacts')!==-1){"
+        "var pathPart=urlStr.split('?')[0];"
+        "if(pathPart.indexOf('/api/contacts/import/apollo-csv')!==-1){"
+        "var sep=urlStr.indexOf('?')===-1?'?':'&';"
+        "var ephUrl=urlStr.indexOf('ephemeral=')===-1?(urlStr+sep+'ephemeral=1&client_cache_only=1'):urlStr;"
+        "var r=await _origFetch(ephUrl,init);"
+        "try{"
+        "var clone=r.clone();"
+        "var d=await clone.json();"
+        "if(d&&Array.isArray(d.contacts)){"
+        "var merged=_mergeClientCacheContacts(_readClientCacheContacts(),d.contacts);"
+        "_writeClientCacheContacts(merged);"
+        "return new Response(JSON.stringify({status:'success',ephemeral:true,client_cache_only:true,imported_count:d.contacts.length,contacts:merged}),{status:200,headers:{'Content-Type':'application/json'}});"
+        "}"
+        "}catch(_){}"
+        "return r;"
+        "}"
+        "if(pathPart.indexOf('/api/contacts/import/google')!==-1){"
+        "var sepG=urlStr.indexOf('?')===-1?'?':'&';"
+        "var ephUrlG=urlStr.indexOf('ephemeral=')===-1?(urlStr+sepG+'ephemeral=1&client_cache_only=1'):urlStr;"
+        "var rg=await _origFetch(ephUrlG,init);"
+        "try{"
+        "var cg=rg.clone();"
+        "var dg=await cg.json();"
+        "if(dg&&Array.isArray(dg.contacts)){"
+        "var mergedG=_mergeClientCacheContacts(_readClientCacheContacts(),dg.contacts);"
+        "_writeClientCacheContacts(mergedG);"
+        "return new Response(JSON.stringify({status:'success',ephemeral:true,client_cache_only:true,imported_count:dg.contacts.length,contacts:mergedG}),{status:200,headers:{'Content-Type':'application/json'}});"
+        "}"
+        "}catch(_){}"
+        "return rg;"
+        "}"
+        "if(pathPart.indexOf('/api/contacts/bulk-delete')!==-1&&method==='POST'){"
+        "var idsToDel=[];"
+        "try{var bObj=init&&init.body?JSON.parse(String(init.body)):{};idsToDel=Array.isArray(bObj.contact_ids)?bObj.contact_ids:(Array.isArray(bObj.ids)?bObj.ids:[]);}catch(_){}"
+        "var idSet={};idsToDel.forEach(function(x){idSet[String(x)]=true;});"
+        "var rem=_readClientCacheContacts().filter(function(c){return !idSet[String(c.id||c.contact_id||'')];});"
+        "_writeClientCacheContacts(rem);"
+        "return new Response(JSON.stringify({status:'success',deleted_count:idsToDel.length,contacts:rem}),{status:200,headers:{'Content-Type':'application/json'}});"
+        "}"
+        "if(method==='DELETE'&&pathPart.indexOf('/api/contacts/')!==-1){"
+        "var delId=decodeURIComponent(pathPart.split('/api/contacts/')[1]||'');"
+        "var afterDel=_readClientCacheContacts().filter(function(c){return String(c.id||c.contact_id||'')!==delId;});"
+        "_writeClientCacheContacts(afterDel);"
+        "return new Response(JSON.stringify({status:'success',deleted_id:delId,contacts:afterDel}),{status:200,headers:{'Content-Type':'application/json'}});"
+        "}"
+        "if(method==='POST'&&pathPart.indexOf('/api/contacts/sync')===-1){"
+        "var payloadObj={};"
+        "try{payloadObj=init&&init.body?JSON.parse(String(init.body)):{};}catch(_){}"
+        "var curList=_readClientCacheContacts();"
+        "var incomingArr=Array.isArray(payloadObj.contacts)?payloadObj.contacts:[payloadObj];"
+        "var updated=_mergeClientCacheContacts(curList,incomingArr);"
+        "_writeClientCacheContacts(updated);"
+        "return new Response(JSON.stringify({status:'success',ephemeral:true,client_cache_only:true,contact:updated[updated.length-1]||payloadObj,contacts:updated}),{status:200,headers:{'Content-Type':'application/json'}});"
+        "}"
+        "var cachedNow=_readClientCacheContacts();"
+        "return new Response(JSON.stringify({status:'success',ephemeral:true,client_cache_only:true,total:cachedNow.length,contacts:cachedNow,items:cachedNow}),{status:200,headers:{'Content-Type':'application/json'}});"
+        "}"
+        "return _origFetch(input,init);"
+        "};"
+        "}"
+        "var vc=document.getElementById('view-contacts');"
+        "if(vc){"
+        "vc.querySelectorAll('span, div, p, small').forEach(function(el){"
+        "if(el.children&&el.children.length>0)return;"
+        "var txt=String(el.textContent||'').trim();"
+        "if(txt.indexOf('Synced to DB + Cloudinary')!==-1||txt.indexOf('Synced to DB')!==-1){"
+        "el.textContent='\\ud83d\\udd12 Saved in Your Browser Cache Only (Client Demo)';"
+        "}"
+        "});"
+        "}"
+        "}"
         "_lockCalendarDomAndFns();"
         "_lockEmailHubDemoMode();"
+        "_lockContactsClientCacheSandbox();"
         "_ensureAutoLatestMessageThreadMonitor();"
-        "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){_lockCalendarDomAndFns();_lockEmailHubDemoMode();_ensureAutoLatestMessageThreadMonitor();});}"
+        "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',function(){_lockCalendarDomAndFns();_lockEmailHubDemoMode();_lockContactsClientCacheSandbox();_ensureAutoLatestMessageThreadMonitor();});}"
         "window.addEventListener('load',function(){"
         "_lockCalendarDomAndFns();"
         "_lockEmailHubDemoMode();"
+        "_lockContactsClientCacheSandbox();"
         "_ensureAutoLatestMessageThreadMonitor();"
         "setTimeout(_lockCalendarDomAndFns,150);"
         "setTimeout(_lockEmailHubDemoMode,150);"
+        "setTimeout(_lockContactsClientCacheSandbox,150);"
         "setTimeout(_lockCalendarDomAndFns,600);"
         "setTimeout(_lockEmailHubDemoMode,600);"
+        "setTimeout(_lockContactsClientCacheSandbox,600);"
         "if(window.gbActivePopoutParams&&window.gbActivePopoutParams.tab==='email'&&typeof window.switchEmailFolder==='function'){"
         "try{window.switchEmailFolder('sent');}catch(_){}"
+        "}"
+        "if(window.gbActivePopoutParams&&window.gbActivePopoutParams.tab==='contacts'&&typeof window.fetchContacts==='function'){"
+        "try{window.fetchContacts();}catch(_){}"
         "}"
         "try{"
         "var obsTarget=document.body||document.getElementById('comment-detail-panel');"
         "if(obsTarget&&typeof MutationObserver!=='undefined'){"
         "var mo=new MutationObserver(function(){"
         "_removeBottomComposerDom();"
+        "_lockContactsClientCacheSandbox();"
         "var activeCfg=_getActiveShowcaseConfig();"
         "var panel=document.getElementById('comment-detail-panel');"
         "if(activeCfg&&panel)_replacePreviousPostCaptionInDom(panel,activeCfg);"
@@ -2343,8 +2463,85 @@ async def glennbot_authenticated_popout(request: Request):
                     "<div id='email-messages-list' style='display:flex;flex-direction:column;gap:10px;padding-top:6px;'>"
                     "<div style='color:#94a3b8;font-size:12px;padding:18px 0;text-align:center;'>Loading sent emails for glennard.tasico.va@gmail.com...</div>"
                     "</div></div></div></div>"
+                    "<div id='view-contacts' class='hidden' style='flex-direction:column;gap:14px;width:100%;'>"
+                    "<div class='gb-fb-bar' style='margin-bottom:0;flex-wrap:wrap;gap:12px;'>"
+                    "<div style='display:flex;align-items:center;gap:10px;flex-wrap:wrap;'>"
+                    "<span class='gb-fb-badge' style='background:rgba(16,185,129,0.2);color:#34d399;border-color:rgba(16,185,129,0.45);'>&#x1f512; Saved in Your Browser Cache Only (Client Demo)</span>"
+                    "<span id='contacts-total-count-badge' style='font-size:13px;font-weight:800;color:#f8fafc;'>0 Cached Contacts</span>"
+                    "</div>"
+                    "<div style='display:flex;align-items:center;gap:8px;flex-wrap:wrap;'>"
+                    "<input type='text' id='contacts-search-input' oninput='if(window.renderContactsTable)window.renderContactsTable();' placeholder='Search name, company, email, phone...' style='background:#0f172a;color:#f8fafc;border:1px solid #334155;border-radius:8px;padding:6px 12px;font-size:12px;min-width:220px;' />"
+                    "<input type='file' id='fallback-apollo-csv-input' accept='.csv,text/csv' style='display:none;' onchange='if(window.importApolloCsvInPopup)window.importApolloCsvInPopup(event);' />"
+                    "<button type='button' onclick='document.getElementById(\"fallback-apollo-csv-input\").click();' style='background:rgba(16,185,129,0.18);color:#34d399;border:1px solid rgba(16,185,129,0.45);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;'>&#x1f4e5; Import Apollo CSV</button>"
+                    "<button type='button' onclick='if(window.clearClientCachedContactsInPopup)window.clearClientCachedContactsInPopup();' style='background:rgba(239,68,68,0.15);color:#f87171;border:1px solid rgba(239,68,68,0.35);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;'>&#x1f5d1; Clear Browser Cache</button>"
+                    "</div></div>"
+                    "<div class='gb-fb-card' style='min-height:420px;overflow-x:auto;'>"
+                    "<table style='width:100%;border-collapse:collapse;font-size:12px;text-align:left;'>"
+                    "<thead><tr style='border-bottom:1px solid rgba(51,65,85,0.8);color:#94a3b8;text-transform:uppercase;font-size:10px;letter-spacing:0.06em;'>"
+                    "<th style='padding:10px 8px;'>First Name</th>"
+                    "<th style='padding:10px 8px;'>Last Name</th>"
+                    "<th style='padding:10px 8px;'>Company (Col E)</th>"
+                    "<th style='padding:10px 8px;'>Email Address (Col F)</th>"
+                    "<th style='padding:10px 8px;'>Contact Number (Col T)</th>"
+                    "<th style='padding:10px 8px;'>Source</th>"
+                    "<th style='padding:10px 8px;text-align:right;'>Action</th>"
+                    "</tr></thead>"
+                    "<tbody id='contacts-table-body'></tbody>"
+                    "</table></div></div>"
                     "<script>"
                     "window.activeEmailFolder='sent';window.activeEmailAccountId='gmail_glennard_tasico_va';"
+                    "window.fetchContacts=async function(){"
+                    "try{"
+                    "var r=await fetch('/api/contacts',{cache:'no-store'});"
+                    "var d=await r.json();"
+                    "window.contactsList=(d&&Array.isArray(d.contacts))?d.contacts:[];"
+                    "if(window.renderContactsTable)window.renderContactsTable();"
+                    "}catch(_){}"
+                    "};"
+                    "window.renderContactsTable=function(){"
+                    "var tbody=document.getElementById('contacts-table-body');"
+                    "if(!tbody)return;"
+                    "var raw=[];"
+                    "try{raw=JSON.parse(localStorage.getItem('gb_portfolio_client_contacts_v1')||'[]');if(!Array.isArray(raw))raw=[];}catch(_){raw=[];}"
+                    "var qEl=document.getElementById('contacts-search-input');"
+                    "var q=qEl?String(qEl.value||'').trim().toLowerCase():'';"
+                    "var filtered=raw.filter(function(c){"
+                    "if(!q)return true;"
+                    "var blob=[c.first_name,c.last_name,c.name,c.company,c.company_name,c.email,c.email_address,c.phone,c.contact_number].map(function(x){return String(x||'').toLowerCase();}).join(' ');"
+                    "return blob.indexOf(q)!==-1;"
+                    "});"
+                    "var cntEl=document.getElementById('contacts-total-count-badge');"
+                    "if(cntEl)cntEl.textContent=raw.length+' Cached Contact'+(raw.length===1?'':'s');"
+                    "if(!filtered.length){"
+                    "tbody.innerHTML='<tr><td colspan=\"7\" style=\"padding:32px 12px;text-align:center;color:#94a3b8;\">No contacts in your browser cache yet. Click <strong>Import Apollo CSV</strong> above or import from the portfolio card!</td></tr>';"
+                    "return;"
+                    "}"
+                    "tbody.innerHTML=filtered.map(function(c){"
+                    "var id=String(c.id||c.contact_id||'').replace(/\"/g,'&quot;');"
+                    "var fn=String(c.first_name||(c.name?String(c.name).split(' ')[0]:'')||'').replace(/</g,'&lt;');"
+                    "var ln=String(c.last_name||(c.name?String(c.name).split(' ').slice(1).join(' '):'')||'').replace(/</g,'&lt;');"
+                    "var comp=String(c.company||c.company_name||'—').replace(/</g,'&lt;');"
+                    "var em=String(c.email||c.email_address||'—').replace(/</g,'&lt;');"
+                    "var ph=String(c.phone||c.contact_number||'—').replace(/</g,'&lt;');"
+                    "var src=String(c.source||'Browser Cache').replace(/</g,'&lt;');"
+                    "return '<tr style=\"border-bottom:1px solid rgba(30,41,59,0.85);\"><td style=\"padding:10px 8px;font-weight:700;color:#f8fafc;\">'+fn+'</td><td style=\"padding:10px 8px;font-weight:700;color:#f8fafc;\">'+ln+'</td><td style=\"padding:10px 8px;color:#38bdf8;font-weight:600;\">'+comp+'</td><td style=\"padding:10px 8px;color:#34d399;\">'+em+'</td><td style=\"padding:10px 8px;color:#cbd5e1;\">'+ph+'</td><td style=\"padding:10px 8px;\"><span style=\"background:rgba(16,185,129,0.14);color:#34d399;border:1px solid rgba(16,185,129,0.35);padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;\">'+src+'</span></td><td style=\"padding:10px 8px;text-align:right;\"><button type=\"button\" onclick=\"window.deleteClientCachedContactInPopup(\\x27'+id+'\\x27)\" style=\"background:rgba(239,68,68,0.14);color:#f87171;border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;\">Delete</button></td></tr>';"
+                    "}).join('');"
+                    "};"
+                    "window.deleteClientCachedContactInPopup=async function(cid){"
+                    "await fetch('/api/contacts/'+encodeURIComponent(cid),{method:'DELETE'});"
+                    "window.renderContactsTable();"
+                    "};"
+                    "window.clearClientCachedContactsInPopup=function(){"
+                    "try{localStorage.setItem('gb_portfolio_client_contacts_v1','[]');}catch(_){}"
+                    "window.renderContactsTable();"
+                    "};"
+                    "window.importApolloCsvInPopup=async function(ev){"
+                    "var f=ev&&ev.target&&ev.target.files&&ev.target.files[0];"
+                    "if(!f)return;"
+                    "var fd=new FormData();fd.append('file',f);"
+                    "await fetch('/api/contacts/import/apollo-csv?ephemeral=1',{method:'POST',body:fd});"
+                    "window.renderContactsTable();"
+                    "};"
                     "window.fetchEmailMessages=async function(folder){"
                     "window.activeEmailFolder='sent';"
                     "var listEl=document.getElementById('email-messages-list');"
@@ -2364,6 +2561,7 @@ async def glennbot_authenticated_popout(request: Request):
                     "}catch(_){}"
                     "};"
                     "if(window.location.search.indexOf('tab=email')!==-1){setTimeout(function(){window.fetchEmailMessages('sent');},80);}"
+                    "if(window.location.search.indexOf('tab=contacts')!==-1){setTimeout(function(){window.renderContactsTable();},50);}"
                     "window.selectedConversationId='';window.selectedAccountId='6af0b109818eb5c88d1e87a6';"
                     "window.selectMessageConversation=async function(convKey,convId,accId){"
                     "window.selectedConversationId=String(convId||'');window.selectedAccountId=String(accId||'6af0b109818eb5c88d1e87a6');"
@@ -3719,6 +3917,219 @@ async def glennbot_dm_test_state(request: Request):
     )
 
 
+def _parse_apollo_csv_bytes_ephemeral(raw_bytes: bytes) -> list[dict]:
+    """
+    Parses an Apollo.io CSV export strictly in memory (ephemeral=True, client_cache_only=True)
+    and never persists any contact to PostgreSQL or Cloudinary.
+    Extracts First Name, Last Name, Column E (index 4) Company, Column F (index 5) Email,
+    and Column T (index 19) Contact Number.
+    """
+    import csv
+    import io
+
+    text = raw_bytes.decode("utf-8-sig", errors="replace")
+    reader = csv.reader(io.StringIO(text))
+    rows = [r for r in reader if any(str(cell or "").strip() for cell in r)]
+    if len(rows) < 2:
+        return []
+
+    headers = [str(h or "").strip().lower() for h in rows[0]]
+
+    def _find_col(candidates: list[str], default_idx: int) -> int:
+        for cand in candidates:
+            if cand in headers:
+                return headers.index(cand)
+        for cand in candidates:
+            for idx, h in enumerate(headers):
+                if cand in h:
+                    return idx
+        return default_idx
+
+    fn_idx = _find_col(["first name", "firstname", "first_name"], 0)
+    ln_idx = _find_col(["last name", "lastname", "last_name"], 1)
+    title_idx = _find_col(["title", "job title", "role", "position"], 2)
+    comp_idx = (
+        4
+        if len(headers) > 4 and ("company" in headers[4] or "organization" in headers[4])
+        else _find_col(["company", "company name", "company_name", "organization", "account name"], 4)
+    )
+    email_idx = (
+        5
+        if len(headers) > 5 and "email" in headers[5]
+        else _find_col(["email", "email address", "work email", "primary email"], 5)
+    )
+    phone_idx = (
+        19
+        if len(headers) > 19
+        else _find_col(["work direct phone", "corporate phone", "mobile phone", "contact number", "phone"], 19)
+    )
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    extracted: list[dict] = []
+    for r_i, row in enumerate(rows[1:], start=1):
+        first_name = str(row[fn_idx] if len(row) > fn_idx else "").strip()
+        last_name = str(row[ln_idx] if len(row) > ln_idx else "").strip()
+        job_title = str(row[title_idx] if len(row) > title_idx else "").strip()
+        company = str(row[comp_idx] if len(row) > comp_idx else (row[4] if len(row) > 4 else "")).strip()
+        email_addr = str(row[email_idx] if len(row) > email_idx else (row[5] if len(row) > 5 else "")).strip()
+        phone_num = str(row[phone_idx] if len(row) > phone_idx else (row[19] if len(row) > 19 else "")).strip()
+
+        if not any([first_name, last_name, company, email_addr, phone_num]):
+            continue
+
+        full_name = " ".join(p for p in (first_name, last_name) if p).strip() or (
+            email_addr.split("@")[0] if email_addr else f"Contact {r_i}"
+        )
+        cid = f"client_csv_{int(time.time() * 1000)}_{r_i}"
+        extracted.append(
+            {
+                "id": cid,
+                "contact_id": cid,
+                "first_name": first_name or full_name.split(" ")[0],
+                "last_name": last_name or " ".join(full_name.split(" ")[1:]),
+                "name": full_name,
+                "full_name": full_name,
+                "company": company,
+                "company_name": company,
+                "email": email_addr,
+                "email_address": email_addr,
+                "phone": phone_num,
+                "contact_number": phone_num,
+                "title": job_title or "Lead",
+                "category": job_title or "Apollo CSV Lead",
+                "source": "Apollo CSV (Client Cache)",
+                "platform": "apollo_csv",
+                "created_at": now_iso,
+                "ephemeral_client_cache": True,
+            }
+        )
+    return extracted
+
+
+@app.post("/api/contacts/import/apollo-csv")
+async def glennbot_ephemeral_apollo_csv_import(request: Request):
+    """
+    Ephemeral Apollo CSV parser for SYS-03 Client Sandbox.
+    Parses the uploaded CSV in memory and returns the contacts list for client browser
+    localStorage without saving anything to GlennBot's database or Cloudinary.
+    """
+    raw_bytes = b""
+    try:
+        form = await request.form()
+        upload = form.get("file")
+        if upload is not None and hasattr(upload, "read"):
+            raw_bytes = await upload.read()
+    except Exception:
+        pass
+    if not raw_bytes:
+        raw_bytes = await request.body()
+
+    contacts = _parse_apollo_csv_bytes_ephemeral(raw_bytes)
+    return JSONResponse(
+        content={
+            "status": "success",
+            "ephemeral": True,
+            "client_cache_only": True,
+            "imported_count": len(contacts),
+            "contacts": contacts,
+        },
+        status_code=200,
+    )
+
+
+@app.api_route(
+    "/api/oauth/google-contacts/{subpath:path}",
+    methods=["GET", "POST"],
+)
+async def glennbot_ephemeral_google_contacts_oauth(subpath: str, request: Request):
+    """
+    Proxies Google Contacts OAuth start/redirect/callback with ephemeral=1 & client_cache_only=1
+    so imported Google Contacts are returned only to the visitor's browser localStorage.
+    """
+    clean_sub = subpath.strip("/").lower()
+    session_token = await get_glennbot_auto_session_token()
+    body_bytes = await request.body()
+    q_params = dict(request.query_params)
+    q_params["ephemeral"] = "1"
+    q_params["client_cache_only"] = "1"
+    from urllib.parse import urlencode
+
+    upstream_url = f"{GLENNBOT_BASE_URL}/api/oauth/google-contacts/{clean_sub}?{urlencode(q_params)}"
+    headers = {
+        **get_glennbot_headers(session_token),
+        "Cache-Control": "no-cache, no-store",
+    }
+    for h_name in ("content-type", "accept"):
+        val = request.headers.get(h_name)
+        if val:
+            headers[h_name] = val
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0, follow_redirects=False) as client:
+            resp = await client.request(
+                method=request.method,
+                url=upstream_url,
+                headers=headers,
+                cookies={"gb_auth_session": session_token},
+                content=body_bytes if body_bytes else None,
+            )
+            if resp.status_code in (301, 302, 303, 307, 308):
+                loc = resp.headers.get("location") or ""
+                return Response(status_code=resp.status_code, headers={"Location": loc})
+            content_type = resp.headers.get("content-type", "application/json")
+            return Response(content=resp.content, status_code=resp.status_code, media_type=content_type)
+    except Exception:
+        return JSONResponse(
+            content={
+                "status": "success",
+                "ephemeral": True,
+                "client_cache_only": True,
+                "redirect_url": "",
+                "contacts": [],
+            },
+            status_code=200,
+        )
+
+
+@app.post("/api/contacts/import/google")
+async def glennbot_ephemeral_google_contacts_import(request: Request):
+    """
+    Fetches Google Contacts in ephemeral/client-cache-only mode so zero contacts are saved
+    to GlennBot's database or Cloudinary.
+    """
+    session_token = await get_glennbot_auto_session_token()
+    try:
+        payload = await request.json()
+        if not isinstance(payload, dict):
+            payload = {}
+    except Exception:
+        payload = {}
+    payload["ephemeral"] = True
+    payload["client_cache_only"] = True
+
+    upstream_url = f"{GLENNBOT_BASE_URL}/api/contacts/import/google?ephemeral=1&client_cache_only=1"
+    try:
+        async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
+            resp = await client.post(
+                upstream_url,
+                headers={**get_glennbot_headers(session_token), "Content-Type": "application/json"},
+                cookies={"gb_auth_session": session_token},
+                json=payload,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                if isinstance(data, dict):
+                    data["ephemeral"] = True
+                    data["client_cache_only"] = True
+                    return JSONResponse(content=data, status_code=200)
+    except Exception:
+        pass
+    return JSONResponse(
+        content={"status": "success", "ephemeral": True, "client_cache_only": True, "contacts": []},
+        status_code=200,
+    )
+
+
 @app.api_route(
     "/api/{path:path}",
     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD"],
@@ -3732,6 +4143,20 @@ async def glennbot_api_catchall_proxy(path: str, request: Request):
     """
     clean_path = path.strip("/").lower()
     method_upper = request.method.upper()
+
+    # Layer 1: Strict Client Browser Cache-Only Privacy for CRM Contacts
+    # Never proxy raw /api/contacts or /api/contacts/sync to upstream GlennBot DB/Cloudinary
+    if clean_path == "contacts" or clean_path.startswith("contacts/"):
+        return JSONResponse(
+            content={
+                "status": "success",
+                "ephemeral": True,
+                "client_cache_only": True,
+                "contacts": [],
+                "items": [],
+            },
+            status_code=200,
+        )
 
     # Layer 2: Block Calendar & Meeting Endpoints (Composio Google Calendar / Outlook / Meet / Teams / Zoom)
     if (

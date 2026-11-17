@@ -1379,6 +1379,675 @@ function launchGlennBotMailto() {
 }
 window.launchGlennBotMailto = launchGlennBotMailto;
 
+// ============================================================================
+// SYS-03: IMPORT CONTACTS — CLIENT SANDBOX (STRICT BROWSER CACHE-ONLY PRIVACY)
+// ============================================================================
+const CLIENT_CONTACTS_CACHE_KEY = "gb_portfolio_client_contacts_v1";
+window.CLIENT_CONTACTS_CACHE_KEY = CLIENT_CONTACTS_CACHE_KEY;
+
+function getClientCachedContacts() {
+  try {
+    const raw = localStorage.getItem(CLIENT_CONTACTS_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+}
+window.getClientCachedContacts = getClientCachedContacts;
+
+function saveClientCachedContacts(contactsList) {
+  const safeList = Array.isArray(contactsList) ? contactsList : [];
+  try {
+    localStorage.setItem(CLIENT_CONTACTS_CACHE_KEY, JSON.stringify(safeList));
+  } catch (_) {}
+  updateSys03CachedContactsCountBadge();
+  return safeList;
+}
+window.saveClientCachedContacts = saveClientCachedContacts;
+
+function parseCsvRowsMain(csvText = "") {
+  const text = String(csvText || "").replace(/^\uFEFF/, "");
+  const rows = [];
+  let curRow = [];
+  let curCell = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    const nextCh = text[i + 1];
+    if (inQuotes) {
+      if (ch === '"' && nextCh === '"') {
+        curCell += '"';
+        i += 1;
+      } else if (ch === '"') {
+        inQuotes = false;
+      } else {
+        curCell += ch;
+      }
+    } else if (ch === '"') {
+      inQuotes = true;
+    } else if (ch === ",") {
+      curRow.push(curCell.trim());
+      curCell = "";
+    } else if (ch === "\r" && nextCh === "\n") {
+      curRow.push(curCell.trim());
+      if (curRow.some((c) => c !== "")) rows.push(curRow);
+      curRow = [];
+      curCell = "";
+      i += 1;
+    } else if (ch === "\n" || ch === "\r") {
+      curRow.push(curCell.trim());
+      if (curRow.some((c) => c !== "")) rows.push(curRow);
+      curRow = [];
+      curCell = "";
+    } else {
+      curCell += ch;
+    }
+  }
+  curRow.push(curCell.trim());
+  if (curRow.some((c) => c !== "")) {
+    rows.push(curRow);
+  }
+  return rows;
+}
+
+function parseApolloCsvToClientContacts(
+  csvText = "",
+  nowIso = new Date().toISOString()
+) {
+  const rows = parseCsvRowsMain(csvText);
+  if (rows.length < 2) return [];
+
+  const headerRow = rows[0].map((h) => String(h || "").trim().toLowerCase());
+  const findColIdx = (candidates, fallbackIdx) => {
+    for (const cand of candidates) {
+      const idx = headerRow.indexOf(cand);
+      if (idx !== -1) return idx;
+    }
+    for (const cand of candidates) {
+      const idx = headerRow.findIndex((h) => h.includes(cand));
+      if (idx !== -1) return idx;
+    }
+    return fallbackIdx;
+  };
+
+  const firstNameIdx = findColIdx(["first name", "firstname", "first_name"], 0);
+  const lastNameIdx = findColIdx(["last name", "lastname", "last_name"], 1);
+  const titleIdx = findColIdx(["title", "job title", "role", "position"], 2);
+  // Column E (index 4) is Company in Apollo exports
+  const companyIdx =
+    headerRow[4] &&
+    (headerRow[4].includes("company") || headerRow[4].includes("organization"))
+      ? 4
+      : findColIdx(
+          [
+            "company",
+            "company name",
+            "company_name",
+            "organization",
+            "account name",
+          ],
+          4
+        );
+  // Column F (index 5) is Email Address in Apollo exports
+  const emailIdx =
+    headerRow[5] && headerRow[5].includes("email")
+      ? 5
+      : findColIdx(
+          ["email", "email address", "work email", "primary email"],
+          5
+        );
+  // Column T (index 19) is Contact Number in Apollo exports
+  const phoneIdx =
+    headerRow[19] !== undefined &&
+    (headerRow[19].includes("phone") ||
+      headerRow[19].includes("contact") ||
+      headerRow[19].includes("mobile") ||
+      headerRow.length >= 20)
+      ? 19
+      : findColIdx(
+          [
+            "work direct phone",
+            "corporate phone",
+            "mobile phone",
+            "first phone",
+            "contact number",
+            "phone",
+          ],
+          19
+        );
+
+  const contacts = [];
+  for (let rIdx = 1; rIdx < rows.length; rIdx += 1) {
+    const row = rows[rIdx];
+    const firstName = String(row[firstNameIdx] || "").trim();
+    const lastName = String(row[lastNameIdx] || "").trim();
+    const jobTitle = String(row[titleIdx] || "").trim();
+    const companyName = String(row[companyIdx] || row[4] || "").trim();
+    const emailAddr = String(row[emailIdx] || row[5] || "").trim();
+    let phoneNum = String(row[phoneIdx] || row[19] || "").trim();
+    if (!phoneNum) {
+      const altPhoneIdx = findColIdx(
+        ["phone", "mobile", "contact number", "direct phone"],
+        -1
+      );
+      if (altPhoneIdx >= 0 && row[altPhoneIdx]) {
+        phoneNum = String(row[altPhoneIdx]).trim();
+      }
+    }
+
+    const fullName =
+      [firstName, lastName].filter(Boolean).join(" ").trim() ||
+      (emailAddr ? emailAddr.split("@")[0] : "") ||
+      `Contact ${rIdx}`;
+
+    if (!firstName && !lastName && !emailAddr && !phoneNum && !companyName) {
+      continue;
+    }
+
+    const contactId = `client_csv_${Date.now()}_${rIdx}`;
+    contacts.push({
+      id: contactId,
+      contact_id: contactId,
+      first_name: firstName || fullName.split(" ")[0] || "",
+      last_name: lastName || fullName.split(" ").slice(1).join(" ") || "",
+      name: fullName,
+      full_name: fullName,
+      company: companyName,
+      company_name: companyName,
+      email: emailAddr,
+      email_address: emailAddr,
+      phone: phoneNum,
+      contact_number: phoneNum,
+      title: jobTitle || "Lead",
+      category: jobTitle || "Apollo CSV Lead",
+      source: "Apollo CSV (Client Cache)",
+      platform: "apollo_csv",
+      created_at: nowIso,
+      ephemeral_client_cache: true,
+    });
+  }
+  return contacts;
+}
+window.parseApolloCsvToClientContacts = parseApolloCsvToClientContacts;
+
+function mergeClientContactsCache(existingContacts = [], incomingContacts = []) {
+  const safeExisting = Array.isArray(existingContacts) ? existingContacts : [];
+  const safeIncoming = Array.isArray(incomingContacts) ? incomingContacts : [];
+  const byKey = new Map();
+  const order = [];
+
+  const computeKey = (c, idx) => {
+    const email = String(c.email || c.email_address || "").trim().toLowerCase();
+    if (email) return `email:${email}`;
+    const phone = String(c.phone || c.contact_number || "").replace(/\s+/g, "");
+    if (phone) return `phone:${phone}`;
+    const nameComp = `${String(c.name || c.full_name || "")
+      .trim()
+      .toLowerCase()}|${String(c.company || c.company_name || "")
+      .trim()
+      .toLowerCase()}`;
+    if (nameComp !== "|") return `nc:${nameComp}`;
+    return `id:${String(c.id || c.contact_id || idx)}`;
+  };
+
+  [...safeExisting, ...safeIncoming].forEach((raw, idx) => {
+    if (!raw || typeof raw !== "object") return;
+    const firstName = String(raw.first_name || "").trim();
+    const lastName = String(raw.last_name || "").trim();
+    const fullName =
+      String(raw.name || raw.full_name || "").trim() ||
+      [firstName, lastName].filter(Boolean).join(" ").trim() ||
+      "Client Contact";
+    const company = String(raw.company || raw.company_name || "").trim();
+    const email = String(raw.email || raw.email_address || "").trim();
+    const phone = String(raw.phone || raw.contact_number || "").trim();
+    const id = String(
+      raw.id || raw.contact_id || `client_contact_${Date.now()}_${idx}`
+    );
+    const normalized = {
+      ...raw,
+      id,
+      contact_id: id,
+      first_name: firstName || fullName.split(" ")[0] || "",
+      last_name: lastName || fullName.split(" ").slice(1).join(" ") || "",
+      name: fullName,
+      full_name: fullName,
+      company,
+      company_name: company,
+      email,
+      email_address: email,
+      phone,
+      contact_number: phone,
+      title: String(raw.title || raw.category || "Lead").trim(),
+      category: String(raw.category || raw.title || "Client Imported").trim(),
+      source: String(raw.source || "Client Browser Cache").trim(),
+      platform: String(raw.platform || "apollo_csv").trim(),
+      ephemeral_client_cache: true,
+    };
+    const key = computeKey(normalized, idx);
+    if (!byKey.has(key)) {
+      order.push(key);
+    }
+    byKey.set(key, { ...(byKey.get(key) || {}), ...normalized });
+  });
+
+  return order.map((k) => byKey.get(k));
+}
+window.mergeClientContactsCache = mergeClientContactsCache;
+
+function updateSys03CachedContactsCountBadge() {
+  const countEl = document.getElementById("gb-sys03-cached-count-label");
+  if (!countEl) return;
+  const cached = getClientCachedContacts();
+  countEl.textContent = `View Cached Contacts (${cached.length})`;
+}
+
+function setSys03ImportStatusMessage(msg, isError = false) {
+  const statusEl = document.getElementById("gb-sys03-import-status-msg");
+  if (!statusEl) return;
+  statusEl.textContent = String(msg || "");
+  statusEl.style.color = isError ? "#f87171" : "#34d399";
+}
+
+function openSys03ImportContactsModal(triggerBtn) {
+  if (triggerBtn && typeof triggerBtn.blur === "function") {
+    try {
+      triggerBtn.blur();
+    } catch (_) {}
+  }
+  const modal = document.getElementById("gb-sys03-import-contacts-modal");
+  if (!modal) {
+    return launchSys03ClientContactsPopup();
+  }
+  updateSys03CachedContactsCountBadge();
+  setSys03ImportStatusMessage("Ready for browser-cache import", false);
+  const statusEl = document.getElementById("gb-sys03-import-status-msg");
+  if (statusEl) statusEl.style.color = "#94a3b8";
+  modal.hidden = false;
+
+  if (!modal.dataset.boundSys03Listeners) {
+    modal.dataset.boundSys03Listeners = "true";
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeSys03ImportContactsModal();
+    });
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && !modal.hidden) {
+        e.stopPropagation();
+        closeSys03ImportContactsModal();
+      }
+    });
+  }
+  return modal;
+}
+window.openSys03ImportContactsModal = openSys03ImportContactsModal;
+
+function closeSys03ImportContactsModal() {
+  const modal = document.getElementById("gb-sys03-import-contacts-modal");
+  if (modal) {
+    modal.hidden = true;
+  }
+}
+window.closeSys03ImportContactsModal = closeSys03ImportContactsModal;
+
+function launchSys03ClientContactsPopup() {
+  closeSys03ImportContactsModal();
+  return openGlennBotCustomPopup(
+    "/glennbot-popout?popout_mode=workspace_view&tab=contacts&client_cache_only=1",
+    "GlennBotClientContactsPopup",
+    1260,
+    860
+  );
+}
+window.launchSys03ClientContactsPopup = launchSys03ClientContactsPopup;
+
+function triggerSys03ApolloCsvPicker() {
+  const fileInput = document.getElementById("gb-sys03-apollo-csv-file-input");
+  if (!fileInput) return;
+  fileInput.value = "";
+  fileInput.click();
+}
+window.triggerSys03ApolloCsvPicker = triggerSys03ApolloCsvPicker;
+
+async function handleSys03ApolloCsvFileSelect(event) {
+  const input = event && event.target ? event.target : null;
+  const file = input && input.files && input.files[0] ? input.files[0] : null;
+  if (!file) return;
+
+  setSys03ImportStatusMessage(`Parsing ${file.name} in browser cache...`, false);
+  try {
+    const csvText = await file.text();
+    let extracted = parseApolloCsvToClientContacts(csvText);
+
+    // Optional ephemeral server parse fallback if custom header format needed
+    if (!extracted.length) {
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        const resp = await fetch("/api/contacts/import/apollo-csv?ephemeral=1", {
+          method: "POST",
+          body: formData,
+        });
+        if (resp.ok) {
+          const data = await resp.json();
+          if (data && Array.isArray(data.contacts)) {
+            extracted = data.contacts;
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (!extracted.length) {
+      setSys03ImportStatusMessage(
+        "No valid contacts found in CSV. Try 'Download Sample Apollo CSV' below!",
+        true
+      );
+      return;
+    }
+
+    const existing = getClientCachedContacts();
+    const merged = mergeClientContactsCache(existing, extracted);
+    saveClientCachedContacts(merged);
+    setSys03ImportStatusMessage(
+      `✓ Cached ${extracted.length} contacts in browser localStorage! Opening Contacts CRM...`,
+      false
+    );
+    launchSys03ClientContactsPopup();
+  } catch (err) {
+    setSys03ImportStatusMessage(
+      "Could not read CSV file. Please upload a valid .csv file.",
+      true
+    );
+  }
+}
+window.handleSys03ApolloCsvFileSelect = handleSys03ApolloCsvFileSelect;
+
+function buildSampleApolloCsvContentMain() {
+  const headers = [
+    "First Name",
+    "Last Name",
+    "Title",
+    "Seniority",
+    "Company",
+    "Email",
+    "Email Status",
+    "Stage",
+    "Lists",
+    "Industry",
+    "Employees",
+    "Person Linkedin Url",
+    "Website",
+    "City",
+    "State",
+    "Country",
+    "Company Address",
+    "Company City",
+    "Company Country",
+    "Work Direct Phone",
+  ];
+  const rows = [
+    [
+      "Sophia",
+      "Reyes",
+      "VP of Operations",
+      "VP",
+      "Nexus Logistics PH",
+      "sophia.reyes@nexuslogistics.example.com",
+      "Verified",
+      "Cold",
+      "Q4 Automation Leads",
+      "Logistics & Supply Chain",
+      "120",
+      "https://linkedin.com/in/sophiareyes-demo",
+      "https://nexuslogistics.example.com",
+      "Makati",
+      "Metro Manila",
+      "Philippines",
+      "Ayala Ave",
+      "Makati",
+      "Philippines",
+      "+63 917 555 0142",
+    ],
+    [
+      "Marcus",
+      "Vance",
+      "Head of RevOps",
+      "Director",
+      "CloudScale SaaS Inc.",
+      "m.vance@cloudscalesaas.example.io",
+      "Verified",
+      "Cold",
+      "Q4 Automation Leads",
+      "Computer Software",
+      "85",
+      "https://linkedin.com/in/marcusvance-demo",
+      "https://cloudscalesaas.example.io",
+      "Austin",
+      "Texas",
+      "United States",
+      "Congress Ave",
+      "Austin",
+      "United States",
+      "+1 512-555-0198",
+    ],
+    [
+      "Elena",
+      "Rostova",
+      "Chief Technology Officer",
+      "C-Suite",
+      "FinEdge Payments",
+      "elena@finedgepay.example.com",
+      "Verified",
+      "Warm",
+      "Q4 Automation Leads",
+      "Financial Services",
+      "210",
+      "https://linkedin.com/in/elenarostova-demo",
+      "https://finedgepay.example.com",
+      "Singapore",
+      "Central",
+      "Singapore",
+      "Raffles Place",
+      "Singapore",
+      "Singapore",
+      "+65 8123 4567",
+    ],
+    [
+      "David",
+      "Chen",
+      "Director of Supply Chain",
+      "Director",
+      "Precision Manufacturing Group",
+      "dchen@precisionmfg.example.com",
+      "Verified",
+      "Cold",
+      "Q4 Automation Leads",
+      "Industrial Automation",
+      "450",
+      "https://linkedin.com/in/davidchen-demo",
+      "https://precisionmfg.example.com",
+      "Laguna",
+      "Calabarzon",
+      "Philippines",
+      "Carmelray Industrial Park",
+      "Calamba",
+      "Philippines",
+      "+63 918 555 0239",
+    ],
+    [
+      "Hannah",
+      "Alvarez",
+      "Founder & Managing Partner",
+      "Founder",
+      "BrightPeak Digital Agency",
+      "hannah@brightpeak.example.co",
+      "Verified",
+      "Warm",
+      "Q4 Automation Leads",
+      "Marketing & Advertising",
+      "35",
+      "https://linkedin.com/in/hannahalvarez-demo",
+      "https://brightpeak.example.co",
+      "Taguig",
+      "Metro Manila",
+      "Philippines",
+      "BGC High Street",
+      "Taguig",
+      "Philippines",
+      "+63 917 555 0891",
+    ],
+  ];
+  const escapeCsvCell = (val) => {
+    const str = String(val ?? "");
+    if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+  return [
+    headers.map(escapeCsvCell).join(","),
+    ...rows.map((r) => r.map(escapeCsvCell).join(",")),
+  ].join("\r\n");
+}
+
+function downloadSampleApolloCsv() {
+  const csvContent = buildSampleApolloCsvContentMain();
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "sample_apollo_contacts_export.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.setTimeout(() => URL.revokeObjectURL(url), 1500);
+  setSys03ImportStatusMessage(
+    "✓ Downloaded sample_apollo_contacts_export.csv — click 'Import via Apollo CSV' to upload it!",
+    false
+  );
+  return csvContent;
+}
+window.downloadSampleApolloCsv = downloadSampleApolloCsv;
+
+async function startSys03GoogleContactsImport() {
+  setSys03ImportStatusMessage(
+    "Starting isolated Google Contacts OAuth 2.0 session...",
+    false
+  );
+  const width = 580;
+  const height = 700;
+  const left = Math.max(0, Math.round((window.screen.width - width) / 2));
+  const top = Math.max(0, Math.round((window.screen.height - height) / 2));
+  const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=no`;
+
+  const oauthPopup = window.open("about:blank", "GlennBotGoogleContactsOAuth", features);
+
+  try {
+    const res = await fetch("/api/oauth/google-contacts/start?ephemeral=1&client_cache_only=1", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        ephemeral: true,
+        client_cache_only: true,
+        callback_origin: window.location.origin,
+      }),
+    });
+    const data = await res.json();
+    const redirectUrl =
+      (data && (data.redirect_url || data.auth_url || data.url)) || "";
+
+    if (redirectUrl) {
+      if (oauthPopup && !oauthPopup.closed) {
+        oauthPopup.location.href = redirectUrl;
+        oauthPopup.focus();
+      } else {
+        window.open(redirectUrl, "GlennBotGoogleContactsOAuth", features);
+      }
+      setSys03ImportStatusMessage(
+        "Complete Google sign-in in the popup window to preview your contacts in browser cache...",
+        false
+      );
+      return;
+    }
+
+    if (data && Array.isArray(data.contacts) && data.contacts.length > 0) {
+      if (oauthPopup && !oauthPopup.closed) oauthPopup.close();
+      const merged = mergeClientContactsCache(
+        getClientCachedContacts(),
+        data.contacts
+      );
+      saveClientCachedContacts(merged);
+      setSys03ImportStatusMessage(
+        `✓ Imported ${data.contacts.length} Google Contacts into browser cache!`,
+        false
+      );
+      launchSys03ClientContactsPopup();
+      return;
+    }
+  } catch (_) {}
+
+  if (oauthPopup && !oauthPopup.closed) {
+    oauthPopup.location.href = `/api/oauth/google-contacts/redirect?ephemeral=1&client_cache_only=1&callback_origin=${encodeURIComponent(
+      window.location.origin
+    )}`;
+    oauthPopup.focus();
+  }
+}
+window.startSys03GoogleContactsImport = startSys03GoogleContactsImport;
+
+window.addEventListener("message", async (event) => {
+  const payload = event && event.data ? event.data : null;
+  if (!payload || typeof payload !== "object") return;
+
+  if (
+    payload.type === "GLENNBOT_GOOGLE_CONTACTS_IMPORT_DONE" ||
+    payload.type === "gb_google_contacts_ephemeral_import"
+  ) {
+    let incomingContacts = Array.isArray(payload.contacts)
+      ? payload.contacts
+      : [];
+
+    if (
+      !incomingContacts.length &&
+      (payload.connected_account_id || payload.entity_id)
+    ) {
+      try {
+        const resp = await fetch("/api/contacts/import/google?ephemeral=1", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Accept: "application/json" },
+          body: JSON.stringify({
+            connected_account_id: payload.connected_account_id || "",
+            entity_id: payload.entity_id || "",
+            ephemeral: true,
+            client_cache_only: true,
+          }),
+        });
+        if (resp.ok) {
+          const d = await resp.json();
+          if (d && Array.isArray(d.contacts)) {
+            incomingContacts = d.contacts;
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (incomingContacts.length > 0) {
+      const merged = mergeClientContactsCache(
+        getClientCachedContacts(),
+        incomingContacts
+      );
+      saveClientCachedContacts(merged);
+      setSys03ImportStatusMessage(
+        `✓ Imported ${incomingContacts.length} Google Contacts to browser cache!`,
+        false
+      );
+    }
+    launchSys03ClientContactsPopup();
+  }
+});
+
 (function () {
   const STORAGE_KEY = "glenn_portfolio_theme";
 
@@ -2758,6 +3427,31 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
             <span>📧 Send an Email</span>
           </button>
         </div>`
+          : projectId === "calendar-orchestrator"
+          ? `
+        <div class="modal-case-footer modal-case-footer-sys02">
+          <button
+            type="button"
+            class="btn-sys01-popout btn-live-launcher btn-sys03-import"
+            onclick="event.stopPropagation(); openSys03ImportContactsModal(this);"
+          >
+            <span>📥 Import Contacts</span>
+          </button>
+          <button
+            type="button"
+            class="btn-sys01-popout btn-live-launcher"
+            onclick="event.stopPropagation();"
+          >
+            <span>✍️ Create Custom Message</span>
+          </button>
+          <button
+            type="button"
+            class="btn-sys01-popout btn-live-launcher"
+            onclick="event.stopPropagation();"
+          >
+            <span>🚀 Send Batch Email</span>
+          </button>
+        </div>`
           : `
         <div class="modal-case-footer">
           <button type="button" class="btn-project-widget" data-switch-tab="live-widget">
@@ -2821,7 +3515,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
           </div>
           <pre class="code-viewer-pre"><code>${escapeHtml(proj.sourceCode)}</code></pre>
         </div>
-        ${projectId === "social-scheduler" || projectId === "omnichannel-inbox" ? caseFooterHtml : ""}
+        ${projectId === "social-scheduler" || projectId === "omnichannel-inbox" || projectId === "calendar-orchestrator" ? caseFooterHtml : ""}
       `;
 
       const copyBtn = document.getElementById("modal-copy-code-btn");
@@ -2890,7 +3584,7 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
             <pre id="widget-json-output" class="widget-json-pre">Click "Execute Live API Request" to send a real POST payload to the FastAPI backend...</pre>
           </div>
         </div>
-        ${projectId === "social-scheduler" || projectId === "omnichannel-inbox" ? caseFooterHtml : ""}
+        ${projectId === "social-scheduler" || projectId === "omnichannel-inbox" || projectId === "calendar-orchestrator" ? caseFooterHtml : ""}
       `;
 
       const form = document.getElementById("live-api-widget-form");
@@ -3046,6 +3740,16 @@ async def sync_spreadsheet_to_postgres(payload: SheetSyncRequest):
         e.preventDefault();
         e.stopPropagation();
         openEmailInteractivePopup();
+        return;
+      }
+      const sys03ImportBtn =
+        e.target && e.target.closest
+          ? e.target.closest("#btn-sys03-import-contacts, .btn-sys03-import")
+          : null;
+      if (sys03ImportBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        openSys03ImportContactsModal(sys03ImportBtn);
       }
     });
   }
