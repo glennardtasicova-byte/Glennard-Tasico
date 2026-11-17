@@ -1653,6 +1653,7 @@ function mergeSys03CachedContacts(incomingContacts = []) {
   const existing = getClientCachedContacts();
   const merged = mergeClientContactsCache(existing, incomingContacts);
   saveClientCachedContacts(merged);
+  updateSys03CachedContactsCountBadge();
   broadcastSys03ContactsCacheUpdate(merged);
   return merged;
 }
@@ -1699,12 +1700,109 @@ function broadcastSys03ContactsCacheUpdate(contactsList) {
 }
 window.broadcastSys03ContactsCacheUpdate = broadcastSys03ContactsCacheUpdate;
 
-function updateSys03CachedContactsCountBadge() {
-  const countEl = document.getElementById("gb-sys03-cached-count-label");
-  if (!countEl) return;
-  const cached = getClientCachedContacts();
-  countEl.textContent = `View Cached Contacts (${cached.length})`;
+function renderSys03InlineCachedContactsPreview(contactsOverride = null) {
+  const wrapEl = document.getElementById("gb-sys03-inline-cached-preview-wrap");
+  const countBadgeEl = document.getElementById(
+    "gb-sys03-inline-cached-preview-count"
+  );
+  const tbodyEl = document.getElementById(
+    "gb-sys03-inline-cached-preview-tbody"
+  );
+  if (!wrapEl || !tbodyEl) return;
+
+  const cached = Array.isArray(contactsOverride)
+    ? contactsOverride
+    : getClientCachedContacts();
+
+  if (!cached.length) {
+    wrapEl.hidden = true;
+    wrapEl.style.display = "none";
+    tbodyEl.innerHTML = "";
+    if (countBadgeEl) countBadgeEl.textContent = "0 Contacts";
+    return;
+  }
+
+  wrapEl.hidden = false;
+  wrapEl.style.display = "block";
+  if (countBadgeEl) {
+    countBadgeEl.textContent = `${cached.length} Contact${
+      cached.length === 1 ? "" : "s"
+    } Ready in Browser Cache`;
+  }
+
+  tbodyEl.innerHTML = cached
+    .map((c) => {
+      const fullName = String(c.name || c.full_name || "").trim();
+      const firstName =
+        String(c.first_name || "").trim() ||
+        (fullName ? fullName.split(/\s+/)[0] : "—");
+      const lastName =
+        String(c.last_name || "").trim() ||
+        (fullName ? fullName.split(/\s+/).slice(1).join(" ") : "—") ||
+        "—";
+      const company =
+        String(c.company || c.company_name || "").trim() || "—";
+      const email =
+        String(c.email || c.email_address || "").trim() || "—";
+      const phone =
+        String(c.phone || c.contact_number || "").trim() || "—";
+      const rawPlatform = String(c.platform || c.source || "").toLowerCase();
+      const isGoogle = rawPlatform.includes("google");
+      const sourceLabel = isGoogle ? "Google Contacts" : "Apollo CSV";
+      const badgeStyle = isGoogle
+        ? "background: rgba(56, 189, 248, 0.14); border: 1px solid rgba(56, 189, 248, 0.4); color: #7dd3fc;"
+        : "background: rgba(16, 185, 129, 0.14); border: 1px solid rgba(16, 185, 129, 0.4); color: #6ee7b7;";
+
+      return `<tr style="border-bottom: 1px solid rgba(51, 65, 85, 0.45);">
+        <td style="padding: 7px 10px; color: #f8fafc; font-weight: 600;">${escapeDmHtml(
+          firstName
+        )}</td>
+        <td style="padding: 7px 10px; color: #e2e8f0;">${escapeDmHtml(
+          lastName
+        )}</td>
+        <td style="padding: 7px 10px; color: #cbd5e1;">${escapeDmHtml(
+          company
+        )}</td>
+        <td style="padding: 7px 10px; color: #38bdf8; font-family: monospace;">${escapeDmHtml(
+          email
+        )}</td>
+        <td style="padding: 7px 10px; color: #cbd5e1; font-family: monospace;">${escapeDmHtml(
+          phone
+        )}</td>
+        <td style="padding: 7px 10px;">
+          <span style="display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 999px; font-size: 0.65rem; font-weight: 700; ${badgeStyle}">${escapeDmHtml(
+        sourceLabel
+      )}</span>
+        </td>
+      </tr>`;
+    })
+    .join("");
 }
+window.renderSys03InlineCachedContactsPreview =
+  renderSys03InlineCachedContactsPreview;
+
+function updateSys03CachedContactsCountBadge() {
+  const cached = getClientCachedContacts();
+  const countEl = document.getElementById("gb-sys03-cached-count-label");
+  if (countEl) {
+    countEl.textContent = `View Cached Contacts (${cached.length})`;
+  }
+  const openBtn = document.getElementById("gb-sys03-open-cached-contacts-btn");
+  if (openBtn) {
+    if (cached.length > 0) {
+      openBtn.style.background = "rgba(16, 185, 129, 0.16)";
+      openBtn.style.borderColor = "rgba(16, 185, 129, 0.55)";
+      openBtn.style.color = "#34d399";
+    } else {
+      openBtn.style.background = "rgba(30, 41, 59, 0.85)";
+      openBtn.style.borderColor = "rgba(148, 163, 184, 0.3)";
+      openBtn.style.color = "#e2e8f0";
+    }
+  }
+  renderSys03InlineCachedContactsPreview(cached);
+}
+window.updateSys03CachedContactsCountBadge =
+  updateSys03CachedContactsCountBadge;
 
 function setSys03ImportStatusMessage(
   msg,
@@ -1790,7 +1888,7 @@ function closeSys03ImportContactsModal() {
 window.closeSys03ImportContactsModal = closeSys03ImportContactsModal;
 
 function openSys03CachedContactsPopupWindow() {
-  closeSys03ImportContactsModal();
+  updateSys03CachedContactsCountBadge();
   const popupWin = openGlennBotCustomPopup(
     "/glennbot-popout?popout_mode=workspace_view&tab=contacts&focus=contacts&client_cache_only=1",
     "GlennBotClientContactsPopup",
@@ -1861,7 +1959,7 @@ async function handleSys03ApolloCsvFileSelect(event) {
 
     mergeSys03CachedContacts(extracted);
     setSys03ImportStatusMessage(
-      `✓ Cached ${extracted.length} contacts in browser localStorage! Opening Contacts CRM...`,
+      `✓ Cached ${extracted.length} contacts in browser localStorage! Previewing below & opening Contacts CRM...`,
       false,
       false
     );
@@ -2117,15 +2215,14 @@ async function finalizeSys03GoogleContactsSync(overridePayload = {}) {
         false,
         false
       );
-      closeSys03ImportContactsModal();
       openSys03CachedContactsPopupWindow();
     } else {
+      updateSys03CachedContactsCountBadge();
       setSys03ImportStatusMessage(
         "Google Contacts session finished (0 new contacts returned). Opening Contacts Sandbox...",
         false,
         false
       );
-      closeSys03ImportContactsModal();
       openSys03CachedContactsPopupWindow();
     }
   } catch (err) {

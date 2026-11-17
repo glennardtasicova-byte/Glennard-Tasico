@@ -1115,3 +1115,65 @@ test("SYS-03 Create Custom Message, [[Attributes]] Parser, and Send Batch Email 
   assert.ok(mainPy.includes('"Compose.xlsx"'));
 });
 
+test("SYS-03 Import Contacts modal stays open on import, auto-renders inline cached contacts preview, and hides Link WA/TG, Import Contacts, Export CSV, and + Create Contact inside #view-contacts", async () => {
+  const fs = await import("node:fs");
+  const indexHtml = fs.readFileSync("templates/index.html", "utf8");
+  const mainJs = fs.readFileSync("static/js/main.js", "utf8");
+  const mainPy = fs.readFileSync("main.py", "utf8");
+
+  // 1. Verify inline cached contacts preview section in templates/index.html
+  assert.ok(indexHtml.includes('id="gb-sys03-inline-cached-preview-wrap"'));
+  assert.ok(indexHtml.includes('id="gb-sys03-inline-cached-preview-count"'));
+  assert.ok(indexHtml.includes('id="gb-sys03-inline-cached-preview-tbody"'));
+  assert.ok(
+    indexHtml.includes("View Cached Contacts — Live Imported Preview")
+  );
+
+  // 2. Verify openSys03CachedContactsPopupWindow and finalizeSys03GoogleContactsSync do NOT auto-close #gb-sys03-import-contacts-modal
+  const openPopupFnSlice = mainJs.slice(
+    mainJs.indexOf("function openSys03CachedContactsPopupWindow()"),
+    mainJs.indexOf("window.openSys03CachedContactsPopupWindow =")
+  );
+  assert.ok(!openPopupFnSlice.includes("closeSys03ImportContactsModal()"));
+  assert.ok(openPopupFnSlice.includes("updateSys03CachedContactsCountBadge()"));
+
+  const finalizeGoogleSlice = mainJs.slice(
+    mainJs.indexOf("async function finalizeSys03GoogleContactsSync("),
+    mainJs.indexOf("window.finalizeSys03GoogleContactsSync =")
+  );
+  assert.ok(!finalizeGoogleSlice.includes("closeSys03ImportContactsModal()"));
+  assert.ok(finalizeGoogleSlice.includes("openSys03CachedContactsPopupWindow()"));
+
+  assert.ok(
+    mainJs.includes("function renderSys03InlineCachedContactsPreview(")
+  );
+
+  // 3. Verify buildInstantPopoutStyleTag and main.py hide the 4 toolbar buttons inside #view-contacts
+  const popoutCss = buildInstantPopoutStyleTag("workspace_view", "contacts");
+  const requiredContactsToolbarSelectors = [
+    "#view-contacts button[onclick*=\"openConnectAccountsModal('whatsapp')\"]",
+    '#view-contacts button[title="Connect WhatsApp or Telegram"]',
+    "#crm-import-contacts-dropdown-wrap",
+    "#btn-import-contacts-menu",
+    "#crm-import-contacts-submenu",
+    '#view-contacts button[onclick*="exportCrmContactsToCsv"]',
+    '#view-contacts button[title="Export CRM Contacts to Excel CSV"]',
+    '#view-contacts button[onclick*="openCrmContactModal"]',
+  ];
+  for (const sel of requiredContactsToolbarSelectors) {
+    assert.ok(
+      popoutCss.includes(sel),
+      `Expected buildInstantPopoutStyleTag to include ${sel}`
+    );
+    const pyEscapedSel = sel.replace(/"/g, '\\"');
+    assert.ok(
+      mainPy.includes(sel) || mainPy.includes(pyEscapedSel),
+      `Expected main.py contacts_demo_lock_css to include ${sel}`
+    );
+  }
+  assert.ok(
+    mainPy.includes(
+      "_pre_transform_popout_html_shell = _apply_instant_popout_dom_transforms"
+    )
+  );
+});

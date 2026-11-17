@@ -231,6 +231,22 @@ export function buildInstantPopoutStyleTag(targetTab = "scheduler", popoutMode =
     `    pointer-events: none !important;`,
     `  }`,
   ].join("\n");
+  const contactsDemoLockCss = [
+    `  /* Portfolio Demo Mode: Hide Link WA/TG, Import Contacts, Export CSV, and + Create Contact inside CRM Contacts Database (#view-contacts) */`,
+    `  #view-contacts button[onclick*="openConnectAccountsModal('whatsapp')"],`,
+    `  #view-contacts button[title="Connect WhatsApp or Telegram"],`,
+    `  #crm-import-contacts-dropdown-wrap,`,
+    `  #btn-import-contacts-menu,`,
+    `  #crm-import-contacts-submenu,`,
+    `  #view-contacts button[onclick*="exportCrmContactsToCsv"],`,
+    `  #view-contacts button[title="Export CRM Contacts to Excel CSV"],`,
+    `  #view-contacts button[onclick*="openCrmContactModal"] {`,
+    `    display: none !important;`,
+    `    visibility: hidden !important;`,
+    `    opacity: 0 !important;`,
+    `    pointer-events: none !important;`,
+    `  }`,
+  ].join("\n");
   return [
     `<style id="gb-portfolio-cal-lock">`,
     `  #cal-subtab-composio,`,
@@ -240,6 +256,7 @@ export function buildInstantPopoutStyleTag(targetTab = "scheduler", popoutMode =
     `  }`,
     composerHideCss,
     emailDemoLockCss,
+    contactsDemoLockCss,
     `</style>`,
     `<style id="gb-instant-popout-css">`,
     `  /* Immediately hide login gate and full dashboard homepage chrome */`,
@@ -263,6 +280,7 @@ export function buildInstantPopoutStyleTag(targetTab = "scheduler", popoutMode =
     `  }`,
     composerHideCss,
     emailDemoLockCss,
+    contactsDemoLockCss,
     `  /* Immediately show the Expanded Focus Window top bar */`,
     `  #gb-popout-window-bar {`,
     `    display: flex !important;`,

@@ -1122,6 +1122,23 @@ def _build_session_injector_snippet(
         "  }\n"
     )
 
+    contacts_demo_lock_css = (
+        "  /* Portfolio Demo Mode: Hide Link WA/TG, Import Contacts, Export CSV, and + Create Contact inside CRM Contacts Database (#view-contacts) */\n"
+        "  #view-contacts button[onclick*=\"openConnectAccountsModal('whatsapp')\"],\n"
+        "  #view-contacts button[title=\"Connect WhatsApp or Telegram\"],\n"
+        "  #crm-import-contacts-dropdown-wrap,\n"
+        "  #btn-import-contacts-menu,\n"
+        "  #crm-import-contacts-submenu,\n"
+        "  #view-contacts button[onclick*=\"exportCrmContactsToCsv\"],\n"
+        "  #view-contacts button[title=\"Export CRM Contacts to Excel CSV\"],\n"
+        "  #view-contacts button[onclick*=\"openCrmContactModal\"] {\n"
+        "    display: none !important;\n"
+        "    visibility: hidden !important;\n"
+        "    opacity: 0 !important;\n"
+        "    pointer-events: none !important;\n"
+        "  }\n"
+    )
+
     instant_css = (
         "<style id=\"gb-portfolio-cal-lock\">\n"
         "  #cal-subtab-composio,\n"
@@ -1138,6 +1155,7 @@ def _build_session_injector_snippet(
         "  }\n"
         f"{composer_hide_css}"
         f"{email_demo_lock_css}"
+        f"{contacts_demo_lock_css}"
         "</style>\n"
         "<style id=\"gb-instant-popout-css\">\n"
         "  /* Immediately hide login gate and full dashboard homepage chrome */\n"
@@ -1161,6 +1179,7 @@ def _build_session_injector_snippet(
         "  }\n"
         f"{composer_hide_css}"
         f"{email_demo_lock_css}"
+        f"{contacts_demo_lock_css}"
         "  /* Immediately show the Expanded Focus Window top bar */\n"
         "  #gb-popout-window-bar {\n"
         "    display: flex !important;\n"
@@ -1186,6 +1205,7 @@ def _build_session_injector_snippet(
         "  }\n"
         f"{composer_hide_css}"
         f"{email_demo_lock_css}"
+        f"{contacts_demo_lock_css}"
         "</style>"
     )
 
@@ -1339,11 +1359,26 @@ def _apply_instant_popout_dom_transforms(
         "compose-email-modal",
         "btn-email-sync",
         "btn-sync-email-sent",
+        "crm-import-contacts-dropdown-wrap",
+        "btn-import-contacts-menu",
+        "crm-import-contacts-submenu",
     ):
         html_text = html_text.replace(
             f'id="{cal_id}" class="',
             f'id="{cal_id}" style="display:none!important" class="hidden ',
             1,
+        )
+
+    for contacts_btn_marker in (
+        'onclick="openConnectAccountsModal(\'whatsapp\')"',
+        'title="Connect WhatsApp or Telegram"',
+        'onclick="exportCrmContactsToCsv()"',
+        'title="Export CRM Contacts to Excel CSV"',
+        'onclick="openCrmContactModal()"',
+    ):
+        html_text = html_text.replace(
+            contacts_btn_marker,
+            f'{contacts_btn_marker} style="display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important" hidden',
         )
 
     # 5. Lock Email Hub top-level script state to activeEmailFolder = 'sent' and activeEmailPlatform = 'gmail'
@@ -1371,6 +1406,9 @@ def _apply_instant_popout_dom_transforms(
     )
 
     return html_text
+
+
+_pre_transform_popout_html_shell = _apply_instant_popout_dom_transforms
 
 
 def _build_calendar_lock_body_script() -> str:
@@ -2342,6 +2380,25 @@ def _build_calendar_lock_body_script() -> str:
         "}"
         "var vc=document.getElementById('view-contacts');"
         "if(vc){"
+        "["
+        "\"button[onclick*=\\\"openConnectAccountsModal('whatsapp')\\\"]\","
+        "\"button[title='Connect WhatsApp or Telegram']\","
+        "'#crm-import-contacts-dropdown-wrap',"
+        "'#btn-import-contacts-menu',"
+        "'#crm-import-contacts-submenu',"
+        "\"button[onclick*='exportCrmContactsToCsv']\","
+        "\"button[title='Export CRM Contacts to Excel CSV']\","
+        "\"button[onclick*='openCrmContactModal']\""
+        "].forEach(function(sel){"
+        "vc.querySelectorAll(sel).forEach(function(btn){"
+        "btn.classList.add('hidden');"
+        "btn.style.setProperty('display','none','important');"
+        "btn.style.setProperty('visibility','hidden','important');"
+        "btn.style.setProperty('opacity','0','important');"
+        "btn.style.setProperty('pointer-events','none','important');"
+        "try{btn.remove();}catch(_){}"
+        "});"
+        "});"
         "vc.querySelectorAll('span, div, p, small').forEach(function(el){"
         "if(el.children&&el.children.length>0)return;"
         "var txt=String(el.textContent||'').trim();"
