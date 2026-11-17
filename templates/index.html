@@ -2369,6 +2369,12 @@
         </button>
       </div>
 
+      <!-- Status Banner (#sys03-import-contacts-status) -->
+      <div
+        id="sys03-import-contacts-status"
+        style="display: none; margin-top: 12px; padding: 10px 14px; border-radius: 10px; background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(56, 189, 248, 0.35); color: #e2e8f0; font-size: 12px; font-weight: 600; align-items: center; gap: 8px;"
+      ></div>
+
       <!-- Secondary Actions Row: Sample Apollo CSV Download + Status Feedback -->
       <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(148, 163, 184, 0.16); display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -2384,7 +2390,7 @@
           <button
             type="button"
             id="gb-sys03-open-cached-contacts-btn"
-            onclick="event.stopPropagation(); launchSys03ClientContactsPopup();"
+            onclick="event.stopPropagation(); openSys03CachedContactsPopupWindow();"
             style="display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 8px; background: rgba(15, 23, 42, 0.75); border: 1px solid rgba(148, 163, 184, 0.3); color: #cbd5e1; font-size: 12px; font-weight: 600; cursor: pointer;"
           >
             <i class="fas fa-external-link-alt" aria-hidden="true"></i>
@@ -2406,6 +2412,6 @@
   </footer>
 
   <!-- Custom Script -->
-  <script src="/static/js/main.js?v=78"></script>
+  <script src="/static/js/main.js?v=79"></script>
 </body>
 </html>

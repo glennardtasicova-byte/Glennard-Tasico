@@ -2186,12 +2186,64 @@ def _build_calendar_lock_body_script() -> str:
         "var em=String(c.email||c.email_address||'').trim();"
         "var ph=String(c.phone||c.contact_number||'').trim();"
         "var id=String(c.id||c.contact_id||('client_contact_'+Date.now()+'_'+idx));"
-        "var norm=Object.assign({},c,{id:id,contact_id:id,first_name:fn||nm.split(' ')[0]||'',last_name:ln||nm.split(' ').slice(1).join(' ')||'',name:nm,full_name:nm,company:comp,company_name:comp,email:em,email_address:em,phone:ph,contact_number:ph,title:String(c.title||c.category||'Lead').trim(),category:String(c.category||c.title||'Client Imported').trim(),source:String(c.source||'Client Browser Cache').trim(),platform:String(c.platform||'apollo_csv').trim(),ephemeral_client_cache:true});"
+        "var norm=Object.assign({},c,{id:id,contact_id:id,first_name:fn||nm.split(' ')[0]||'',last_name:ln||nm.split(' ').slice(1).join(' ')||'',name:nm,full_name:nm,company:comp,company_name:comp,email:em,email_address:em,phone:ph,contact_number:ph,title:String(c.title||c.category||'Lead').trim(),category:String(c.category||c.title||'Client Imported').trim(),source:String(c.source||'Client Browser Cache').trim(),platform:String(c.platform||'apollo_csv').trim(),ephemeral:true,ephemeral_client_cache:true});"
         "var k=em?('em:'+em.toLowerCase()):(ph?('ph:'+ph.replace(/\\s+/g,'')):('id:'+id));"
         "if(!byKey[k])order.push(k);"
         "byKey[k]=Object.assign({},byKey[k]||{},norm);"
         "});"
         "return order.map(function(k){return byKey[k];});"
+        "}"
+        "function _syncClientCacheToPopupUi(){"
+        "var cached=_readClientCacheContacts();"
+        "window.contactsList=cached;"
+        "try{if(typeof contactsList!=='undefined'){contactsList=cached;}}catch(_){}"
+        "if(typeof window.renderContactsList==='function'){try{window.renderContactsList();}catch(_){}}"
+        "if(typeof window.renderContactsTable==='function'){try{window.renderContactsTable();}catch(_){}}"
+        "}"
+        "window._syncClientCacheToPopupUi=_syncClientCacheToPopupUi;"
+        "if(!window.__gbClientContactsEventsBound){"
+        "window.__gbClientContactsEventsBound=true;"
+        "window.addEventListener('storage',function(ev){"
+        "if(!ev||!ev.key||ev.key===CACHE_KEY){_syncClientCacheToPopupUi();}"
+        "});"
+        "try{"
+        "if(typeof BroadcastChannel!=='undefined'){"
+        "var bc=new BroadcastChannel('glennbot_portfolio_contacts_channel');"
+        "bc.onmessage=function(ev){"
+        "if(ev&&ev.data&&Array.isArray(ev.data.contacts)){"
+        "var m=_mergeClientCacheContacts(_readClientCacheContacts(),ev.data.contacts);"
+        "_writeClientCacheContacts(m);"
+        "}"
+        "_syncClientCacheToPopupUi();"
+        "};"
+        "}"
+        "}catch(_){}"
+        "window.addEventListener('message',async function(ev){"
+        "var p=ev&&ev.data?ev.data:null;"
+        "if(!p||typeof p!=='object')return;"
+        "if(p.type==='GLENNBOT_CLIENT_CONTACTS_CACHE_UPDATED'){"
+        "if(Array.isArray(p.contacts)){"
+        "var m=_mergeClientCacheContacts(_readClientCacheContacts(),p.contacts);"
+        "_writeClientCacheContacts(m);"
+        "}"
+        "_syncClientCacheToPopupUi();"
+        "return;"
+        "}"
+        "if(p.type==='GLENNBOT_GOOGLE_CONTACTS_IMPORT_DONE'||p.type==='gb_google_contacts_ephemeral_import'){"
+        "if(window.__gbPopupGoogleSyncInFlight)return;"
+        "window.__gbPopupGoogleSyncInFlight=true;"
+        "try{"
+        "if(Array.isArray(p.contacts)&&p.contacts.length>0){"
+        "var mDirect=_mergeClientCacheContacts(_readClientCacheContacts(),p.contacts);"
+        "_writeClientCacheContacts(mDirect);"
+        "}else{"
+        "var rSync=await window.fetch('/api/contacts/import/google?ephemeral=1&client_cache_only=1',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify({connected_account_id:p.connected_account_id||(window.__gbPendingPopupGoogleOAuth&&window.__gbPendingPopupGoogleOAuth.connected_account_id)||'',entity_id:p.entity_id||(window.__gbPendingPopupGoogleOAuth&&window.__gbPendingPopupGoogleOAuth.entity_id)||'',account_email:p.account_email||p.email||'',ephemeral:true,client_cache_only:true})});"
+        "if(rSync&&rSync.ok){var dSync=await rSync.json();if(dSync&&Array.isArray(dSync.contacts)&&dSync.contacts.length>0){var mSync=_mergeClientCacheContacts(_readClientCacheContacts(),dSync.contacts);_writeClientCacheContacts(mSync);}}"
+        "}"
+        "}catch(_){}finally{window.__gbPopupGoogleSyncInFlight=false;}"
+        "_syncClientCacheToPopupUi();"
+        "}"
+        "});"
         "}"
         "if(!window.__gbClientContactsFetchPatched&&typeof window.fetch==='function'){"
         "window.__gbClientContactsFetchPatched=true;"
@@ -2199,6 +2251,17 @@ def _build_calendar_lock_body_script() -> str:
         "window.fetch=async function(input,init){"
         "var urlStr=typeof input==='string'?input:((input&&input.url)?input.url:'');"
         "var method=String((init&&init.method)||(input&&input.method)||'GET').toUpperCase();"
+        "if(urlStr.indexOf('/api/oauth/google-contacts/start')!==-1){"
+        "var rStart=await _origFetch(input,init);"
+        "try{"
+        "var cStart=rStart.clone();"
+        "var dStart=await cStart.json();"
+        "if(dStart&&typeof dStart==='object'){"
+        "window.__gbPendingPopupGoogleOAuth={connected_account_id:dStart.connected_account_id||'',entity_id:dStart.entity_id||'',account_email:dStart.account_email||dStart.email||''};"
+        "}"
+        "}catch(_){}"
+        "return rStart;"
+        "}"
         "if(urlStr.indexOf('/api/contacts')!==-1){"
         "var pathPart=urlStr.split('?')[0];"
         "if(pathPart.indexOf('/api/contacts/import/apollo-csv')!==-1){"
@@ -2211,7 +2274,8 @@ def _build_calendar_lock_body_script() -> str:
         "if(d&&Array.isArray(d.contacts)){"
         "var merged=_mergeClientCacheContacts(_readClientCacheContacts(),d.contacts);"
         "_writeClientCacheContacts(merged);"
-        "return new Response(JSON.stringify({status:'success',ephemeral:true,client_cache_only:true,imported_count:d.contacts.length,contacts:merged}),{status:200,headers:{'Content-Type':'application/json'}});"
+        "_syncClientCacheToPopupUi();"
+        "return new Response(JSON.stringify({status:'success',ephemeral:true,client_cache_only:true,imported_count:d.contacts.length,total_contacts:merged.length,contacts:merged}),{status:200,headers:{'Content-Type':'application/json'}});"
         "}"
         "}catch(_){}"
         "return r;"
@@ -2226,23 +2290,27 @@ def _build_calendar_lock_body_script() -> str:
         "if(dg&&Array.isArray(dg.contacts)){"
         "var mergedG=_mergeClientCacheContacts(_readClientCacheContacts(),dg.contacts);"
         "_writeClientCacheContacts(mergedG);"
-        "return new Response(JSON.stringify({status:'success',ephemeral:true,client_cache_only:true,imported_count:dg.contacts.length,contacts:mergedG}),{status:200,headers:{'Content-Type':'application/json'}});"
+        "_syncClientCacheToPopupUi();"
+        "return new Response(JSON.stringify({status:'success',ephemeral:true,client_cache_only:true,imported_count:dg.contacts.length,total_contacts:mergedG.length,contacts:mergedG}),{status:200,headers:{'Content-Type':'application/json'}});"
         "}"
         "}catch(_){}"
         "return rg;"
         "}"
         "if(pathPart.indexOf('/api/contacts/bulk-delete')!==-1&&method==='POST'){"
         "var idsToDel=[];"
-        "try{var bObj=init&&init.body?JSON.parse(String(init.body)):{};idsToDel=Array.isArray(bObj.contact_ids)?bObj.contact_ids:(Array.isArray(bObj.ids)?bObj.ids:[]);}catch(_){}"
-        "var idSet={};idsToDel.forEach(function(x){idSet[String(x)]=true;});"
-        "var rem=_readClientCacheContacts().filter(function(c){return !idSet[String(c.id||c.contact_id||'')];});"
+        "var delAll=false;"
+        "try{var bObj=init&&init.body?JSON.parse(String(init.body)):{};delAll=Boolean(bObj.delete_all);idsToDel=Array.isArray(bObj.contact_ids)?bObj.contact_ids:(Array.isArray(bObj.ids)?bObj.ids:[]);}catch(_){}"
+        "var rem=[];"
+        "if(!delAll){var idSet={};idsToDel.forEach(function(x){idSet[String(x)]=true;});rem=_readClientCacheContacts().filter(function(c){return !idSet[String(c.id||c.contact_id||'')];});}"
         "_writeClientCacheContacts(rem);"
-        "return new Response(JSON.stringify({status:'success',deleted_count:idsToDel.length,contacts:rem}),{status:200,headers:{'Content-Type':'application/json'}});"
+        "_syncClientCacheToPopupUi();"
+        "return new Response(JSON.stringify({status:'success',deleted_count:delAll?0:idsToDel.length,contacts:rem}),{status:200,headers:{'Content-Type':'application/json'}});"
         "}"
         "if(method==='DELETE'&&pathPart.indexOf('/api/contacts/')!==-1){"
         "var delId=decodeURIComponent(pathPart.split('/api/contacts/')[1]||'');"
         "var afterDel=_readClientCacheContacts().filter(function(c){return String(c.id||c.contact_id||'')!==delId;});"
         "_writeClientCacheContacts(afterDel);"
+        "_syncClientCacheToPopupUi();"
         "return new Response(JSON.stringify({status:'success',deleted_id:delId,contacts:afterDel}),{status:200,headers:{'Content-Type':'application/json'}});"
         "}"
         "if(method==='POST'&&pathPart.indexOf('/api/contacts/sync')===-1){"
@@ -2252,6 +2320,7 @@ def _build_calendar_lock_body_script() -> str:
         "var incomingArr=Array.isArray(payloadObj.contacts)?payloadObj.contacts:[payloadObj];"
         "var updated=_mergeClientCacheContacts(curList,incomingArr);"
         "_writeClientCacheContacts(updated);"
+        "_syncClientCacheToPopupUi();"
         "return new Response(JSON.stringify({status:'success',ephemeral:true,client_cache_only:true,contact:updated[updated.length-1]||payloadObj,contacts:updated}),{status:200,headers:{'Content-Type':'application/json'}});"
         "}"
         "var cachedNow=_readClientCacheContacts();"
@@ -2290,8 +2359,9 @@ def _build_calendar_lock_body_script() -> str:
         "if(window.gbActivePopoutParams&&window.gbActivePopoutParams.tab==='email'&&typeof window.switchEmailFolder==='function'){"
         "try{window.switchEmailFolder('sent');}catch(_){}"
         "}"
-        "if(window.gbActivePopoutParams&&window.gbActivePopoutParams.tab==='contacts'&&typeof window.fetchContacts==='function'){"
-        "try{window.fetchContacts();}catch(_){}"
+        "if(window.gbActivePopoutParams&&(window.gbActivePopoutParams.tab==='contacts'||window.gbActivePopoutParams.focus==='contacts')){"
+        "if(typeof window._syncClientCacheToPopupUi==='function'){try{window._syncClientCacheToPopupUi();}catch(_){}}"
+        "if(typeof window.fetchContacts==='function'){try{window.fetchContacts();}catch(_){}}"
         "}"
         "try{"
         "var obsTarget=document.body||document.getElementById('comment-detail-panel');"
@@ -2325,7 +2395,7 @@ async def glennbot_authenticated_popout(request: Request):
         return HTMLResponse(content="", status_code=200)
 
     popout_mode = (request.query_params.get("popout_mode") or "workspace_view").strip() or "workspace_view"
-    raw_tab = request.query_params.get("tab")
+    raw_tab = request.query_params.get("tab") or request.query_params.get("focus")
     if not raw_tab and popout_mode == "comment_thread":
         raw_tab = "comments"
     elif not raw_tab and popout_mode == "message_thread":
@@ -2560,8 +2630,9 @@ async def glennbot_authenticated_popout(request: Request):
                     "}).join('');"
                     "}catch(_){}"
                     "};"
+                    "window.renderContactsList=window.renderContactsTable;"
                     "if(window.location.search.indexOf('tab=email')!==-1){setTimeout(function(){window.fetchEmailMessages('sent');},80);}"
-                    "if(window.location.search.indexOf('tab=contacts')!==-1){setTimeout(function(){window.renderContactsTable();},50);}"
+                    "if(window.location.search.indexOf('tab=contacts')!==-1||window.location.search.indexOf('focus=contacts')!==-1){setTimeout(function(){window.renderContactsTable();},50);}"
                     "window.selectedConversationId='';window.selectedAccountId='6af0b109818eb5c88d1e87a6';"
                     "window.selectMessageConversation=async function(convKey,convId,accId){"
                     "window.selectedConversationId=String(convId||'');window.selectedAccountId=String(accId||'6af0b109818eb5c88d1e87a6');"
@@ -4094,8 +4165,15 @@ async def glennbot_ephemeral_google_contacts_oauth(subpath: str, request: Reques
 @app.post("/api/contacts/import/google")
 async def glennbot_ephemeral_google_contacts_import(request: Request):
     """
-    Fetches Google Contacts in ephemeral/client-cache-only mode so zero contacts are saved
-    to GlennBot's database or Cloudinary.
+    Fetches Google Contacts in ephemeral/client-cache-only mode:
+    1. Checks GET {GLENNBOT_BASE_URL}/api/contacts for contacts with platform == 'google_contacts'
+       or id starting with 'crm_gcontacts_' (already written by the OAuth callback).
+    2. If none found yet, triggers POST {GLENNBOT_BASE_URL}/api/contacts/import/google (timeout=130.0)
+       while concurrently polling GET {GLENNBOT_BASE_URL}/api/contacts every 2.5s (up to 45s)
+       to capture contacts as soon as the OAuth callback finishes.
+    3. Immediately purges those exact crm_gcontacts_* contact IDs from upstream GlennBot via
+       POST {GLENNBOT_BASE_URL}/api/contacts/bulk-delete so zero client contacts remain stored
+       in GlennBot's database or Cloudinary.
     """
     session_token = await get_glennbot_auto_session_token()
     try:
@@ -4104,28 +4182,208 @@ async def glennbot_ephemeral_google_contacts_import(request: Request):
             payload = {}
     except Exception:
         payload = {}
-    payload["ephemeral"] = True
-    payload["client_cache_only"] = True
 
-    upstream_url = f"{GLENNBOT_BASE_URL}/api/contacts/import/google?ephemeral=1&client_cache_only=1"
-    try:
-        async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as client:
-            resp = await client.post(
-                upstream_url,
-                headers={**get_glennbot_headers(session_token), "Content-Type": "application/json"},
-                cookies={"gb_auth_session": session_token},
-                json=payload,
+    connected_account_id = str(payload.get("connected_account_id") or "").strip()
+    entity_id = str(payload.get("entity_id") or "").strip()
+    account_email = str(payload.get("account_email") or payload.get("email") or "").strip()
+
+    def _normalize_google_contact_list(raw_list: list, email_filter: str = "") -> list[dict]:
+        matched_all: list[dict] = []
+        matched_by_email: list[dict] = []
+        clean_email = email_filter.strip().lower()
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        for idx, c in enumerate(raw_list):
+            if not isinstance(c, dict):
+                continue
+            cid = str(c.get("id") or c.get("contact_id") or "").strip()
+            plat = str(c.get("platform") or "").strip().lower()
+            src = str(c.get("source") or "").strip().lower()
+            is_gcontact = (
+                plat == "google_contacts"
+                or cid.startswith("crm_gcontacts_")
+                or "google" in plat
+                or "google" in src
             )
-            if resp.status_code == 200:
-                data = resp.json()
-                if isinstance(data, dict):
-                    data["ephemeral"] = True
-                    data["client_cache_only"] = True
-                    return JSONResponse(content=data, status_code=200)
-    except Exception:
-        pass
+            if not is_gcontact:
+                continue
+
+            fn = str(c.get("first_name") or "").strip()
+            ln = str(c.get("last_name") or "").strip()
+            full_name = (
+                str(c.get("name") or c.get("full_name") or "").strip()
+                or " ".join(p for p in (fn, ln) if p).strip()
+                or "Google Contact"
+            )
+            comp = str(c.get("company") or c.get("company_name") or "").strip()
+            em = str(c.get("email") or c.get("email_address") or "").strip()
+            ph = str(c.get("phone") or c.get("contact_number") or "").strip()
+            norm_id = cid or f"crm_gcontacts_{int(time.time() * 1000)}_{idx}"
+
+            normalized = {
+                **c,
+                "id": norm_id,
+                "contact_id": norm_id,
+                "first_name": fn or full_name.split(" ")[0],
+                "last_name": ln or " ".join(full_name.split(" ")[1:]),
+                "name": full_name,
+                "full_name": full_name,
+                "company": comp,
+                "company_name": comp,
+                "email": em,
+                "email_address": em,
+                "phone": ph,
+                "contact_number": ph,
+                "platform": "google_contacts",
+                "source": str(c.get("source") or "Google Contacts (Client Cache)"),
+                "created_at": str(c.get("created_at") or now_iso),
+                "ephemeral": True,
+                "ephemeral_client_cache": True,
+            }
+            matched_all.append(normalized)
+            if clean_email:
+                meta_blob = " ".join(
+                    str(c.get(k) or "")
+                    for k in ("notes", "account_email", "owner_email", "imported_by", "source")
+                ).lower()
+                if clean_email in meta_blob:
+                    matched_by_email.append(normalized)
+
+        return matched_by_email if matched_by_email else matched_all
+
+    async def _fetch_upstream_google_contacts() -> list[dict]:
+        contacts_url = f"{GLENNBOT_BASE_URL}/api/contacts?_ts={int(time.time() * 1000)}"
+        try:
+            async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as client:
+                resp = await client.get(
+                    contacts_url,
+                    headers={
+                        **get_glennbot_headers(session_token),
+                        "Cache-Control": "no-cache, no-store",
+                    },
+                    cookies={"gb_auth_session": session_token},
+                )
+                if resp.status_code == 200:
+                    data = resp.json()
+                    raw_items = (
+                        (data.get("contacts") or data.get("items") or [])
+                        if isinstance(data, dict)
+                        else (data if isinstance(data, list) else [])
+                    )
+                    if isinstance(raw_items, list):
+                        return _normalize_google_contact_list(raw_items, account_email)
+        except Exception:
+            pass
+        return []
+
+    async def _purge_upstream_google_contacts(contact_ids: list[str]) -> None:
+        clean_ids = [str(cid).strip() for cid in contact_ids if str(cid or "").strip()]
+        if not clean_ids:
+            return
+        purge_url = f"{GLENNBOT_BASE_URL}/api/contacts/bulk-delete"
+        try:
+            async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as client:
+                await client.post(
+                    purge_url,
+                    headers={
+                        **get_glennbot_headers(session_token),
+                        "Content-Type": "application/json",
+                    },
+                    cookies={"gb_auth_session": session_token},
+                    json={"delete_all": False, "contact_ids": clean_ids},
+                )
+        except Exception:
+            pass
+
+    # Step 4: Immediate check of GET {GLENNBOT_BASE_URL}/api/contacts
+    harvested_contacts = await _fetch_upstream_google_contacts()
+
+    # Step 5: If no google_contacts found yet, fire POST /api/contacts/import/google (timeout=130.0)
+    # while concurrently polling GET /api/contacts every 2.5s (up to 45s)
+    if not harvested_contacts:
+        post_result_holder: dict[str, list[dict]] = {"contacts": []}
+        post_done_event = asyncio.Event()
+
+        async def _run_upstream_import_post() -> None:
+            upstream_url = f"{GLENNBOT_BASE_URL}/api/contacts/import/google?ephemeral=1&client_cache_only=1"
+            req_json = {
+                "connected_account_id": connected_account_id,
+                "entity_id": entity_id,
+                "account_email": account_email,
+                "ephemeral": True,
+                "client_cache_only": True,
+            }
+            try:
+                async with httpx.AsyncClient(timeout=130.0, follow_redirects=True) as client:
+                    resp = await client.post(
+                        upstream_url,
+                        headers={
+                            **get_glennbot_headers(session_token),
+                            "Content-Type": "application/json",
+                        },
+                        cookies={"gb_auth_session": session_token},
+                        json=req_json,
+                    )
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        if isinstance(data, dict):
+                            raw_c = data.get("contacts") or data.get("items") or []
+                            if isinstance(raw_c, list) and raw_c:
+                                normalized_c = _normalize_google_contact_list(raw_c, account_email)
+                                if not normalized_c:
+                                    # Fallback if upstream returned contacts without platform='google_contacts'
+                                    for idx, item in enumerate(raw_c):
+                                        if isinstance(item, dict):
+                                            item_copy = {**item, "platform": "google_contacts"}
+                                            normalized_c.extend(
+                                                _normalize_google_contact_list([item_copy], account_email)
+                                            )
+                                post_result_holder["contacts"] = normalized_c
+            except Exception:
+                pass
+            finally:
+                post_done_event.set()
+
+        post_task = asyncio.create_task(_run_upstream_import_post())
+        deadline = time.time() + 45.0
+        while time.time() < deadline:
+            if post_result_holder["contacts"]:
+                harvested_contacts = post_result_holder["contacts"]
+                break
+            polled = await _fetch_upstream_google_contacts()
+            if polled:
+                harvested_contacts = polled
+                break
+            if post_done_event.is_set():
+                harvested_contacts = post_result_holder["contacts"] or await _fetch_upstream_google_contacts()
+                break
+            try:
+                await asyncio.wait_for(post_done_event.wait(), timeout=2.5)
+            except asyncio.TimeoutError:
+                pass
+
+        if not post_task.done():
+            post_task.cancel()
+
+    # Step 6: CRITICAL PRIVACY PURGE — immediately delete harvested crm_gcontacts_* from upstream
+    if harvested_contacts:
+        ids_to_purge = [
+            str(c.get("id") or c.get("contact_id") or "").strip()
+            for c in harvested_contacts
+            if c.get("id") or c.get("contact_id")
+        ]
+        await _purge_upstream_google_contacts(ids_to_purge)
+
+    # Step 7: Return normalized ephemeral contacts for client browser localStorage
     return JSONResponse(
-        content={"status": "success", "ephemeral": True, "client_cache_only": True, "contacts": []},
+        content={
+            "status": "success",
+            "ephemeral": True,
+            "client_cache_only": True,
+            "imported_count": len(harvested_contacts),
+            "total_contacts": len(harvested_contacts),
+            "contacts": harvested_contacts,
+        },
         status_code=200,
     )
 

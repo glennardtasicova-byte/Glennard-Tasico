@@ -1638,6 +1638,56 @@ function mergeClientContactsCache(existingContacts = [], incomingContacts = []) 
 }
 window.mergeClientContactsCache = mergeClientContactsCache;
 
+function mergeSys03CachedContacts(incomingContacts = []) {
+  const existing = getClientCachedContacts();
+  const merged = mergeClientContactsCache(existing, incomingContacts);
+  saveClientCachedContacts(merged);
+  broadcastSys03ContactsCacheUpdate(merged);
+  return merged;
+}
+window.mergeSys03CachedContacts = mergeSys03CachedContacts;
+
+let _sys03ContactsPopupWinRef = null;
+let _sys03PendingGoogleOAuth = {
+  connected_account_id: "",
+  entity_id: "",
+  account_email: "",
+  pollTimer: null,
+  syncInFlight: false,
+};
+window._sys03PendingGoogleOAuth = _sys03PendingGoogleOAuth;
+
+function broadcastSys03ContactsCacheUpdate(contactsList) {
+  const safeContacts = Array.isArray(contactsList)
+    ? contactsList
+    : getClientCachedContacts();
+  try {
+    if (typeof BroadcastChannel !== "undefined") {
+      const bc = new BroadcastChannel("glennbot_portfolio_contacts_channel");
+      bc.postMessage({
+        type: "GLENNBOT_CLIENT_CONTACTS_CACHE_UPDATED",
+        contacts: safeContacts,
+        timestamp: Date.now(),
+      });
+      bc.close();
+    }
+  } catch (_) {}
+
+  try {
+    if (_sys03ContactsPopupWinRef && !_sys03ContactsPopupWinRef.closed) {
+      _sys03ContactsPopupWinRef.postMessage(
+        {
+          type: "GLENNBOT_CLIENT_CONTACTS_CACHE_UPDATED",
+          contacts: safeContacts,
+          timestamp: Date.now(),
+        },
+        "*"
+      );
+    }
+  } catch (_) {}
+}
+window.broadcastSys03ContactsCacheUpdate = broadcastSys03ContactsCacheUpdate;
+
 function updateSys03CachedContactsCountBadge() {
   const countEl = document.getElementById("gb-sys03-cached-count-label");
   if (!countEl) return;
@@ -1645,11 +1695,47 @@ function updateSys03CachedContactsCountBadge() {
   countEl.textContent = `View Cached Contacts (${cached.length})`;
 }
 
-function setSys03ImportStatusMessage(msg, isError = false) {
+function setSys03ImportStatusMessage(
+  msg,
+  isError = false,
+  isLoading = false
+) {
+  const textStr = String(msg || "");
   const statusEl = document.getElementById("gb-sys03-import-status-msg");
-  if (!statusEl) return;
-  statusEl.textContent = String(msg || "");
-  statusEl.style.color = isError ? "#f87171" : "#34d399";
+  if (statusEl) {
+    statusEl.textContent = textStr;
+    statusEl.style.color = isError
+      ? "#f87171"
+      : isLoading
+      ? "#38bdf8"
+      : "#34d399";
+  }
+
+  const bannerEl = document.getElementById("sys03-import-contacts-status");
+  if (bannerEl) {
+    if (!textStr || textStr === "Ready for browser-cache import") {
+      bannerEl.style.display = "none";
+      bannerEl.innerHTML = "";
+    } else {
+      bannerEl.style.display = "flex";
+      bannerEl.style.borderColor = isError
+        ? "rgba(248, 113, 113, 0.45)"
+        : isLoading
+        ? "rgba(56, 189, 248, 0.45)"
+        : "rgba(16, 185, 129, 0.45)";
+      bannerEl.style.color = isError
+        ? "#fca5a5"
+        : isLoading
+        ? "#7dd3fc"
+        : "#6ee7b7";
+      const iconHtml = isLoading
+        ? '<i class="fas fa-circle-notch fa-spin" aria-hidden="true"></i>'
+        : isError
+        ? '<i class="fas fa-exclamation-circle" aria-hidden="true"></i>'
+        : '<i class="fas fa-check-circle" aria-hidden="true"></i>';
+      bannerEl.innerHTML = `${iconHtml} <span>${escapeDmHtml(textStr)}</span>`;
+    }
+  }
 }
 
 function openSys03ImportContactsModal(triggerBtn) {
@@ -1660,10 +1746,10 @@ function openSys03ImportContactsModal(triggerBtn) {
   }
   const modal = document.getElementById("gb-sys03-import-contacts-modal");
   if (!modal) {
-    return launchSys03ClientContactsPopup();
+    return openSys03CachedContactsPopupWindow();
   }
   updateSys03CachedContactsCountBadge();
-  setSys03ImportStatusMessage("Ready for browser-cache import", false);
+  setSys03ImportStatusMessage("Ready for browser-cache import", false, false);
   const statusEl = document.getElementById("gb-sys03-import-status-msg");
   if (statusEl) statusEl.style.color = "#94a3b8";
   modal.hidden = false;
@@ -1692,14 +1778,24 @@ function closeSys03ImportContactsModal() {
 }
 window.closeSys03ImportContactsModal = closeSys03ImportContactsModal;
 
-function launchSys03ClientContactsPopup() {
+function openSys03CachedContactsPopupWindow() {
   closeSys03ImportContactsModal();
-  return openGlennBotCustomPopup(
-    "/glennbot-popout?popout_mode=workspace_view&tab=contacts&client_cache_only=1",
+  const popupWin = openGlennBotCustomPopup(
+    "/glennbot-popout?popout_mode=workspace_view&tab=contacts&focus=contacts&client_cache_only=1",
     "GlennBotClientContactsPopup",
     1260,
     860
   );
+  _sys03ContactsPopupWinRef = popupWin;
+  broadcastSys03ContactsCacheUpdate(getClientCachedContacts());
+  window.setTimeout(() => {
+    broadcastSys03ContactsCacheUpdate(getClientCachedContacts());
+  }, 450);
+  return popupWin;
+}
+window.openSys03CachedContactsPopupWindow = openSys03CachedContactsPopupWindow;
+function launchSys03ClientContactsPopup() {
+  return openSys03CachedContactsPopupWindow();
 }
 window.launchSys03ClientContactsPopup = launchSys03ClientContactsPopup;
 
@@ -1716,7 +1812,11 @@ async function handleSys03ApolloCsvFileSelect(event) {
   const file = input && input.files && input.files[0] ? input.files[0] : null;
   if (!file) return;
 
-  setSys03ImportStatusMessage(`Parsing ${file.name} in browser cache...`, false);
+  setSys03ImportStatusMessage(
+    `Parsing ${file.name} in browser cache...`,
+    false,
+    true
+  );
   try {
     const csvText = await file.text();
     let extracted = parseApolloCsvToClientContacts(csvText);
@@ -1742,23 +1842,24 @@ async function handleSys03ApolloCsvFileSelect(event) {
     if (!extracted.length) {
       setSys03ImportStatusMessage(
         "No valid contacts found in CSV. Try 'Download Sample Apollo CSV' below!",
-        true
+        true,
+        false
       );
       return;
     }
 
-    const existing = getClientCachedContacts();
-    const merged = mergeClientContactsCache(existing, extracted);
-    saveClientCachedContacts(merged);
+    mergeSys03CachedContacts(extracted);
     setSys03ImportStatusMessage(
       `✓ Cached ${extracted.length} contacts in browser localStorage! Opening Contacts CRM...`,
+      false,
       false
     );
-    launchSys03ClientContactsPopup();
+    openSys03CachedContactsPopupWindow();
   } catch (err) {
     setSys03ImportStatusMessage(
       "Could not read CSV file. Please upload a valid .csv file.",
-      true
+      true,
+      false
     );
   }
 }
@@ -1925,16 +2026,120 @@ function downloadSampleApolloCsv() {
   window.setTimeout(() => URL.revokeObjectURL(url), 1500);
   setSys03ImportStatusMessage(
     "✓ Downloaded sample_apollo_contacts_export.csv — click 'Import via Apollo CSV' to upload it!",
+    false,
     false
   );
   return csvContent;
 }
 window.downloadSampleApolloCsv = downloadSampleApolloCsv;
 
+async function finalizeSys03GoogleContactsSync(overridePayload = {}) {
+  if (_sys03PendingGoogleOAuth.syncInFlight) return;
+  _sys03PendingGoogleOAuth.syncInFlight = true;
+
+  if (_sys03PendingGoogleOAuth.pollTimer) {
+    window.clearInterval(_sys03PendingGoogleOAuth.pollTimer);
+    _sys03PendingGoogleOAuth.pollTimer = null;
+  }
+
+  setSys03ImportStatusMessage(
+    "Syncing your Google Contacts into your browser cache (0% server retention)...",
+    false,
+    true
+  );
+
+  try {
+    let importedContacts = [];
+
+    if (
+      overridePayload &&
+      Array.isArray(overridePayload.contacts) &&
+      overridePayload.contacts.length > 0
+    ) {
+      importedContacts = overridePayload.contacts;
+    } else {
+      const reqBody = {
+        connected_account_id:
+          (overridePayload && overridePayload.connected_account_id) ||
+          _sys03PendingGoogleOAuth.connected_account_id ||
+          "",
+        entity_id:
+          (overridePayload && overridePayload.entity_id) ||
+          _sys03PendingGoogleOAuth.entity_id ||
+          "",
+        account_email:
+          (overridePayload &&
+            (overridePayload.account_email || overridePayload.email)) ||
+          _sys03PendingGoogleOAuth.account_email ||
+          "",
+        ephemeral: true,
+        client_cache_only: true,
+      };
+
+      const resp = await fetch(
+        "/api/contacts/import/google?ephemeral=1&client_cache_only=1",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify(reqBody),
+        }
+      );
+      if (resp.ok) {
+        const syncData = await resp.json();
+        if (
+          syncData &&
+          Array.isArray(syncData.contacts) &&
+          syncData.contacts.length > 0
+        ) {
+          importedContacts = syncData.contacts;
+        }
+      }
+    }
+
+    if (importedContacts.length > 0) {
+      mergeSys03CachedContacts(importedContacts);
+      setSys03ImportStatusMessage(
+        `Successfully imported ${importedContacts.length} Google Contact(s) into your browser cache!`,
+        false,
+        false
+      );
+      closeSys03ImportContactsModal();
+      openSys03CachedContactsPopupWindow();
+    } else {
+      setSys03ImportStatusMessage(
+        "Google Contacts session finished (0 new contacts returned). Opening Contacts Sandbox...",
+        false,
+        false
+      );
+      closeSys03ImportContactsModal();
+      openSys03CachedContactsPopupWindow();
+    }
+  } catch (err) {
+    setSys03ImportStatusMessage(
+      "Could not complete Google Contacts sync. Please try again or import via Apollo CSV.",
+      true,
+      false
+    );
+  } finally {
+    _sys03PendingGoogleOAuth.syncInFlight = false;
+  }
+}
+window.finalizeSys03GoogleContactsSync = finalizeSys03GoogleContactsSync;
+
 async function startSys03GoogleContactsImport() {
+  if (_sys03PendingGoogleOAuth.pollTimer) {
+    window.clearInterval(_sys03PendingGoogleOAuth.pollTimer);
+    _sys03PendingGoogleOAuth.pollTimer = null;
+  }
+  _sys03PendingGoogleOAuth.syncInFlight = false;
+
   setSys03ImportStatusMessage(
     "Starting isolated Google Contacts OAuth 2.0 session...",
-    false
+    false,
+    true
   );
   const width = 580;
   const height = 700;
@@ -1942,48 +2147,78 @@ async function startSys03GoogleContactsImport() {
   const top = Math.max(0, Math.round((window.screen.height - height) / 2));
   const features = `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes,status=no`;
 
-  const oauthPopup = window.open("about:blank", "GlennBotGoogleContactsOAuth", features);
+  let oauthPopup = window.open(
+    "about:blank",
+    "GlennBotGoogleContactsOAuth",
+    features
+  );
+
+  const attachOAuthPopupCloseMonitor = (popupRef) => {
+    if (!popupRef) return;
+    if (_sys03PendingGoogleOAuth.pollTimer) {
+      window.clearInterval(_sys03PendingGoogleOAuth.pollTimer);
+    }
+    _sys03PendingGoogleOAuth.pollTimer = window.setInterval(() => {
+      if (!popupRef || popupRef.closed) {
+        window.clearInterval(_sys03PendingGoogleOAuth.pollTimer);
+        _sys03PendingGoogleOAuth.pollTimer = null;
+        finalizeSys03GoogleContactsSync();
+      }
+    }, 1000);
+  };
 
   try {
-    const res = await fetch("/api/oauth/google-contacts/start?ephemeral=1&client_cache_only=1", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({
-        ephemeral: true,
-        client_cache_only: true,
-        callback_origin: window.location.origin,
-      }),
-    });
+    const res = await fetch(
+      "/api/oauth/google-contacts/start?ephemeral=1&client_cache_only=1",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          ephemeral: true,
+          client_cache_only: true,
+          callback_origin: window.location.origin,
+        }),
+      }
+    );
     const data = await res.json();
+    if (data && typeof data === "object") {
+      _sys03PendingGoogleOAuth.connected_account_id =
+        data.connected_account_id || "";
+      _sys03PendingGoogleOAuth.entity_id = data.entity_id || "";
+      _sys03PendingGoogleOAuth.account_email =
+        data.account_email || data.email || "";
+      _sys03PendingGoogleOAuth.syncInFlight = false;
+    }
+
     const redirectUrl =
-      (data && (data.redirect_url || data.auth_url || data.url)) || "";
+      (data && (data.auth_url || data.redirect_url || data.url)) || "";
 
     if (redirectUrl) {
       if (oauthPopup && !oauthPopup.closed) {
         oauthPopup.location.href = redirectUrl;
         oauthPopup.focus();
       } else {
-        window.open(redirectUrl, "GlennBotGoogleContactsOAuth", features);
+        oauthPopup = window.open(
+          redirectUrl,
+          "GlennBotGoogleContactsOAuth",
+          features
+        );
       }
       setSys03ImportStatusMessage(
-        "Complete Google sign-in in the popup window to preview your contacts in browser cache...",
-        false
+        "Complete Google sign-in in the popup window to sync your contacts into browser cache...",
+        false,
+        true
       );
+      attachOAuthPopupCloseMonitor(oauthPopup);
       return;
     }
 
     if (data && Array.isArray(data.contacts) && data.contacts.length > 0) {
       if (oauthPopup && !oauthPopup.closed) oauthPopup.close();
-      const merged = mergeClientContactsCache(
-        getClientCachedContacts(),
-        data.contacts
-      );
-      saveClientCachedContacts(merged);
-      setSys03ImportStatusMessage(
-        `✓ Imported ${data.contacts.length} Google Contacts into browser cache!`,
-        false
-      );
-      launchSys03ClientContactsPopup();
+      await finalizeSys03GoogleContactsSync(data);
       return;
     }
   } catch (_) {}
@@ -1993,6 +2228,7 @@ async function startSys03GoogleContactsImport() {
       window.location.origin
     )}`;
     oauthPopup.focus();
+    attachOAuthPopupCloseMonitor(oauthPopup);
   }
 }
 window.startSys03GoogleContactsImport = startSys03GoogleContactsImport;
@@ -2005,46 +2241,7 @@ window.addEventListener("message", async (event) => {
     payload.type === "GLENNBOT_GOOGLE_CONTACTS_IMPORT_DONE" ||
     payload.type === "gb_google_contacts_ephemeral_import"
   ) {
-    let incomingContacts = Array.isArray(payload.contacts)
-      ? payload.contacts
-      : [];
-
-    if (
-      !incomingContacts.length &&
-      (payload.connected_account_id || payload.entity_id)
-    ) {
-      try {
-        const resp = await fetch("/api/contacts/import/google?ephemeral=1", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({
-            connected_account_id: payload.connected_account_id || "",
-            entity_id: payload.entity_id || "",
-            ephemeral: true,
-            client_cache_only: true,
-          }),
-        });
-        if (resp.ok) {
-          const d = await resp.json();
-          if (d && Array.isArray(d.contacts)) {
-            incomingContacts = d.contacts;
-          }
-        }
-      } catch (_) {}
-    }
-
-    if (incomingContacts.length > 0) {
-      const merged = mergeClientContactsCache(
-        getClientCachedContacts(),
-        incomingContacts
-      );
-      saveClientCachedContacts(merged);
-      setSys03ImportStatusMessage(
-        `✓ Imported ${incomingContacts.length} Google Contacts to browser cache!`,
-        false
-      );
-    }
-    launchSys03ClientContactsPopup();
+    await finalizeSys03GoogleContactsSync(payload);
   }
 });
 

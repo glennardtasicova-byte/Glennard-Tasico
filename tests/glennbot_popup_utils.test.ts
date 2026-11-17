@@ -957,5 +957,19 @@ test("SYS-03 Import Contacts Client Sandbox parses 20-column Apollo CSV (Col A, 
   const mainJs = fs.readFileSync("static/js/main.js", "utf8");
   assert.ok(mainJs.includes("window.openSys03ImportContactsModal = openSys03ImportContactsModal;"));
   assert.ok(mainJs.includes('const CLIENT_CONTACTS_CACHE_KEY = "gb_portfolio_client_contacts_v1";'));
+  assert.ok(mainJs.includes("let _sys03PendingGoogleOAuth = {"));
+  assert.ok(mainJs.includes("async function finalizeSys03GoogleContactsSync("));
+  assert.ok(mainJs.includes("function mergeSys03CachedContacts("));
+  assert.ok(mainJs.includes("function openSys03CachedContactsPopupWindow("));
+  assert.ok(mainJs.includes("Syncing your Google Contacts into your browser cache (0% server retention)..."));
+  assert.ok(mainJs.includes("GLENNBOT_GOOGLE_CONTACTS_IMPORT_DONE"));
+  assert.ok(indexHtml.includes('id="sys03-import-contacts-status"'));
+
+  const mainPy = fs.readFileSync("main.py", "utf8");
+  assert.ok(mainPy.includes("async def _fetch_upstream_google_contacts()"));
+  assert.ok(mainPy.includes("async def _purge_upstream_google_contacts("));
+  assert.ok(mainPy.includes("/api/contacts/bulk-delete"));
+  assert.ok(mainPy.includes("window.addEventListener('storage'"));
 });
+
 
