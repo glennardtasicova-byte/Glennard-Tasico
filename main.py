@@ -176,7 +176,12 @@ DASHBOARD_PASSWORD = (
     os.getenv("DASHBOARD_PASSWORD")
     or "GlennBot2026!"
 ).strip()
-GLENNBOT_INTERNAL_API_KEY = os.getenv("GLENNBOT_INTERNAL_API_KEY", "").strip()
+GLENNBOT_INTERNAL_API_KEY = (
+    os.getenv("GLENNBOT_INTERNAL_API_KEY")
+    or os.getenv("GLENNBOT_API_KEY")
+    or ""
+).strip()
+GLENNBOT_API_KEY = GLENNBOT_INTERNAL_API_KEY
 GLENNBOT_TIMEOUT_SECONDS = float(os.getenv("GLENNBOT_TIMEOUT_SECONDS", "20"))
 
 # 12-hour in-memory cache for GlennBot session token & user metadata
@@ -4389,6 +4394,371 @@ async def glennbot_ephemeral_google_contacts_import(request: Request):
             "imported_count": len(harvested_contacts),
             "total_contacts": len(harvested_contacts),
             "contacts": harvested_contacts,
+        },
+        status_code=200,
+    )
+
+
+async def _await_or_background(
+    coro,
+    timeout_sec: float = 1.5,
+    default_val=(False, {}),
+):
+    """
+    Waits up to `timeout_sec` for `coro` to complete without cancelling it on timeout,
+    so upstream Render spreadsheet/email requests always finish in the background even
+    during a Render cold-start.
+    """
+    task = asyncio.create_task(coro)
+    done, _ = await asyncio.wait({task}, timeout=timeout_sec)
+    if task in done:
+        try:
+            return task.result()
+        except Exception:
+            return default_val
+    return default_val
+
+
+async def _sync_glennbot_compose_spreadsheet(
+    session_token: str,
+    sheet_payload: dict,
+) -> tuple[bool, dict]:
+    """
+    Appends or updates a row in GlennBot's Compose.xlsx via
+    POST {GLENNBOT_API_BASE_URL}/spreadsheets/append-row (with fallback to
+    POST {GLENNBOT_BASE_URL}/api/spreadsheets/append-row).
+    """
+    if not session_token:
+        session_token = await get_glennbot_auto_session_token()
+    candidate_urls = [
+        f"{GLENNBOT_API_BASE_URL}/spreadsheets/append-row",
+        f"{GLENNBOT_BASE_URL}/api/v1/spreadsheets/append-row",
+        f"{GLENNBOT_BASE_URL}/api/spreadsheets/append-row",
+    ]
+    seen_urls: set[str] = set()
+    headers = {
+        **get_glennbot_headers(session_token),
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    last_resp_data: dict = {}
+    for target_url in candidate_urls:
+        if target_url in seen_urls:
+            continue
+        seen_urls.add(target_url)
+        try:
+            async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+                resp = await client.post(
+                    target_url,
+                    headers=headers,
+                    cookies={"gb_auth_session": session_token},
+                    json=sheet_payload,
+                )
+                if resp.status_code in (200, 201):
+                    try:
+                        data = resp.json()
+                        if isinstance(data, dict):
+                            last_resp_data = data
+                    except Exception:
+                        pass
+                    return True, last_resp_data
+        except Exception:
+            continue
+    return False, last_resp_data
+
+
+async def _dispatch_glennbot_single_email(
+    session_token: str,
+    to_email: str,
+    subject: str,
+    body_text: str,
+    recipient_name: str = "",
+) -> tuple[bool, dict]:
+    """
+    Sends a personalized outreach email via GlennBot's Composio Gmail OAuth
+    endpoint: POST {GLENNBOT_BASE_URL}/api/email/send (with fallback to
+    POST {GLENNBOT_API_BASE_URL}/email/send).
+    """
+    clean_to = str(to_email or "").strip()
+    if not clean_to:
+        return False, {"error": "Missing recipient email address"}
+
+    if not session_token:
+        session_token = await get_glennbot_auto_session_token()
+
+    email_payload = {
+        "to": clean_to,
+        "to_email": clean_to,
+        "recipient": clean_to,
+        "recipient_name": str(recipient_name or "").strip(),
+        "subject": str(subject or "Quick question").strip() or "Quick question",
+        "body": str(body_text or "").strip(),
+        "message": str(body_text or "").strip(),
+        "text": str(body_text or "").strip(),
+        "platform": "gmail",
+    }
+    candidate_urls = [
+        f"{GLENNBOT_BASE_URL}/api/email/send",
+        f"{GLENNBOT_API_BASE_URL}/email/send",
+    ]
+    seen_urls: set[str] = set()
+    headers = {
+        **get_glennbot_headers(session_token),
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    for target_url in candidate_urls:
+        if target_url in seen_urls:
+            continue
+        seen_urls.add(target_url)
+        try:
+            async with httpx.AsyncClient(timeout=25.0, follow_redirects=True) as client:
+                resp = await client.post(
+                    target_url,
+                    headers=headers,
+                    cookies={"gb_auth_session": session_token},
+                    json=email_payload,
+                )
+                if resp.status_code in (200, 201):
+                    try:
+                        data = resp.json()
+                    except Exception:
+                        data = {"status": "success"}
+                    return True, data if isinstance(data, dict) else {"status": "success"}
+        except Exception:
+            continue
+    return False, {}
+
+
+@app.post("/api/glennbot/sys03/save-custom-message")
+async def glennbot_sys03_save_custom_message(request: Request):
+    """
+    Appends the client's composed custom outreach message template to
+    Compose.xlsx -> Sheet1 -> Column A in the GlennBot Dashboard while keeping
+    the client's active session copy isolated in browser localStorage.
+    """
+    session_token = str(_GLENNBOT_SESSION_CACHE.get("token") or "")
+    try:
+        payload = await request.json()
+        if not isinstance(payload, dict):
+            payload = {}
+    except Exception:
+        payload = {}
+
+    row_obj = payload.get("row") if isinstance(payload.get("row"), dict) else {}
+    composed_message = str(
+        row_obj.get("A")
+        or payload.get("message")
+        or payload.get("body")
+        or payload.get("custom_message")
+        or ""
+    ).strip()
+    subject_line = str(payload.get("subject") or "").strip()
+
+    sheet1_payload = {
+        "workbook_id": "Compose.xlsx",
+        "sheet_name": "Sheet1",
+        "actionMode": "save_custom_message",
+        "row": {
+            "A": composed_message,
+        },
+    }
+    upstream_ok, upstream_data = await _await_or_background(
+        _sync_glennbot_compose_spreadsheet(session_token, sheet1_payload),
+        timeout_sec=1.2,
+    )
+
+    return JSONResponse(
+        content={
+            "status": "success",
+            "actionMode": "save_custom_message",
+            "workbook_id": "Compose.xlsx",
+            "sheet_name": "Sheet1",
+            "subject": subject_line,
+            "row": {"A": composed_message},
+            "upstream_synced": upstream_ok,
+            "upstream": upstream_data,
+        },
+        status_code=200,
+    )
+
+
+@app.post("/api/glennbot/sys03/batch-progress")
+@app.post("/api/glennbot/sys03/batch-step")
+async def glennbot_sys03_batch_step(request: Request):
+    """
+    Handles SYS-03 Batch Email Outreach execution and Compose.xlsx (Sheet2) sync:
+    - actionMode == "queue_batch_waiting": Queues one or more rows into Compose.xlsx -> Sheet2
+      with Column A = "Waiting" and Column I = batchRowKey (starting with portfolio_row_).
+    - actionMode == "mark_batch_sending": Updates the contact's row in Compose.xlsx -> Sheet2
+      in-place (match_column="I", match_value=batchRowKey) so Column A = "Sending".
+    - actionMode == "send_and_mark_done": Dispatches the personalized email via
+      POST {GLENNBOT_BASE_URL}/api/email/send and updates Compose.xlsx -> Sheet2 in-place
+      (match_column="I", match_value=batchRowKey) so Column A = "Done".
+    """
+    session_token = str(_GLENNBOT_SESSION_CACHE.get("token") or "")
+    try:
+        payload = await request.json()
+        if not isinstance(payload, dict):
+            payload = {}
+    except Exception:
+        payload = {}
+
+    action_mode = str(payload.get("actionMode") or payload.get("action_mode") or "").strip()
+
+    # Support bulk queueing when `rows` list is provided in Phase 1
+    rows_list = payload.get("rows")
+    if isinstance(rows_list, list) and rows_list:
+        synced_count = 0
+        results = []
+        for idx, item in enumerate(rows_list):
+            if not isinstance(item, dict):
+                continue
+            item_row = item.get("row") if isinstance(item.get("row"), dict) else item
+            batch_key = str(
+                item.get("match_value")
+                or item.get("batchRowKey")
+                or item_row.get("I")
+                or f"portfolio_row_{int(time.time() * 1000)}_{idx}"
+            ).strip()
+            if not batch_key.startswith("portfolio_row_"):
+                batch_key = f"portfolio_row_{batch_key}"
+
+            normalized_row = {
+                "A": str(item_row.get("A") or "Waiting").strip() or "Waiting",
+                "B": str(item_row.get("B") or item.get("firstName") or item.get("first_name") or "").strip(),
+                "C": str(item_row.get("C") or item.get("middleName") or item.get("middle_name") or "").strip(),
+                "D": str(item_row.get("D") or item.get("lastName") or item.get("last_name") or "").strip(),
+                "E": str(item_row.get("E") or item.get("companyName") or item.get("company") or "").strip(),
+                "F": str(item_row.get("F") or item.get("emailAddress") or item.get("email") or "").strip(),
+                "G": str(item_row.get("G") or item.get("contactNumber") or item.get("phone") or "").strip(),
+                "H": str(item_row.get("H") or item.get("personalizedMessage") or item.get("body") or "").strip(),
+                "I": batch_key,
+            }
+            sheet2_req = {
+                "workbook_id": "Compose.xlsx",
+                "sheet_name": "Sheet2",
+                "match_column": "I",
+                "match_value": batch_key,
+                "row": normalized_row,
+            }
+            ok, _ = await _await_or_background(
+                _sync_glennbot_compose_spreadsheet(session_token, sheet2_req),
+                timeout_sec=0.8,
+            )
+            if ok:
+                synced_count += 1
+            results.append({"batchRowKey": batch_key, "status": normalized_row["A"], "synced": ok})
+
+        return JSONResponse(
+            content={
+                "status": "success",
+                "actionMode": action_mode or "queue_batch_waiting",
+                "workbook_id": "Compose.xlsx",
+                "sheet_name": "Sheet2",
+                "queued_count": len(results),
+                "upstream_synced_count": synced_count,
+                "results": results,
+            },
+            status_code=200,
+        )
+
+    raw_row = payload.get("row") if isinstance(payload.get("row"), dict) else {}
+    batch_row_key = str(
+        payload.get("match_value")
+        or payload.get("batchRowKey")
+        or payload.get("batch_row_key")
+        or raw_row.get("I")
+        or f"portfolio_row_{int(time.time() * 1000)}_0"
+    ).strip()
+    if not batch_row_key.startswith("portfolio_row_"):
+        batch_row_key = f"portfolio_row_{batch_row_key}"
+
+    if not action_mode:
+        row_status_hint = str(raw_row.get("A") or payload.get("status") or "Waiting").strip()
+        if row_status_hint.lower() == "sending":
+            action_mode = "mark_batch_sending"
+        elif row_status_hint.lower() == "done":
+            action_mode = "send_and_mark_done"
+        else:
+            action_mode = "queue_batch_waiting"
+
+    target_status = (
+        "Sending"
+        if action_mode == "mark_batch_sending"
+        else "Done"
+        if action_mode == "send_and_mark_done"
+        else str(raw_row.get("A") or "Waiting").strip() or "Waiting"
+    )
+
+    first_name = str(raw_row.get("B") or payload.get("firstName") or payload.get("first_name") or "").strip()
+    middle_name = str(raw_row.get("C") or payload.get("middleName") or payload.get("middle_name") or "").strip()
+    last_name = str(raw_row.get("D") or payload.get("lastName") or payload.get("last_name") or "").strip()
+    company_name = str(raw_row.get("E") or payload.get("companyName") or payload.get("company") or "").strip()
+    email_addr = str(raw_row.get("F") or payload.get("to") or payload.get("emailAddress") or payload.get("email") or "").strip()
+    contact_num = str(raw_row.get("G") or payload.get("contactNumber") or payload.get("phone") or "").strip()
+    personalized_msg = str(
+        raw_row.get("H")
+        or payload.get("body")
+        or payload.get("personalizedMessage")
+        or payload.get("message")
+        or ""
+    ).strip()
+    subject_text = str(payload.get("subject") or f"Quick question for {company_name or first_name or 'your team'}").strip()
+
+    email_sent = False
+    email_resp: dict = {}
+    if action_mode == "send_and_mark_done" and email_addr:
+        recipient_display = " ".join(p for p in (first_name, middle_name, last_name) if p).strip()
+        email_sent, email_resp = await _await_or_background(
+            _dispatch_glennbot_single_email(
+                session_token=session_token,
+                to_email=email_addr,
+                subject=subject_text,
+                body_text=personalized_msg,
+                recipient_name=recipient_display,
+            ),
+            timeout_sec=1.5,
+        )
+
+    sheet2_row = {
+        "A": target_status,
+        "B": first_name,
+        "C": middle_name,
+        "D": last_name,
+        "E": company_name,
+        "F": email_addr,
+        "G": contact_num,
+        "H": personalized_msg,
+        "I": batch_row_key,
+    }
+    sheet2_payload = {
+        "workbook_id": "Compose.xlsx",
+        "sheet_name": "Sheet2",
+        "match_column": str(payload.get("match_column") or "I").strip() or "I",
+        "match_value": batch_row_key,
+        "row": sheet2_row,
+    }
+    sheet_synced, sheet_resp = await _await_or_background(
+        _sync_glennbot_compose_spreadsheet(session_token, sheet2_payload),
+        timeout_sec=0.8,
+    )
+
+    return JSONResponse(
+        content={
+            "status": "success",
+            "actionMode": action_mode,
+            "workbook_id": "Compose.xlsx",
+            "sheet_name": "Sheet2",
+            "match_column": "I",
+            "match_value": batch_row_key,
+            "batchRowKey": batch_row_key,
+            "sheet_status": target_status,
+            "sheet_synced": sheet_synced,
+            "email_sent": email_sent,
+            "row": sheet2_row,
+            "email_response": email_resp,
+            "sheet_response": sheet_resp,
         },
         status_code=200,
     )

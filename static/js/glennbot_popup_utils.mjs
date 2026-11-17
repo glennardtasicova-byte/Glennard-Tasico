@@ -1715,3 +1715,130 @@ export function mergeClientContactsCache(existingContacts = [], incomingContacts
   return order.map((k) => byKey.get(k));
 }
 
+export const CLIENT_CUSTOM_MESSAGE_CACHE_KEY = "gb_portfolio_client_custom_message_v1";
+
+export const SYS03_CUSTOM_MESSAGE_ATTRIBUTES = [
+  "[[First Name]]",
+  "[[Middle Name]]",
+  "[[Last Name]]",
+  "[[Company Name]]",
+  "[[Email Address]]",
+  "[[Contact Number]]",
+];
+
+export function extractNormalizedContactFields(contact = {}) {
+  const src = contact && typeof contact === "object" ? contact : {};
+  const rawName = String(src.name || src.full_name || src.fullName || "")
+    .trim()
+    .replace(/\s+/g, " ");
+  const nameParts = rawName ? rawName.split(" ") : [];
+
+  let firstName = String(src.first_name ?? src.firstName ?? "").trim();
+  let middleName = String(src.middle_name ?? src.middleName ?? "").trim();
+  let lastName = String(src.last_name ?? src.lastName ?? "").trim();
+
+  if (!firstName && nameParts.length >= 1) {
+    firstName = nameParts[0];
+  }
+  if (!middleName && !lastName && nameParts.length >= 3) {
+    middleName = nameParts.slice(1, -1).join(" ");
+    lastName = nameParts[nameParts.length - 1];
+  } else if (!lastName && nameParts.length >= 2) {
+    if (!middleName && nameParts.length >= 3) {
+      middleName = nameParts.slice(1, -1).join(" ");
+      lastName = nameParts[nameParts.length - 1];
+    } else {
+      lastName = nameParts.slice(1).join(" ");
+    }
+  } else if (firstName && lastName && !middleName && nameParts.length >= 3) {
+    const fnLower = firstName.toLowerCase();
+    const lnLower = lastName.toLowerCase();
+    if (
+      nameParts[0].toLowerCase() === fnLower &&
+      nameParts[nameParts.length - 1].toLowerCase() === lnLower
+    ) {
+      middleName = nameParts.slice(1, -1).join(" ");
+    }
+  }
+
+  const companyName = String(
+    src.company ?? src.company_name ?? src.companyName ?? src.organization ?? ""
+  ).trim();
+  const emailAddress = String(
+    src.email ?? src.email_address ?? src.emailAddress ?? ""
+  ).trim();
+  const contactNumber = String(
+    src.phone ?? src.contact_number ?? src.contactNumber ?? src.mobile ?? ""
+  ).trim();
+
+  return {
+    firstName,
+    middleName,
+    lastName,
+    companyName,
+    emailAddress,
+    contactNumber,
+  };
+}
+
+export function resolveCustomMessageAttributes(templateText = "", contact = {}) {
+  const rawTemplate = String(templateText ?? "");
+  if (!rawTemplate) return "";
+  const fields = extractNormalizedContactFields(contact);
+
+  return rawTemplate
+    .replace(/\[\[\s*first\s+name\s*\]\]/gi, fields.firstName)
+    .replace(/\[\[\s*middle\s+name\s*\]\]/gi, fields.middleName)
+    .replace(/\[\[\s*last\s+name\s*\]\]/gi, fields.lastName)
+    .replace(/\[\[\s*company\s+name\s*\]\]/gi, fields.companyName)
+    .replace(/\[\[\s*email\s+address\s*\]\]/gi, fields.emailAddress)
+    .replace(/\[\[\s*contact\s+number\s*\]\]/gi, fields.contactNumber);
+}
+
+export function buildSys03BatchRowKey(sessionId = "", index = 0, email = "") {
+  const cleanSession =
+    String(sessionId || "")
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]/g, "") || `s${Date.now().toString(36)}`;
+  const cleanIdx = Math.max(0, Math.trunc(Number(index) || 0));
+  const cleanEmail =
+    String(email || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9@._-]/g, "") || `row${cleanIdx}`;
+  return `portfolio_row_${cleanSession}_${cleanIdx}_${cleanEmail}`;
+}
+
+export function buildComposeSheet2RowPayload(
+  contact = {},
+  status = "Waiting",
+  templateText = "",
+  batchRowKey = ""
+) {
+  const fields = extractNormalizedContactFields(contact);
+  const resolvedMessage = resolveCustomMessageAttributes(templateText, contact);
+  const cleanStatus = String(status || "Waiting").trim() || "Waiting";
+  const cleanKey =
+    String(batchRowKey || "").trim() ||
+    buildSys03BatchRowKey("batch", 0, fields.emailAddress);
+
+  return {
+    workbook_id: "Compose.xlsx",
+    sheet_name: "Sheet2",
+    match_column: "I",
+    match_value: cleanKey,
+    row: {
+      A: cleanStatus,
+      B: fields.firstName,
+      C: fields.middleName,
+      D: fields.lastName,
+      E: fields.companyName,
+      F: fields.emailAddress,
+      G: fields.contactNumber,
+      H: resolvedMessage,
+      I: cleanKey,
+    },
+  };
+}
+
+

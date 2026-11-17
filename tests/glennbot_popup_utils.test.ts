@@ -37,10 +37,16 @@ import {
   resolveDirectSocialDmTargetUrl,
   resolveSys02ChannelPreset,
   CLIENT_CONTACTS_CACHE_KEY,
+  CLIENT_CUSTOM_MESSAGE_CACHE_KEY,
   SYS03_IMPORT_CONTACTS_CONFIG,
+  SYS03_CUSTOM_MESSAGE_ATTRIBUTES,
   buildSampleApolloCsvContent,
   parseApolloCsvToClientContacts,
   mergeClientContactsCache,
+  extractNormalizedContactFields,
+  resolveCustomMessageAttributes,
+  buildSys03BatchRowKey,
+  buildComposeSheet2RowPayload,
 } from "../static/js/glennbot_popup_utils.mjs";
 
 const TEST_BASE_URL = getGlennBotBaseUrl();
@@ -988,4 +994,96 @@ test("SYS-03 Import Contacts Client Sandbox parses 20-column Apollo CSV (Col A, 
   assert.equal(getGlennBotApiBaseUrl(), `${TEST_BASE_URL}/api/v1`);
 });
 
+test("SYS-03 Create Custom Message, [[Attributes]] Parser, and Send Batch Email Live CRM Dispatch Queue", async () => {
+  assert.equal(CLIENT_CUSTOM_MESSAGE_CACHE_KEY, "gb_portfolio_client_custom_message_v1");
+  assert.deepEqual(SYS03_CUSTOM_MESSAGE_ATTRIBUTES, [
+    "[[First Name]]",
+    "[[Middle Name]]",
+    "[[Last Name]]",
+    "[[Company Name]]",
+    "[[Email Address]]",
+    "[[Contact Number]]",
+  ]);
 
+  // 1. Test combined name splitting (3+ words -> firstName, middleName, lastName)
+  const threeWordContact = extractNormalizedContactFields({
+    name: "Maria Clara De La Cruz",
+    company: "Acme Corp PH",
+    email: "maria.cruz@acmecorp.ph",
+    phone: "+63 917 888 9999",
+  });
+  assert.equal(threeWordContact.firstName, "Maria");
+  assert.equal(threeWordContact.middleName, "Clara De La");
+  assert.equal(threeWordContact.lastName, "Cruz");
+  assert.equal(threeWordContact.companyName, "Acme Corp PH");
+  assert.equal(threeWordContact.emailAddress, "maria.cruz@acmecorp.ph");
+  assert.equal(threeWordContact.contactNumber, "+63 917 888 9999");
+
+  // 2. Test explicit properties take priority
+  const explicitContact = extractNormalizedContactFields({
+    first_name: "Sophia",
+    middle_name: "Anne",
+    last_name: "Reyes",
+    company_name: "Nexus Logistics PH",
+    email_address: "sophia.reyes@nexuslogistics.example.com",
+    contact_number: "+63 917 555 0142",
+  });
+  assert.equal(explicitContact.firstName, "Sophia");
+  assert.equal(explicitContact.middleName, "Anne");
+  assert.equal(explicitContact.lastName, "Reyes");
+  assert.equal(explicitContact.companyName, "Nexus Logistics PH");
+
+  // 3. Test resolveCustomMessageAttributes case-insensitivity and spacing tolerance
+  const template =
+    "Hi [[First Name]] [[ middle name ]] [[LAST NAME]], I saw [[Company Name]] and wanted to reach out at [[Email Address]] or [[Contact Number]].";
+  const resolved = resolveCustomMessageAttributes(template, explicitContact);
+  assert.equal(
+    resolved,
+    "Hi Sophia Anne Reyes, I saw Nexus Logistics PH and wanted to reach out at sophia.reyes@nexuslogistics.example.com or +63 917 555 0142."
+  );
+
+  // 4. Test batchRowKey and Compose.xlsx Sheet2 payload builder
+  const rowKey = buildSys03BatchRowKey("sess99", 0, "Sophia.Reyes@NexusLogistics.example.com");
+  assert.equal(rowKey, "portfolio_row_sess99_0_sophia.reyes@nexuslogistics.example.com");
+
+  const sheet2Row = buildComposeSheet2RowPayload(
+    explicitContact,
+    "Waiting",
+    template,
+    rowKey
+  );
+  assert.deepEqual(sheet2Row, {
+    workbook_id: "Compose.xlsx",
+    sheet_name: "Sheet2",
+    match_column: "I",
+    match_value: rowKey,
+    row: {
+      A: "Waiting",
+      B: "Sophia",
+      C: "Anne",
+      D: "Reyes",
+      E: "Nexus Logistics PH",
+      F: "sophia.reyes@nexuslogistics.example.com",
+      G: "+63 917 555 0142",
+      H: resolved,
+      I: rowKey,
+    },
+  });
+
+  // 5. Verify HTML and Backend Route wiring
+  const fs = await import("node:fs");
+  const indexHtml = fs.readFileSync("templates/index.html", "utf8");
+  assert.ok(indexHtml.includes('id="project3CreateCustomMsgBtn"'));
+  assert.ok(indexHtml.includes('id="project3SendBatchEmailBtn"'));
+  assert.ok(indexHtml.includes('id="gb-sys03-prereq-guard-modal"'));
+  assert.ok(indexHtml.includes('id="gb-sys03-custom-message-modal"'));
+  assert.ok(indexHtml.includes("Create Custom Message — Dynamic CRM Outreach Composer"));
+  assert.ok(indexHtml.includes('id="gb-sys03-batch-email-modal"'));
+  assert.ok(indexHtml.includes("Send Batch Email — Live CRM Dispatch Queue"));
+
+  const mainPy = fs.readFileSync("main.py", "utf8");
+  assert.ok(mainPy.includes('@app.post("/api/glennbot/sys03/save-custom-message")'));
+  assert.ok(mainPy.includes('@app.post("/api/glennbot/sys03/batch-progress")'));
+  assert.ok(mainPy.includes('@app.post("/api/glennbot/sys03/batch-step")'));
+  assert.ok(mainPy.includes('"Compose.xlsx"'));
+});

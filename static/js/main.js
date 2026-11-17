@@ -2256,6 +2256,791 @@ window.addEventListener("message", async (event) => {
   }
 });
 
+// ============================================================================
+// SYS-03: CREATE CUSTOM MESSAGE & SEND BATCH EMAIL (CLIENT SANDBOX + COMPOSE.XLSX)
+// ============================================================================
+const CLIENT_CUSTOM_MESSAGE_CACHE_KEY = "gb_portfolio_client_custom_message_v1";
+const SYS03_DEFAULT_SUBJECT_TEMPLATE = "Quick question for [[Company Name]]";
+const SYS03_DEFAULT_BODY_TEMPLATE =
+  "Hi [[First Name]] [[Last Name]],\n\nI came across [[Company Name]] and wanted to share how we help operations teams automate CRM outreach and n8n workflows.\n\nWould love to connect with you at [[Email Address]] or [[Contact Number]].\n\nBest regards,\nGlennard";
+
+let _sys03ActiveComposerField = "body";
+let _sys03PrereqNextAction = "import_contacts";
+let _sys03BatchSendInFlight = false;
+
+function extractNormalizedContactFields(contact = {}) {
+  const src = contact && typeof contact === "object" ? contact : {};
+  const rawName = String(src.name || src.full_name || src.fullName || "")
+    .trim()
+    .replace(/\s+/g, " ");
+  const nameParts = rawName ? rawName.split(" ") : [];
+
+  let firstName = String(src.first_name ?? src.firstName ?? "").trim();
+  let middleName = String(src.middle_name ?? src.middleName ?? "").trim();
+  let lastName = String(src.last_name ?? src.lastName ?? "").trim();
+
+  if (!firstName && nameParts.length >= 1) {
+    firstName = nameParts[0];
+  }
+  if (!middleName && !lastName && nameParts.length >= 3) {
+    middleName = nameParts.slice(1, -1).join(" ");
+    lastName = nameParts[nameParts.length - 1];
+  } else if (!lastName && nameParts.length >= 2) {
+    if (!middleName && nameParts.length >= 3) {
+      middleName = nameParts.slice(1, -1).join(" ");
+      lastName = nameParts[nameParts.length - 1];
+    } else {
+      lastName = nameParts.slice(1).join(" ");
+    }
+  } else if (firstName && lastName && !middleName && nameParts.length >= 3) {
+    const fnLower = firstName.toLowerCase();
+    const lnLower = lastName.toLowerCase();
+    if (
+      nameParts[0].toLowerCase() === fnLower &&
+      nameParts[nameParts.length - 1].toLowerCase() === lnLower
+    ) {
+      middleName = nameParts.slice(1, -1).join(" ");
+    }
+  }
+
+  const companyName = String(
+    src.company ?? src.company_name ?? src.companyName ?? src.organization ?? ""
+  ).trim();
+  const emailAddress = String(
+    src.email ?? src.email_address ?? src.emailAddress ?? ""
+  ).trim();
+  const contactNumber = String(
+    src.phone ?? src.contact_number ?? src.contactNumber ?? src.mobile ?? ""
+  ).trim();
+
+  return {
+    firstName,
+    middleName,
+    lastName,
+    companyName,
+    emailAddress,
+    contactNumber,
+  };
+}
+window.extractNormalizedContactFields = extractNormalizedContactFields;
+
+function resolveCustomMessageAttributes(templateText = "", contact = {}) {
+  const rawTemplate = String(templateText ?? "");
+  if (!rawTemplate) return "";
+  const fields = extractNormalizedContactFields(contact);
+
+  return rawTemplate
+    .replace(/\[\[\s*first\s+name\s*\]\]/gi, fields.firstName)
+    .replace(/\[\[\s*middle\s+name\s*\]\]/gi, fields.middleName)
+    .replace(/\[\[\s*last\s+name\s*\]\]/gi, fields.lastName)
+    .replace(/\[\[\s*company\s+name\s*\]\]/gi, fields.companyName)
+    .replace(/\[\[\s*email\s+address\s*\]\]/gi, fields.emailAddress)
+    .replace(/\[\[\s*contact\s+number\s*\]\]/gi, fields.contactNumber);
+}
+window.resolveCustomMessageAttributes = resolveCustomMessageAttributes;
+
+function buildSys03BatchRowKey(sessionId = "", index = 0, email = "") {
+  const cleanSession =
+    String(sessionId || "")
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]/g, "") || `s${Date.now().toString(36)}`;
+  const cleanIdx = Math.max(0, Math.trunc(Number(index) || 0));
+  const cleanEmail =
+    String(email || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9@._-]/g, "") || `row${cleanIdx}`;
+  return `portfolio_row_${cleanSession}_${cleanIdx}_${cleanEmail}`;
+}
+window.buildSys03BatchRowKey = buildSys03BatchRowKey;
+
+function getClientCachedCustomMessage() {
+  try {
+    const raw = window.localStorage.getItem(CLIENT_CUSTOM_MESSAGE_CACHE_KEY);
+    if (!raw) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        const msg = String(parsed.message ?? parsed.body ?? "").trim();
+        const subj =
+          String(parsed.subject ?? "").trim() || SYS03_DEFAULT_SUBJECT_TEMPLATE;
+        return {
+          subject: subj,
+          message: msg,
+          body: msg,
+          updated_at: parsed.updated_at || null,
+        };
+      }
+      if (typeof parsed === "string") {
+        return {
+          subject: SYS03_DEFAULT_SUBJECT_TEMPLATE,
+          message: parsed.trim(),
+          body: parsed.trim(),
+          updated_at: null,
+        };
+      }
+    } catch (_) {
+      const plain = String(raw || "").trim();
+      if (plain) {
+        return {
+          subject: SYS03_DEFAULT_SUBJECT_TEMPLATE,
+          message: plain,
+          body: plain,
+          updated_at: null,
+        };
+      }
+    }
+  } catch (_) {}
+  return null;
+}
+window.getClientCachedCustomMessage = getClientCachedCustomMessage;
+
+function saveClientCachedCustomMessage(subjectText, messageText) {
+  const cleanSubj =
+    String(subjectText || "").trim() || SYS03_DEFAULT_SUBJECT_TEMPLATE;
+  const cleanMsg = String(messageText || "").trim();
+  const payload = {
+    subject: cleanSubj,
+    message: cleanMsg,
+    body: cleanMsg,
+    updated_at: new Date().toISOString(),
+  };
+  try {
+    window.localStorage.setItem(
+      CLIENT_CUSTOM_MESSAGE_CACHE_KEY,
+      JSON.stringify(payload)
+    );
+  } catch (_) {}
+  return payload;
+}
+window.saveClientCachedCustomMessage = saveClientCachedCustomMessage;
+
+function openSys03PrereqGuardModal(mode = "import_contacts") {
+  _sys03PrereqNextAction = mode;
+  const modal = document.getElementById("gb-sys03-prereq-guard-modal");
+  const msgEl = document.getElementById("gb-sys03-prereq-guard-message");
+  const btnLabelEl = document.getElementById("gb-sys03-prereq-action-label");
+  if (!modal) return null;
+
+  if (mode === "create_custom_message") {
+    if (msgEl) {
+      msgEl.textContent =
+        "Please compose and save your custom outreach message first using 'Create Custom Message' before launching 'Send Batch Email'.";
+    }
+    if (btnLabelEl) {
+      btnLabelEl.textContent = "✍️ Open Create Custom Message";
+    }
+  } else {
+    if (msgEl) {
+      msgEl.textContent =
+        "Please import your contacts first using the 'Import Contacts' button before composing a custom message or sending a batch email.";
+    }
+    if (btnLabelEl) {
+      btnLabelEl.textContent = "📥 Import Contacts";
+    }
+  }
+
+  modal.hidden = false;
+  return modal;
+}
+window.openSys03PrereqGuardModal = openSys03PrereqGuardModal;
+
+function closeSys03PrereqGuardModal() {
+  const modal = document.getElementById("gb-sys03-prereq-guard-modal");
+  if (modal) modal.hidden = true;
+}
+window.closeSys03PrereqGuardModal = closeSys03PrereqGuardModal;
+
+function handleSys03PrereqPrimaryAction() {
+  closeSys03PrereqGuardModal();
+  if (_sys03PrereqNextAction === "create_custom_message") {
+    openSys03CreateCustomMessageModal();
+  } else {
+    openSys03ImportContactsModal();
+  }
+}
+window.handleSys03PrereqPrimaryAction = handleSys03PrereqPrimaryAction;
+
+function setSys03ActiveComposerField(fieldName = "body") {
+  _sys03ActiveComposerField = fieldName === "subject" ? "subject" : "body";
+  const indicator = document.getElementById("gb-sys03-active-field-indicator");
+  if (indicator) {
+    indicator.innerHTML =
+      _sys03ActiveComposerField === "subject"
+        ? 'Inserting into: <strong style="color: #38bdf8;">Email Subject Line</strong>'
+        : 'Inserting into: <strong style="color: #34d399;">Email Message Body</strong>';
+  }
+}
+window.setSys03ActiveComposerField = setSys03ActiveComposerField;
+
+function insertSys03AttributeToken(tokenStr) {
+  const token = String(tokenStr || "");
+  if (!token) return;
+
+  const subjectInput = document.getElementById("gb-sys03-custom-subject-input");
+  const bodyTextarea = document.getElementById(
+    "gb-sys03-custom-message-textarea"
+  );
+  const targetEl =
+    _sys03ActiveComposerField === "subject" && subjectInput
+      ? subjectInput
+      : bodyTextarea || subjectInput;
+
+  if (!targetEl) return;
+
+  const start =
+    typeof targetEl.selectionStart === "number"
+      ? targetEl.selectionStart
+      : targetEl.value.length;
+  const end =
+    typeof targetEl.selectionEnd === "number"
+      ? targetEl.selectionEnd
+      : targetEl.value.length;
+  const before = targetEl.value.slice(0, start);
+  const after = targetEl.value.slice(end);
+  targetEl.value = `${before}${token}${after}`;
+
+  const nextCursor = start + token.length;
+  try {
+    targetEl.focus();
+    targetEl.setSelectionRange(nextCursor, nextCursor);
+  } catch (_) {}
+
+  updateSys03CustomMessageLivePreview();
+}
+window.insertSys03AttributeToken = insertSys03AttributeToken;
+
+function updateSys03CustomMessageLivePreview() {
+  const contacts = getClientCachedContacts();
+  const sampleContact =
+    contacts.length > 0
+      ? contacts[0]
+      : {
+          first_name: "Sophia",
+          middle_name: "Marie",
+          last_name: "Reyes",
+          company: "Nexus Logistics PH",
+          email: "sophia.reyes@nexuslogistics.example.com",
+          phone: "+63 917 555 0142",
+        };
+
+  const countLabel = document.getElementById("gb-sys03-composer-contact-count");
+  if (countLabel) {
+    countLabel.textContent = `${contacts.length} cached contact${
+      contacts.length === 1 ? "" : "s"
+    }`;
+  }
+
+  const fields = extractNormalizedContactFields(sampleContact);
+  const contactLabelEl = document.getElementById(
+    "gb-sys03-live-preview-contact-label"
+  );
+  if (contactLabelEl) {
+    const fullName = [fields.firstName, fields.middleName, fields.lastName]
+      .filter(Boolean)
+      .join(" ");
+    contactLabelEl.textContent = `Previewing 1st Contact: ${
+      fullName || "Contact #1"
+    } (${fields.emailAddress || "No Email"})`;
+  }
+
+  const subjectInput = document.getElementById("gb-sys03-custom-subject-input");
+  const bodyTextarea = document.getElementById(
+    "gb-sys03-custom-message-textarea"
+  );
+  const rawSubject = subjectInput
+    ? subjectInput.value
+    : SYS03_DEFAULT_SUBJECT_TEMPLATE;
+  const rawBody = bodyTextarea ? bodyTextarea.value : "";
+
+  const previewSubjectEl = document.getElementById(
+    "gb-sys03-live-preview-subject"
+  );
+  if (previewSubjectEl) {
+    previewSubjectEl.textContent =
+      resolveCustomMessageAttributes(rawSubject, sampleContact) ||
+      "(Empty subject)";
+  }
+
+  const previewBodyEl = document.getElementById("gb-sys03-live-preview-body");
+  if (previewBodyEl) {
+    const resolvedBody = resolveCustomMessageAttributes(rawBody, sampleContact);
+    previewBodyEl.textContent =
+      resolvedBody ||
+      "(Type your custom message above or click an attribute chip like [[First Name]] to preview live resolution)";
+  }
+}
+window.updateSys03CustomMessageLivePreview = updateSys03CustomMessageLivePreview;
+
+function openSys03CreateCustomMessageModal(triggerBtn) {
+  if (triggerBtn && typeof triggerBtn.blur === "function") {
+    try {
+      triggerBtn.blur();
+    } catch (_) {}
+  }
+
+  const contacts = getClientCachedContacts();
+  if (!Array.isArray(contacts) || contacts.length === 0) {
+    return openSys03PrereqGuardModal("import_contacts");
+  }
+
+  const modal = document.getElementById("gb-sys03-custom-message-modal");
+  if (!modal) return null;
+
+  const cachedMsg = getClientCachedCustomMessage();
+  const subjectInput = document.getElementById("gb-sys03-custom-subject-input");
+  const bodyTextarea = document.getElementById(
+    "gb-sys03-custom-message-textarea"
+  );
+
+  if (subjectInput) {
+    subjectInput.value =
+      cachedMsg && cachedMsg.subject
+        ? cachedMsg.subject
+        : SYS03_DEFAULT_SUBJECT_TEMPLATE;
+  }
+  if (bodyTextarea) {
+    bodyTextarea.value =
+      cachedMsg && typeof cachedMsg.message === "string" && cachedMsg.message.trim()
+        ? cachedMsg.message
+        : SYS03_DEFAULT_BODY_TEMPLATE;
+  }
+
+  const badgeEl = document.getElementById("gb-sys03-custom-msg-status-badge");
+  if (badgeEl) {
+    badgeEl.style.display = "none";
+    badgeEl.innerHTML = "";
+  }
+
+  setSys03ActiveComposerField("body");
+  updateSys03CustomMessageLivePreview();
+  modal.hidden = false;
+  return modal;
+}
+window.openSys03CreateCustomMessageModal = openSys03CreateCustomMessageModal;
+
+function closeSys03CreateCustomMessageModal() {
+  const modal = document.getElementById("gb-sys03-custom-message-modal");
+  if (modal) modal.hidden = true;
+}
+window.closeSys03CreateCustomMessageModal = closeSys03CreateCustomMessageModal;
+
+async function saveSys03CustomMessage() {
+  const subjectInput = document.getElementById("gb-sys03-custom-subject-input");
+  const bodyTextarea = document.getElementById(
+    "gb-sys03-custom-message-textarea"
+  );
+  const badgeEl = document.getElementById("gb-sys03-custom-msg-status-badge");
+  const saveBtn = document.getElementById("gb-sys03-save-custom-msg-btn");
+
+  const subjectVal =
+    (subjectInput && subjectInput.value.trim()) ||
+    SYS03_DEFAULT_SUBJECT_TEMPLATE;
+  const bodyVal = (bodyTextarea && bodyTextarea.value.trim()) || "";
+
+  if (!bodyVal) {
+    if (badgeEl) {
+      badgeEl.style.display = "flex";
+      badgeEl.style.borderColor = "rgba(248, 113, 113, 0.45)";
+      badgeEl.style.color = "#fca5a5";
+      badgeEl.innerHTML =
+        '<i class="fas fa-exclamation-circle"></i> <span>Please enter a custom message body before saving.</span>';
+    }
+    return null;
+  }
+
+  // 1. Save immediately in Client Browser Cache (localStorage: gb_portfolio_client_custom_message_v1)
+  const savedLocal = saveClientCachedCustomMessage(subjectVal, bodyVal);
+
+  if (saveBtn) saveBtn.disabled = true;
+  if (badgeEl) {
+    badgeEl.style.display = "flex";
+    badgeEl.style.borderColor = "rgba(56, 189, 248, 0.45)";
+    badgeEl.style.color = "#7dd3fc";
+    badgeEl.innerHTML =
+      '<i class="fas fa-circle-notch fa-spin"></i> <span>Saving custom message to browser session &amp; syncing Compose.xlsx (Sheet1 Col A)...</span>';
+  }
+
+  // 2. Simultaneously append to Compose.xlsx -> Sheet1 -> Column A via backend proxy
+  try {
+    await fetch("/api/glennbot/sys03/save-custom-message", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        actionMode: "save_custom_message",
+        workbook_id: "Compose.xlsx",
+        sheet_name: "Sheet1",
+        subject: subjectVal,
+        message: bodyVal,
+        row: {
+          A: bodyVal,
+        },
+      }),
+    });
+  } catch (_) {}
+
+  if (saveBtn) saveBtn.disabled = false;
+  if (badgeEl) {
+    badgeEl.style.display = "flex";
+    badgeEl.style.borderColor = "rgba(16, 185, 129, 0.45)";
+    badgeEl.style.color = "#6ee7b7";
+    badgeEl.innerHTML =
+      '<i class="fas fa-check-circle"></i> <span>Custom message saved to your browser session! Ready for Send Batch Email.</span>';
+  }
+
+  return savedLocal;
+}
+window.saveSys03CustomMessage = saveSys03CustomMessage;
+
+function buildSys03StatusBadgeHtml(statusText = "Waiting") {
+  const clean = String(statusText || "Waiting").trim();
+  const lower = clean.toLowerCase();
+  if (lower === "done") {
+    return `<span class="gb-sys03-status-badge is-done" data-status="Done" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(16,185,129,0.16);border:1px solid rgba(16,185,129,0.5);color:#34d399;font-size:11.5px;font-weight:800;"><i class="fas fa-check-circle"></i><span>Done</span></span>`;
+  }
+  if (lower === "sending") {
+    return `<span class="gb-sys03-status-badge is-sending" data-status="Sending" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(14,165,233,0.18);border:1px solid rgba(56,189,248,0.6);color:#38bdf8;font-size:11.5px;font-weight:800;box-shadow:0 0 12px rgba(56,189,248,0.28);"><i class="fas fa-circle-notch fa-spin"></i><span>Sending</span></span>`;
+  }
+  return `<span class="gb-sys03-status-badge is-waiting" data-status="Waiting" style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(245,158,11,0.14);border:1px solid rgba(245,158,11,0.42);color:#fbbf24;font-size:11.5px;font-weight:800;"><i class="fas fa-clock"></i><span>Waiting</span></span>`;
+}
+window.buildSys03StatusBadgeHtml = buildSys03StatusBadgeHtml;
+
+function renderSys03BatchEmailQueueTable() {
+  const tbody = document.getElementById("gb-sys03-batch-email-tbody");
+  const summaryEl = document.getElementById("gb-sys03-batch-summary-counts");
+  const subjectPreviewEl = document.getElementById(
+    "gb-sys03-batch-subject-preview"
+  );
+  if (!tbody) return;
+
+  const contacts = getClientCachedContacts();
+  const cachedMsg = getClientCachedCustomMessage();
+  const rawTemplate =
+    (cachedMsg && cachedMsg.message) || SYS03_DEFAULT_BODY_TEMPLATE;
+  const rawSubject =
+    (cachedMsg && cachedMsg.subject) || SYS03_DEFAULT_SUBJECT_TEMPLATE;
+
+  if (subjectPreviewEl) {
+    subjectPreviewEl.textContent = rawSubject;
+  }
+
+  let waitingCount = 0;
+  let sendingCount = 0;
+  let doneCount = 0;
+
+  const rowsHtml = contacts
+    .map((contact, idx) => {
+      const fields = extractNormalizedContactFields(contact);
+      const status = String(contact.batch_status || "Waiting").trim();
+      const sLower = status.toLowerCase();
+      if (sLower === "done") doneCount += 1;
+      else if (sLower === "sending") sendingCount += 1;
+      else waitingCount += 1;
+
+      const resolvedMsg = resolveCustomMessageAttributes(rawTemplate, contact);
+      const rowKey =
+        contact.batch_row_key ||
+        buildSys03BatchRowKey("preview", idx, fields.emailAddress);
+
+      return `
+        <tr data-batch-row-index="${idx}" data-batch-row-key="${escapeDmHtml(rowKey)}" style="border-bottom: 1px solid rgba(148, 163, 184, 0.14);">
+          <td id="gb-sys03-batch-status-badge-${idx}" data-col="status" style="padding: 10px 12px; white-space: nowrap;">
+            ${buildSys03StatusBadgeHtml(status)}
+          </td>
+          <td data-col="first_name" style="padding: 10px 12px; color: #f8fafc; font-weight: 600;">
+            ${escapeDmHtml(fields.firstName || "—")}
+          </td>
+          <td data-col="middle_name" style="padding: 10px 12px; color: #cbd5e1;">
+            ${escapeDmHtml(fields.middleName || "—")}
+          </td>
+          <td data-col="last_name" style="padding: 10px 12px; color: #f8fafc; font-weight: 600;">
+            ${escapeDmHtml(fields.lastName || "—")}
+          </td>
+          <td data-col="company_name" style="padding: 10px 12px; color: #38bdf8; font-weight: 600;">
+            ${escapeDmHtml(fields.companyName || "—")}
+          </td>
+          <td data-col="email_address" style="padding: 10px 12px; color: #34d399; font-family: 'JetBrains Mono', monospace; font-size: 11.5px;">
+            ${escapeDmHtml(fields.emailAddress || "—")}
+          </td>
+          <td data-col="contact_number" style="padding: 10px 12px; color: #cbd5e1; font-family: 'JetBrains Mono', monospace; font-size: 11.5px;">
+            ${escapeDmHtml(fields.contactNumber || "—")}
+          </td>
+          <td data-col="personalized_message" style="padding: 10px 12px; color: #e2e8f0; font-size: 12px; line-height: 1.45; max-width: 360px; white-space: pre-wrap;">${escapeDmHtml(
+            resolvedMsg
+          )}</td>
+        </tr>
+      `;
+    })
+    .join("");
+
+  tbody.innerHTML = rowsHtml;
+
+  if (summaryEl) {
+    summaryEl.textContent = `${contacts.length} Total • ${waitingCount} Waiting • ${sendingCount} Sending • ${doneCount} Done`;
+  }
+}
+window.renderSys03BatchEmailQueueTable = renderSys03BatchEmailQueueTable;
+
+function openSys03SendBatchEmailModal(triggerBtn) {
+  if (triggerBtn && typeof triggerBtn.blur === "function") {
+    try {
+      triggerBtn.blur();
+    } catch (_) {}
+  }
+
+  const contacts = getClientCachedContacts();
+  if (!Array.isArray(contacts) || contacts.length === 0) {
+    return openSys03PrereqGuardModal("import_contacts");
+  }
+
+  const cachedMsg = getClientCachedCustomMessage();
+  if (!cachedMsg || !String(cachedMsg.message || "").trim()) {
+    return openSys03PrereqGuardModal("create_custom_message");
+  }
+
+  const modal = document.getElementById("gb-sys03-batch-email-modal");
+  if (!modal) return null;
+
+  const bannerEl = document.getElementById("gb-sys03-batch-status-banner");
+  if (bannerEl && !_sys03BatchSendInFlight) {
+    bannerEl.style.display = "none";
+    bannerEl.innerHTML = "";
+  }
+
+  renderSys03BatchEmailQueueTable();
+  modal.hidden = false;
+  return modal;
+}
+window.openSys03SendBatchEmailModal = openSys03SendBatchEmailModal;
+
+function closeSys03SendBatchEmailModal() {
+  const modal = document.getElementById("gb-sys03-batch-email-modal");
+  if (modal) modal.hidden = true;
+}
+window.closeSys03SendBatchEmailModal = closeSys03SendBatchEmailModal;
+
+function setSys03BatchBanner(text, tone = "info") {
+  const bannerEl = document.getElementById("gb-sys03-batch-status-banner");
+  if (!bannerEl) return;
+  if (!text) {
+    bannerEl.style.display = "none";
+    bannerEl.innerHTML = "";
+    return;
+  }
+  bannerEl.style.display = "flex";
+  if (tone === "done") {
+    bannerEl.style.borderColor = "rgba(16, 185, 129, 0.5)";
+    bannerEl.style.color = "#6ee7b7";
+    bannerEl.innerHTML = `<i class="fas fa-check-circle"></i> <span>${escapeDmHtml(text)}</span>`;
+  } else if (tone === "error") {
+    bannerEl.style.borderColor = "rgba(248, 113, 113, 0.5)";
+    bannerEl.style.color = "#fca5a5";
+    bannerEl.innerHTML = `<i class="fas fa-exclamation-circle"></i> <span>${escapeDmHtml(text)}</span>`;
+  } else {
+    bannerEl.style.borderColor = "rgba(56, 189, 248, 0.5)";
+    bannerEl.style.color = "#7dd3fc";
+    bannerEl.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> <span>${escapeDmHtml(text)}</span>`;
+  }
+}
+
+async function startSys03BatchEmailSend() {
+  if (_sys03BatchSendInFlight) return;
+  const contacts = getClientCachedContacts();
+  if (!Array.isArray(contacts) || contacts.length === 0) {
+    openSys03PrereqGuardModal("import_contacts");
+    return;
+  }
+
+  const cachedMsg = getClientCachedCustomMessage();
+  if (!cachedMsg || !String(cachedMsg.message || "").trim()) {
+    openSys03PrereqGuardModal("create_custom_message");
+    return;
+  }
+
+  _sys03BatchSendInFlight = true;
+  const startBtn = document.getElementById("gb-sys03-start-batch-send-btn");
+  const startLabel = document.getElementById("gb-sys03-start-batch-send-label");
+  if (startBtn) startBtn.disabled = true;
+  if (startLabel) startLabel.textContent = "Dispatching Batch Emails...";
+
+  const sessionId = Date.now().toString(36);
+  const subjectTemplate =
+    cachedMsg.subject || SYS03_DEFAULT_SUBJECT_TEMPLATE;
+  const bodyTemplate = cachedMsg.message;
+
+  try {
+    // =========================================================================
+    // PHASE 1: Queue All Contacts as "Waiting" + Sync to Compose.xlsx (Sheet2)
+    // =========================================================================
+    const queuedContacts = contacts.map((c, idx) => {
+      const fields = extractNormalizedContactFields(c);
+      const batchRowKey = buildSys03BatchRowKey(
+        sessionId,
+        idx,
+        fields.emailAddress
+      );
+      return {
+        ...c,
+        batch_status: "Waiting",
+        batch_row_key: batchRowKey,
+      };
+    });
+    saveClientCachedContacts(queuedContacts);
+    renderSys03BatchEmailQueueTable();
+
+    setSys03BatchBanner(
+      `Phase 1/2: Queued ${queuedContacts.length} contact(s) as 'Waiting' in Compose.xlsx (Sheet2)...`,
+      "info"
+    );
+
+    const waitingSheetRows = queuedContacts.map((c) => {
+      const fields = extractNormalizedContactFields(c);
+      const resolvedMessage = resolveCustomMessageAttributes(bodyTemplate, c);
+      return {
+        workbook_id: "Compose.xlsx",
+        sheet_name: "Sheet2",
+        match_column: "I",
+        match_value: c.batch_row_key,
+        row: {
+          A: "Waiting",
+          B: fields.firstName,
+          C: fields.middleName,
+          D: fields.lastName,
+          E: fields.companyName,
+          F: fields.emailAddress,
+          G: fields.contactNumber,
+          H: resolvedMessage,
+          I: c.batch_row_key,
+        },
+      };
+    });
+
+    try {
+      await fetch("/api/glennbot/sys03/batch-progress", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          actionMode: "queue_batch_waiting",
+          workbook_id: "Compose.xlsx",
+          sheet_name: "Sheet2",
+          rows: waitingSheetRows,
+        }),
+      });
+    } catch (_) {}
+
+    // =========================================================================
+    // PHASE 2: Sequential Live Dispatch (Waiting -> Sending -> Done)
+    // =========================================================================
+    for (let i = 0; i < queuedContacts.length; i += 1) {
+      const currentContact = queuedContacts[i];
+      const fields = extractNormalizedContactFields(currentContact);
+      const batchRowKey = currentContact.batch_row_key;
+      const resolvedSubject = resolveCustomMessageAttributes(
+        subjectTemplate,
+        currentContact
+      );
+      const resolvedBody = resolveCustomMessageAttributes(
+        bodyTemplate,
+        currentContact
+      );
+
+      // Step A: Mark current contact as "Sending" in UI, localStorage, and Compose.xlsx (Sheet2)
+      queuedContacts[i].batch_status = "Sending";
+      saveClientCachedContacts(queuedContacts);
+      renderSys03BatchEmailQueueTable();
+
+      setSys03BatchBanner(
+        `Sending (${i + 1}/${queuedContacts.length}): Dispatching personalized email to ${
+          fields.emailAddress || fields.firstName || "Recipient"
+        }...`,
+        "info"
+      );
+
+      try {
+        await fetch("/api/glennbot/sys03/batch-step", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            actionMode: "mark_batch_sending",
+            workbook_id: "Compose.xlsx",
+            sheet_name: "Sheet2",
+            match_column: "I",
+            match_value: batchRowKey,
+            batchRowKey,
+            row: {
+              A: "Sending",
+              B: fields.firstName,
+              C: fields.middleName,
+              D: fields.lastName,
+              E: fields.companyName,
+              F: fields.emailAddress,
+              G: fields.contactNumber,
+              H: resolvedBody,
+              I: batchRowKey,
+            },
+          }),
+        });
+      } catch (_) {}
+
+      // Step B: Send Personalized Email via GlennBot + Update Compose.xlsx (Sheet2) to "Done"
+      try {
+        await fetch("/api/glennbot/sys03/batch-step", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            actionMode: "send_and_mark_done",
+            workbook_id: "Compose.xlsx",
+            sheet_name: "Sheet2",
+            match_column: "I",
+            match_value: batchRowKey,
+            batchRowKey,
+            to: fields.emailAddress,
+            subject: resolvedSubject,
+            body: resolvedBody,
+            row: {
+              A: "Done",
+              B: fields.firstName,
+              C: fields.middleName,
+              D: fields.lastName,
+              E: fields.companyName,
+              F: fields.emailAddress,
+              G: fields.contactNumber,
+              H: resolvedBody,
+              I: batchRowKey,
+            },
+          }),
+        });
+      } catch (_) {}
+
+      queuedContacts[i].batch_status = "Done";
+      saveClientCachedContacts(queuedContacts);
+      renderSys03BatchEmailQueueTable();
+    }
+
+    setSys03BatchBanner(
+      `✓ Batch Email Outreach Complete! All ${queuedContacts.length} personalized email(s) dispatched and marked 'Done' in Compose.xlsx (Sheet2).`,
+      "done"
+    );
+  } finally {
+    _sys03BatchSendInFlight = false;
+    if (startBtn) startBtn.disabled = false;
+    if (startLabel) startLabel.textContent = "Start Batch Email Send";
+  }
+}
+window.startSys03BatchEmailSend = startSys03BatchEmailSend;
+
 (function () {
   const STORAGE_KEY = "glenn_portfolio_theme";
 
